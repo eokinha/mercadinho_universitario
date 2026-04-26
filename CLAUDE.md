@@ -9,6 +9,19 @@ Marketplace universitário onde estudantes encontram lojas dentro de instituiç�
 - Tailwind CSS
 - Supabase (`@supabase/supabase-js`)
 
+### Deploy (Vercel)
+
+No painel do projeto: **Settings → Environment Variables** defina, para cada ambiente
+em que a build roda (Production, Preview, Development):
+
+- `NEXT_PUBLIC_SUPABASE_URL` — URL do projeto (ex.: `https://xxxxx.supabase.co`)
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — ou, na ausência, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+O cliente em `src/lib/supabase.ts` só valida e cria o cliente no **primeiro uso**;
+assim a build não quebra na importação do módulo, mas a aplicação exige as variáveis
+acima em runtime e, se a build executar `getServerSideProps` com essas chaves, também
+no ambiente de build. Sem isso, páginas que consultam o Supabase falham ao acessar.
+
 ---
 
 ## Estrutura de pastas
