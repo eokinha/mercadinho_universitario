@@ -7,6 +7,7 @@ interface Props {
   produtos: ProdutoListagem[];
   onProdutoClick: (produto: ProdutoListagem) => void;
   verMaisHref?: string;
+  onVerMaisClick?: () => void;
 }
 
 export default function CarrosselCategoria({
@@ -14,6 +15,7 @@ export default function CarrosselCategoria({
   produtos,
   onProdutoClick,
   verMaisHref,
+  onVerMaisClick,
 }: Props) {
   return (
     <section className="mb-10">
@@ -26,6 +28,13 @@ export default function CarrosselCategoria({
           >
             Ver mais →
           </Link>
+        ) : onVerMaisClick ? (
+          <button
+            onClick={onVerMaisClick}
+            className="text-[#FF385C] text-sm font-medium hover:underline focus:outline-none"
+          >
+            Ver mais →
+          </button>
         ) : (
           <span className="text-gray-400 text-xs">
             {produtos.length} {produtos.length === 1 ? "item" : "itens"}

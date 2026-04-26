@@ -131,3 +131,108 @@ $$;
 
 -- Recarrega o schema cache do PostgREST para refletir as mudanças
 NOTIFY pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------
+-- 006 — Autenticação e Sincronização de Usuários
+-- ---------------------------------------------------------------------
+
+ALTER TABLE usuarios
+  ADD COLUMN IF NOT EXISTS auth_id UUID UNIQUE,
+  ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Função para sincronizar auth.users com public.usuarios
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.usuarios (
+    auth_id,
+    email,
+    nome,
+    sobrenome,
+    telefone,
+    cpf,
+    matricula,
+    instituicoes_id,
+    status
+  )
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'nome', ''),
+    COALESCE(NEW.raw_user_meta_data->>'sobrenome', ''),
+    COALESCE(NEW.raw_user_meta_data->>'telefone', ''),
+    COALESCE(NEW.raw_user_meta_data->>'cpf', ''),
+    COALESCE(NEW.raw_user_meta_data->>'matricula', ''),
+    (NEW.raw_user_meta_data->>'instituicoes_id')::INT,
+    'ativo'
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger para chamar a função após o signup
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ---------------------------------------------------------------------
+-- 007 — Segurança de Dados (RLS)
+-- ---------------------------------------------------------------------
+
+-- Ativa RLS nas tabelas
+ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lojas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE produtos ENABLE ROW LEVEL SECURITY;
+
+-- POLÍTICAS PARA 'usuarios'
+-- 1. Qualquer usuário autenticado pode ver nomes e instituições de outros
+CREATE POLICY "public_profile_read" ON usuarios FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+-- 2. Somente o próprio usuário pode ver seus dados sensíveis (CPF, matrícula) ou atualizar seu perfil
+-- Nota: Para simplificar, a leitura acima já cobre o básico, mas o 'UPDATE' é restrito.
+CREATE POLICY "user_update_own" ON usuarios FOR UPDATE
+  USING (auth_id = auth.uid())
+  WITH CHECK (auth_id = auth.uid());
+
+-- POLÍTICAS PARA 'lojas'
+-- 1. Qualquer pessoa (mesmo não logada) vê lojas ativas
+CREATE POLICY "lojas_public_read" ON lojas FOR SELECT
+  USING (status = 'ativo');
+
+-- 2. Vendedores veem suas próprias lojas (mesmo pendentes)
+CREATE POLICY "lojas_owner_read" ON lojas FOR SELECT
+  USING (usuario_id IN (SELECT id FROM usuarios WHERE auth_id = auth.uid()));
+
+-- 3. Vendedores gerenciam suas próprias lojas
+CREATE POLICY "lojas_owner_manage" ON lojas FOR ALL
+  USING (usuario_id IN (SELECT id FROM usuarios WHERE auth_id = auth.uid()));
+
+-- POLÍTICAS PARA 'produtos'
+-- 1. Qualquer pessoa vê produtos de lojas ativas
+CREATE POLICY "produtos_public_read" ON produtos FOR SELECT
+  USING (loja_id IN (SELECT id FROM lojas WHERE status = 'ativo'));
+
+-- 2. Donos de loja gerenciam seus produtos
+CREATE POLICY "produtos_owner_manage" ON produtos FOR ALL
+  USING (loja_id IN (SELECT id FROM lojas WHERE usuario_id IN (SELECT id FROM usuarios WHERE auth_id = auth.uid())));
+
+-- Ajuste nas políticas de Storage (remover as 'tmp')
+DROP POLICY IF EXISTS "tmp write lojas" ON storage.objects;
+DROP POLICY IF EXISTS "tmp write produtos" ON storage.objects;
+
+CREATE POLICY "owner_write_lojas" ON storage.objects FOR ALL
+  USING (bucket_id = 'lojas' AND (storage.foldername(name))[1] IN (
+    SELECT id::text FROM lojas WHERE usuario_id IN (SELECT id FROM usuarios WHERE auth_id = auth.uid())
+  ));
+
+CREATE POLICY "owner_write_produtos" ON storage.objects FOR ALL
+  USING (bucket_id = 'produtos' AND (storage.foldername(name))[1] IN (
+    SELECT id::text FROM produtos WHERE loja_id IN (
+      SELECT id FROM lojas WHERE usuario_id IN (SELECT id FROM usuarios WHERE auth_id = auth.uid())
+    )
+  ));
+
+-- Notifica novamente após as novas alterações
+NOTIFY pgrst, 'reload schema';

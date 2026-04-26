@@ -4,6 +4,7 @@ import { useState } from "react";
 import CardProduto from "@/components/CardProduto";
 import FiltroBarProdutos from "@/components/FiltroBarProdutos";
 import ModalProduto from "@/components/ModalProduto";
+import { createServerClient } from "@/lib/supabase";
 import {
   getCategorias,
   getInstituicoes,
@@ -52,6 +53,8 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const categoriaSelecionada = parseId(ctx.query.categoria);
   const ordenacao = parseOrdenacao(ctx.query.ordenar);
 
+  const supabase = createServerClient(ctx);
+
   const [produtos, categorias, instituicoes] = await Promise.all([
     getProdutosFiltrados({
       ...(q ? { q } : {}),
@@ -62,9 +65,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
         categoria_id: categoriaSelecionada,
       }),
       ordenar: ordenacao,
-    }),
-    getCategorias(),
-    getInstituicoes(),
+    }, supabase),
+    getCategorias(supabase),
+    getInstituicoes(supabase),
   ]);
 
   return {

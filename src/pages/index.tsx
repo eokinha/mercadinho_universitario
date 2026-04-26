@@ -1,11 +1,14 @@
 import type { GetServerSideProps } from "next";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CarrosselCategoria from "@/components/CarrosselCategoria";
 import HeroSection from "@/components/HeroSection";
 import ModalProduto from "@/components/ModalProduto";
+import ModalLoginPrompt from "@/components/ModalLoginPrompt";
+import { createServerClient, supabase } from "@/lib/supabase";
 import { getProdutosAgrupadosPorCategoria } from "@/lib/queries";
 import type { GrupoCategoria, ProdutoListagem } from "@/types";
+import type { User } from "@supabase/supabase-js";
 
 interface Props {
   grupos: GrupoCategoria[];
@@ -14,11 +17,12 @@ interface Props {
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const q = typeof ctx.query.q === "string" ? ctx.query.q.trim() : "";
+  const supabase = createServerClient(ctx);
 
   const grupos = await getProdutosAgrupadosPorCategoria({
     apenasDestaque: true,
     ...(q ? { q } : {}),
-  });
+  }, supabase);
 
   return {
     props: {
@@ -29,9 +33,29 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 };
 
 export default function Home({ grupos, q }: Props) {
-  const [produtoAtivo, setProdutoAtivo] = useState<ProdutoListagem | null>(
-    null
-  );
+  const [produtoAtivo, setProdutoAtivo] = useState<ProdutoListagem | null>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  function handleProdutoClick(produto: ProdutoListagem) {
+    if (!user) {
+      setShowLoginPrompt(true);
+    } else {
+      setProdutoAtivo(produto);
+    }
+  }
 
   return (
     <>
@@ -68,25 +92,40 @@ export default function Home({ grupos, q }: Props) {
               key={grupo.categoria.id}
               categoria={grupo.categoria}
               produtos={grupo.produtos}
-              onProdutoClick={setProdutoAtivo}
-              verMaisHref={`/listagem?categoria=${grupo.categoria.id}`}
+              onProdutoClick={handleProdutoClick}
+              verMaisHref={user ? `/listagem?categoria=${grupo.categoria.id}` : undefined}
+              onVerMaisClick={!user ? () => setShowLoginPrompt(true) : undefined}
             />
           ))
         )}
 
         <div className="max-w-6xl mx-auto px-4 mt-8 flex justify-center">
-          <Link
-            href="/listagem"
-            className="bg-[#FF385C] text-white rounded-lg hover:bg-[#e0314f] transition px-8 py-3 font-medium"
-          >
-            Ver todos os produtos
-          </Link>
+          {user ? (
+            <Link
+              href="/listagem"
+              className="bg-[#FF385C] text-white rounded-lg hover:bg-[#e0314f] transition px-8 py-3 font-medium"
+            >
+              Ver todos os produtos
+            </Link>
+          ) : (
+            <button
+              onClick={() => setShowLoginPrompt(true)}
+              className="bg-[#FF385C] text-white rounded-lg hover:bg-[#e0314f] transition px-8 py-3 font-medium"
+            >
+              Ver todos os produtos
+            </button>
+          )}
         </div>
       </section>
 
       <ModalProduto
         produto={produtoAtivo}
         onFechar={() => setProdutoAtivo(null)}
+      />
+
+      <ModalLoginPrompt 
+        isOpen={showLoginPrompt} 
+        onClose={() => setShowLoginPrompt(false)} 
       />
     </>
   );

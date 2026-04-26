@@ -1,54 +1,37 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient, createServerClient as createSupabaseServerClient, type CookieOptions } from "@supabase/ssr";
+import { type GetServerSidePropsContext } from "next";
 
-function getEnvSupabase() {
-  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
-  const key = (
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-    ""
-  ).trim();
-  return { url, key };
-}
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+  "";
 
-function createSupabaseOrThrow(): SupabaseClient {
-  const { url, key } = getEnvSupabase();
+/**
+ * Cliente para uso no Browser (lado do cliente).
+ */
+export const createClient = () => {
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+};
 
-  if (!/^https?:\/\//.test(url)) {
-    throw new Error(
-      "NEXT_PUBLIC_SUPABASE_URL ausente ou inválida. " +
-        "Defina a URL pública do projeto (https://...supabase.co) " +
-        "em .env.local (dev) e em Vercel: Project → Settings → Environment Variables " +
-        "(incluindo o ambiente usado no build, ex.: Production e Preview)."
-    );
-  }
+// Cliente singleton para uso rápido no browser
+export const supabase = createClient();
 
-  if (!key) {
-    throw new Error(
-      "Chave do Supabase ausente. " +
-        "Defina NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (ou NEXT_PUBLIC_SUPABASE_ANON_KEY) " +
-        "em .env.local (dev) e na Vercel (mesmas variáveis, disponíveis no build)."
-    );
-  }
-
-  return createClient(url, key);
-}
-
-let _client: SupabaseClient | null = null;
-
-function getClient(): SupabaseClient {
-  if (!_client) {
-    _client = createSupabaseOrThrow();
-  }
-  return _client;
-}
-
-export const supabase = new Proxy({} as SupabaseClient, {
-  get(_target, prop, receiver) {
-    const client = getClient();
-    const value = Reflect.get(client as object, prop, receiver);
-    if (typeof value === "function") {
-      return value.bind(client);
-    }
-    return value;
-  },
-});
+/**
+ * Cliente para uso no Servidor (getServerSideProps).
+ */
+export const createServerClient = (context: GetServerSidePropsContext) => {
+  return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        return context.req.cookies[name];
+      },
+      set(name: string, value: string, _options: CookieOptions) {
+        context.res.setHeader("Set-Cookie", `${name}=${value}; Path=/; HttpOnly`);
+      },
+      remove(name: string, _options: CookieOptions) {
+        context.res.setHeader("Set-Cookie", `${name}=; Path=/; HttpOnly; Max-Age=0`);
+      },
+    },
+  });
+};

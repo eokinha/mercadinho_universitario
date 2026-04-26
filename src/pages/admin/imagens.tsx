@@ -1,7 +1,7 @@
 import type { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createServerClient } from "@/lib/supabase";
 import {
   uploadImagemLoja,
   uploadImagemProduto,
@@ -46,14 +46,32 @@ function pickFirst<T>(value: T | T[] | null | undefined): T | undefined {
   return value ?? undefined;
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async () => {
-  const { data: lojasData, error: lojasError } = await supabase
+export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
+  const supabaseServer = createServerClient(ctx);
+  const { data: { user } } = await supabaseServer.auth.getUser();
+
+  if (!user) {
+    return { redirect: { destination: "/login", permanent: false } };
+  }
+
+  // Verifica se é admin na tabela usuarios
+  const { data: usuario } = await supabaseServer
+    .from("usuarios")
+    .select("is_admin")
+    .eq("auth_id", user.id)
+    .maybeSingle();
+
+  if (!usuario?.is_admin) {
+    return { redirect: { destination: "/", permanent: false } };
+  }
+
+  const { data: lojasData, error: lojasError } = await supabaseServer
     .from("lojas")
     .select("id, nome, status, avatar_url, capa_url")
     .order("id", { ascending: true });
   if (lojasError) throw lojasError;
 
-  const { data: produtosData, error: produtosError } = await supabase
+  const { data: produtosData, error: produtosError } = await supabaseServer
     .from("produtos")
     .select("id, nome, preco, imagem_url, lojas!inner(nome)")
     .order("id", { ascending: true });

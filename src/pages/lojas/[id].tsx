@@ -1,5 +1,6 @@
 import type { GetServerSideProps } from "next";
 import Link from "next/link";
+import { createServerClient } from "@/lib/supabase";
 import { formatarTelefone, linkWhatsapp } from "@/lib/contato";
 import { getLojaById, getProdutosByLoja } from "@/lib/queries";
 import type { Loja, Produto } from "@/types";
@@ -37,12 +38,14 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     return { notFound: true };
   }
 
-  const loja = await getLojaById(id);
+  const supabase = createServerClient(ctx);
+
+  const loja = await getLojaById(id, supabase);
   if (!loja || loja.status !== "ativo") {
     return { notFound: true };
   }
 
-  const produtos = await getProdutosByLoja(id);
+  const produtos = await getProdutosByLoja(id, supabase);
 
   return { props: { loja, produtos } };
 };

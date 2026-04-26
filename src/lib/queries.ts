@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { supabase as defaultClient } from "@/lib/supabase";
 import type {
   Categoria,
   GrupoCategoria,
@@ -8,20 +8,21 @@ import type {
   Produto,
   ProdutoListagem,
 } from "@/types";
+import { type SupabaseClient } from "@supabase/supabase-js";
 
 interface GetLojasFiltros {
   instituicao_id?: number;
   categoria_id?: number;
 }
 
-export async function getLojas(filtros: GetLojasFiltros = {}): Promise<Loja[]> {
+export async function getLojas(filtros: GetLojasFiltros = {}, client: SupabaseClient = defaultClient): Promise<Loja[]> {
   const { instituicao_id, categoria_id } = filtros;
 
   const selectClause = categoria_id
     ? "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, usuarios!inner(instituicoes_id), produtos!inner(categoria_id)"
     : "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, usuarios!inner(instituicoes_id)";
 
-  let query = supabase
+  let query = client
     .from("lojas")
     .select(selectClause)
     .eq("status", "ativo");
@@ -56,8 +57,8 @@ export async function getLojas(filtros: GetLojasFiltros = {}): Promise<Loja[]> {
   return lojas;
 }
 
-export async function getLojaById(id: number): Promise<Loja | null> {
-  const { data, error } = await supabase
+export async function getLojaById(id: number, client: SupabaseClient = defaultClient): Promise<Loja | null> {
+  const { data, error } = await client
     .from("lojas")
     .select(
       "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url"
@@ -70,8 +71,8 @@ export async function getLojaById(id: number): Promise<Loja | null> {
   return (data as Loja | null) ?? null;
 }
 
-export async function getCategorias(): Promise<Categoria[]> {
-  const { data, error } = await supabase
+export async function getCategorias(client: SupabaseClient = defaultClient): Promise<Categoria[]> {
+  const { data, error } = await client
     .from("categorias")
     .select("id, nome")
     .order("nome", { ascending: true });
@@ -80,8 +81,8 @@ export async function getCategorias(): Promise<Categoria[]> {
   return (data ?? []) as Categoria[];
 }
 
-export async function getInstituicoes(): Promise<Instituicao[]> {
-  const { data, error } = await supabase
+export async function getInstituicoes(client: SupabaseClient = defaultClient): Promise<Instituicao[]> {
+  const { data, error } = await client
     .from("instituicoes")
     .select("id, nome, cnpj")
     .order("nome", { ascending: true });
@@ -90,11 +91,41 @@ export async function getInstituicoes(): Promise<Instituicao[]> {
   return (data ?? []) as Instituicao[];
 }
 
-export async function getProdutosByLoja(lojaId: number): Promise<Produto[]> {
-  const loja = await getLojaById(lojaId);
+export async function getLojaByAuthId(authId: string, client: SupabaseClient = defaultClient): Promise<Loja | null> {
+  const { data: usuario, error: userError } = await client
+    .from("usuarios")
+    .select("id")
+    .eq("auth_id", authId)
+    .maybeSingle();
+
+  if (userError || !usuario) return null;
+
+  const { data: loja, error: lojaError } = await client
+    .from("lojas")
+    .select("id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url")
+    .eq("usuario_id", usuario.id)
+    .maybeSingle();
+
+  if (lojaError) throw lojaError;
+  return (loja as Loja | null) ?? null;
+}
+
+export async function getProdutosPrivados(lojaId: number, client: SupabaseClient = defaultClient): Promise<Produto[]> {
+  const { data, error } = await client
+    .from("produtos")
+    .select("id, loja_id, nome, descricao, preco, imagem_url, status, criado_em, categoria_id, destaque")
+    .eq("loja_id", lojaId)
+    .order("criado_em", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as Produto[];
+}
+
+export async function getProdutosByLoja(lojaId: number, client: SupabaseClient = defaultClient): Promise<Produto[]> {
+  const loja = await getLojaById(lojaId, client);
   if (!loja) return [];
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("produtos")
     .select(
       "id, loja_id, nome, descricao, preco, imagem_url, status, criado_em, categoria_id, destaque"
@@ -163,9 +194,10 @@ interface GetProdutosAgrupadosOpts {
 }
 
 export async function getProdutosAgrupadosPorCategoria(
-  opts: GetProdutosAgrupadosOpts = {}
+  opts: GetProdutosAgrupadosOpts = {},
+  client: SupabaseClient = defaultClient
 ): Promise<GrupoCategoria[]> {
-  let query = supabase
+  let query = client
     .from("produtos")
     .select(
       `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque,
@@ -215,11 +247,12 @@ interface GetProdutosFiltradosOpts {
 }
 
 export async function getProdutosFiltrados(
-  opts: GetProdutosFiltradosOpts = {}
+  opts: GetProdutosFiltradosOpts = {},
+  client: SupabaseClient = defaultClient
 ): Promise<ProdutoListagem[]> {
   const { q, categoria_id, instituicao_id, ordenar = "recentes" } = opts;
 
-  let query = supabase
+  let query = client
     .from("produtos")
     .select(
       `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque, criado_em,
