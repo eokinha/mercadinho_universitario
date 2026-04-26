@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getInstituicoes } from "@/lib/queries";
+import { formatarCPF, formatarTelefone, validarCPF, validarEmail } from "@/lib/validacoes";
 import type { Instituicao } from "@/types";
 
 export default function CadastroPage() {
@@ -31,6 +32,25 @@ export default function CadastroPage() {
     setLoading(true);
     setError(null);
 
+    // Validações antes de enviar
+    if (!validarEmail(formData.email)) {
+      setError("Por favor, insira um e-mail válido.");
+      setLoading(false);
+      return;
+    }
+
+    if (!validarCPF(formData.cpf)) {
+      setError("CPF inválido. Verifique os números digitados.");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.telefone.replace(/\D/g, "").length < 10) {
+      setError("Telefone inválido. Insira o DDD e o número.");
+      setLoading(false);
+      return;
+    }
+
     const { email, password, nome, sobrenome, telefone, cpf, matricula, instituicoes_id } = formData;
 
     const { error: signUpError } = await supabase.auth.signUp({
@@ -40,8 +60,8 @@ export default function CadastroPage() {
         data: {
           nome,
           sobrenome,
-          telefone,
-          cpf,
+          telefone: telefone.replace(/\D/g, ""), // Salva apenas números
+          cpf: cpf.replace(/\D/g, ""),           // Salva apenas números
           matricula,
           instituicoes_id: parseInt(instituicoes_id),
         },
@@ -49,10 +69,11 @@ export default function CadastroPage() {
     });
 
     if (signUpError) {
+      console.error("Erro no cadastro:", signUpError);
       setError(signUpError.message);
       setLoading(false);
     } else {
-      router.push("/login?msg=Verifique seu e-mail para confirmar o cadastro.");
+      router.push("/login?msg=Cadastro realizado com sucesso! Você já pode entrar.");
     }
   }
 
@@ -64,7 +85,7 @@ export default function CadastroPage() {
         <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">Criar conta</h1>
         
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
+          <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 animate-in fade-in duration-200">
             {error}
           </div>
         )}
@@ -98,6 +119,7 @@ export default function CadastroPage() {
             <input
               type="email"
               required
+              placeholder="exemplo@email.com"
               className={inputClass}
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -110,6 +132,7 @@ export default function CadastroPage() {
               type="password"
               required
               minLength={6}
+              placeholder="Mínimo 6 caracteres"
               className={inputClass}
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -125,7 +148,7 @@ export default function CadastroPage() {
                 placeholder="(00) 00000-0000"
                 className={inputClass}
                 value={formData.telefone}
-                onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, telefone: formatarTelefone(e.target.value) })}
               />
             </div>
             <div>
@@ -133,9 +156,10 @@ export default function CadastroPage() {
               <input
                 type="text"
                 required
+                placeholder="000.000.000-00"
                 className={inputClass}
                 value={formData.cpf}
-                onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, cpf: formatarCPF(e.target.value) })}
               />
             </div>
           </div>
@@ -172,15 +196,15 @@ export default function CadastroPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#FF385C] text-white font-semibold py-3 rounded-lg hover:bg-[#e0314f] transition disabled:opacity-50 mt-4"
+            className="w-full bg-[#FF385C] text-white font-semibold py-3 rounded-lg hover:bg-[#e0314f] transition disabled:opacity-50 mt-4 shadow-sm"
           >
-            {loading ? "Criando conta..." : "Cadastrar"}
+            {loading ? "Processando..." : "Finalizar Cadastro"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-500">
-          Já tem uma conta?{" "}
-          <Link href="/login" className="text-[#FF385C] font-semibold hover:underline">
+          Já possui conta?{" "}
+          <Link href="/login" className="text-[#FF385C] font-semibold hover:underline transition">
             Entrar
           </Link>
         </p>
