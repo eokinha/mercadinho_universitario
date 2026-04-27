@@ -85,7 +85,7 @@ export default function ModalProduto({ produto, onFechar }: Props) {
         </button>
 
         <div className="grid grid-cols-1 md:grid-cols-2">
-          <div className="aspect-square bg-gray-100">
+          <div className="aspect-square w-full h-full bg-gray-100">
             {produto.imagem_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -146,7 +146,7 @@ export default function ModalProduto({ produto, onFechar }: Props) {
             <div className="mt-auto flex flex-col sm:flex-row gap-2">
               <Link
                 href={`/lojas/${produto.loja_id}`}
-                className="border border-gray-300 text-gray-800 rounded-lg hover:border-gray-800 transition px-4 py-2 font-medium text-center flex-1"
+                className="border border-gray-300 text-gray-800 rounded-lg hover:border-gray-800 transition px-4 py-2 font-medium text-center"
               >
                 Visitar loja
               </Link>

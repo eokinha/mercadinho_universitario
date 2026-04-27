@@ -196,6 +196,24 @@ CREATE POLICY "user_update_own" ON usuarios FOR UPDATE
   USING (auth_id = auth.uid())
   WITH CHECK (auth_id = auth.uid());
 
+-- Catálogo sem login: join usuarios!inner em listagem/filtros (chave anon).
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'usuarios'
+      AND policyname = 'usuarios_read_if_dono_loja_ativa'
+  ) THEN
+    CREATE POLICY "usuarios_read_if_dono_loja_ativa" ON usuarios FOR SELECT
+      USING (
+        EXISTS (
+          SELECT 1 FROM lojas
+          WHERE lojas.usuario_id = usuarios.id AND lojas.status = 'ativo'
+        )
+      );
+  END IF;
+END $$;
+
 -- POLÍTICAS PARA 'lojas'
 -- 1. Qualquer pessoa (mesmo não logada) vê lojas ativas
 CREATE POLICY "lojas_public_read" ON lojas FOR SELECT

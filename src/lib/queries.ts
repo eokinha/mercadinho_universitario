@@ -137,6 +137,28 @@ export async function getProdutosByLoja(lojaId: number, client: SupabaseClient =
   return (data ?? []) as Produto[];
 }
 
+export async function getProdutosListagemByLoja(lojaId: number, client: SupabaseClient = defaultClient): Promise<ProdutoListagem[]> {
+  const { data, error } = await client
+    .from("produtos")
+    .select(
+      `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque,
+       categorias!inner(id, nome),
+       lojas!inner(id, nome, descricao, contato, status, avatar_url, capa_url)`
+    )
+    .eq("loja_id", lojaId)
+    .eq("lojas.status", "ativo")
+    .order("criado_em", { ascending: false });
+
+  if (error) throw error;
+
+  const produtos: ProdutoListagem[] = [];
+  for (const item of (data ?? []) as unknown as ProdutoComJoinsRaw[]) {
+    const produto = mapearProdutoListagem(item);
+    if (produto) produtos.push(produto);
+  }
+  return produtos;
+}
+
 interface LojaJoinRaw {
   id: number;
   nome: string;
@@ -244,13 +266,14 @@ interface GetProdutosFiltradosOpts {
   categoria_id?: number;
   instituicao_id?: number;
   ordenar?: OrdenacaoProdutos;
+  apenasDestaque?: boolean;
 }
 
 export async function getProdutosFiltrados(
   opts: GetProdutosFiltradosOpts = {},
   client: SupabaseClient = defaultClient
 ): Promise<ProdutoListagem[]> {
-  const { q, categoria_id, instituicao_id, ordenar = "recentes" } = opts;
+  const { q, categoria_id, instituicao_id, ordenar = "recentes", apenasDestaque } = opts;
 
   let query = client
     .from("produtos")
@@ -263,6 +286,7 @@ export async function getProdutosFiltrados(
 
   if (q) query = query.ilike("nome", `%${q}%`);
   if (categoria_id) query = query.eq("categoria_id", categoria_id);
+  if (apenasDestaque) query = query.eq("destaque", true);
   if (instituicao_id) {
     query = query.eq("lojas.usuarios.instituicoes_id", instituicao_id);
   }

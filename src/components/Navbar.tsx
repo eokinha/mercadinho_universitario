@@ -82,7 +82,23 @@ export default function Navbar() {
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const q = termo.trim();
-    router.push(q ? `/?q=${encodeURIComponent(q)}#produtos` : "/#produtos");
+    
+    // Se já estiver na listagem, preserva os outros filtros
+    if (router.pathname === "/listagem") {
+      const params = new URLSearchParams(window.location.search);
+      if (q) {
+        params.set("q", q);
+      } else {
+        params.delete("q");
+      }
+      router.push(`/listagem?${params.toString()}`);
+    } else {
+      // Se estiver em outra página, vai para listagem apenas com a busca
+      router.push(q ? `/listagem?q=${encodeURIComponent(q)}` : "/listagem");
+    }
+    
+    // Limpa o input do header após a busca
+    setTermo("");
   }
 
   return (
@@ -90,7 +106,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
         <Link
           href="/"
-          className="text-[#FF385C] font-bold text-lg whitespace-nowrap"
+          className="text-[#FF385C] font-bold text-base text-center sm:text-lg max-sm:w-[100px]"
         >
           Mercadinho Universitário
         </Link>
@@ -100,8 +116,8 @@ export default function Navbar() {
             type="search"
             value={termo}
             onChange={(e) => setTermo(e.target.value)}
-            placeholder="Buscar lojas e produtos"
-            className="w-full max-w-md rounded-full border border-gray-300 focus:border-[#FF385C] focus:outline-none px-5 py-2 text-sm text-gray-800 placeholder-gray-400"
+            placeholder="Buscar produtos"
+            className="w-full max-w-md rounded-[12px] border border-gray-300 focus:border-[#FF385C] focus:outline-none px-5 py-2 text-sm text-gray-800 placeholder-gray-400 text-left"
           />
         </form>
 

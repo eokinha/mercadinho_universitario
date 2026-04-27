@@ -43,10 +43,17 @@ export default function CardProduto({
             />
           )}
         </div>
-        <div className="px-3 py-2">
+        <div className="px-3 py-2 flex-1">
           <h3 className="text-gray-800 font-medium text-sm truncate">
             {produto.nome}
           </h3>
+          <Link
+            href={`/listagem?categoria=${produto.categoria_id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mt-0.5 hover:text-[#FF385C] transition-colors inline-block"
+          >
+            {produto.categoria_nome}
+          </Link>
           <p className="text-[#FF385C] font-semibold text-sm mt-1">
             {formatarPreco(produto.preco)}
           </p>

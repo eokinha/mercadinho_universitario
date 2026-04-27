@@ -1,20 +1,16 @@
 import type { GetServerSideProps } from "next";
 import Link from "next/link";
+import { useState } from "react";
+import CardProduto from "@/components/CardProduto";
+import ModalProduto from "@/components/ModalProduto";
 import { createServerClient } from "@/lib/supabase";
 import { formatarTelefone, linkWhatsapp } from "@/lib/contato";
-import { getLojaById, getProdutosByLoja } from "@/lib/queries";
-import type { Loja, Produto } from "@/types";
+import { getLojaById, getProdutosListagemByLoja } from "@/lib/queries";
+import type { Loja, ProdutoListagem } from "@/types";
 
 interface Props {
   loja: Loja;
-  produtos: Produto[];
-}
-
-function formatarPreco(valor: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(valor);
+  produtos: ProdutoListagem[];
 }
 
 function IconeWhatsapp({ className }: { className?: string }) {
@@ -45,13 +41,13 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     return { notFound: true };
   }
 
-  const produtos = await getProdutosByLoja(id, supabase);
+  const produtos = await getProdutosListagemByLoja(id, supabase);
 
   return { props: { loja, produtos } };
 };
 
 export default function LojaPage({ loja, produtos }: Props) {
-  const telefone = formatarTelefone(loja.contato);
+  const [produtoAtivo, setProdutoAtivo] = useState<ProdutoListagem | null>(null);
   const whatsapp = linkWhatsapp(loja.contato);
 
   return (
@@ -70,7 +66,7 @@ export default function LojaPage({ loja, produtos }: Props) {
 
         <div className="px-6 pb-6">
           <div className="-mt-12 mb-4 flex items-end gap-4">
-            <span className="w-24 h-24 rounded-full bg-gray-100 ring-4 ring-white shadow-sm overflow-hidden shrink-0">
+            <span className="w-24 h-24 rounded-full bg-gray-100 ring-4 ring-white z-20 shadow-sm overflow-hidden shrink-0">
               {loja.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -91,7 +87,6 @@ export default function LojaPage({ loja, produtos }: Props) {
             <p className="text-gray-500 mt-2">{loja.descricao}</p>
           )}
           <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
-            <span className="text-gray-500">Telefone: {telefone}</span>
             <Link
               href={whatsapp}
               target="_blank"
@@ -105,39 +100,29 @@ export default function LojaPage({ loja, produtos }: Props) {
         </div>
       </header>
 
-      <h2 className="text-gray-800 text-lg font-semibold mb-4">Produtos</h2>
+      <h2 className="text-gray-800 text-lg font-semibold mb-6">Produtos</h2>
 
       {produtos.length === 0 ? (
-        <p className="text-gray-500">Esta loja ainda não tem produtos.</p>
+        <p className="text-gray-500 py-8 text-center border border-dashed border-gray-200 rounded-xl">
+          Esta loja ainda não tem produtos ativos.
+        </p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {produtos.map((produto) => (
-            <article
+            <CardProduto
               key={produto.id}
-              className="bg-white border border-gray-200 rounded-xl hover:shadow-md transition overflow-hidden"
-            >
-              <div className="bg-gray-100 h-40">
-                {produto.imagem_url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={produto.imagem_url}
-                    alt={produto.nome}
-                    className="w-full h-full object-cover"
-                  />
-                )}
-              </div>
-              <div className="px-3 py-2">
-                <h3 className="text-gray-800 font-medium text-sm truncate">
-                  {produto.nome}
-                </h3>
-                <p className="text-[#FF385C] font-semibold text-sm mt-1">
-                  {formatarPreco(produto.preco)}
-                </p>
-              </div>
-            </article>
+              produto={produto}
+              onAbrir={setProdutoAtivo}
+              largura="fluida"
+            />
           ))}
         </div>
       )}
+
+      <ModalProduto
+        produto={produtoAtivo}
+        onFechar={() => setProdutoAtivo(null)}
+      />
     </div>
   );
 }

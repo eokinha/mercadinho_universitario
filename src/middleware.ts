@@ -64,9 +64,8 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/cadastro") ||
     request.nextUrl.pathname.startsWith("/esqueci-senha");
   
-  const isProtectedRoute = 
-    request.nextUrl.pathname.startsWith("/listagem") ||
-    request.nextUrl.pathname.startsWith("/lojas") ||
+  // Catálogo (/listagem, /lojas) público temporariamente — rever em produção se necessário.
+  const isProtectedRoute =
     request.nextUrl.pathname.startsWith("/minha-loja") ||
     request.nextUrl.pathname.startsWith("/admin");
 
