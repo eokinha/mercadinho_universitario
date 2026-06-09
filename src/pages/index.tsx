@@ -39,7 +39,7 @@ export default function Home({ produtos }: Props) {
             Produtos em destaque
           </h2>
           <p className="text-gray-500 mt-1">
-            Confira os itens em alta no Mercadinho Universitário.
+            Confira os itens em alta na Kitanda Universitária.
           </p>
         </header>
 
@@ -66,7 +66,7 @@ export default function Home({ produtos }: Props) {
           <div className="mt-12 flex justify-center">
             <Link
               href="/listagem"
-              className="bg-[#FF385C] text-white rounded-lg hover:bg-[#e0314f] transition px-8 py-3 font-medium shadow-sm"
+              className="bg-[#9A2FD6] text-white rounded-lg hover:bg-[#821bbd] transition px-8 py-3 font-medium shadow-sm"
             >
               Ver catálogo completo
             </Link>

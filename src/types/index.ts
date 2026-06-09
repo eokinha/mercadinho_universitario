@@ -14,8 +14,16 @@ export interface Usuario {
   cpf: string;
   matricula: string;
   matricula_validada: boolean;
+  matricula_status: "pendente" | "verificado" | "rejeitado";
   instituicoes_id: number;
   status: string;
+}
+
+export interface Favorito {
+  id: string;
+  usuario_id: number;
+  produto_id: number;
+  criado_em: string;
 }
 
 export type LojaStatus = "pendente" | "ativo" | "pausado" | "reprovado";
@@ -30,6 +38,12 @@ export interface Loja {
   criado_em: string;
   avatar_url: string | null;
   capa_url: string | null;
+  slug: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
+  whatsapp: string | null;
+  locais_entrega: string[];
+  cor_tema: string;
 }
 
 export interface Produto {

@@ -15,7 +15,7 @@ export default function HeroSection() {
         <div className="mt-10 flex items-center justify-center">
           <Link
             href="#produtos"
-            className="bg-[#FF385C] text-white rounded-lg hover:bg-[#e0314f] transition px-8 py-3 font-medium"
+            className="bg-[#9A2FD6] text-white rounded-lg hover:bg-[#821bbd] transition px-8 py-3 font-medium"
           >
             Ver produtos
           </Link>

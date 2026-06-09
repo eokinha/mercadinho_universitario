@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type {
   Categoria,
   Instituicao,
@@ -35,10 +35,12 @@ export default function FiltroBarProdutos({
   onOrdenacao,
 }: Props) {
   const [termo, setTermo] = useState(q);
+  const [prevQ, setPrevQ] = useState(q);
 
-  useEffect(() => {
+  if (q !== prevQ) {
     setTermo(q);
-  }, [q]);
+    setPrevQ(q);
+  }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,7 +55,7 @@ export default function FiltroBarProdutos({
           value={termo}
           onChange={(e) => setTermo(e.target.value)}
           placeholder="Buscar produtos por nome"
-          className="w-full rounded-[12px] border border-gray-300 focus:border-[#FF385C] focus:outline-none px-5 py-2 text-sm text-gray-800 placeholder-gray-400 bg-white text-left"
+          className="w-full rounded-[12px] border border-gray-300 focus:border-[#9A2FD6] focus:outline-none px-5 py-2 text-sm text-gray-800 placeholder-gray-400 bg-white text-left"
           aria-label="Buscar produtos por nome"
         />
       </form>

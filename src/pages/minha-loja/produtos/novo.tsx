@@ -82,13 +82,13 @@ export default function NovoProdutoPage({ lojaId, categorias }: Props) {
     }
   }
 
-  const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF385C] focus:border-transparent outline-none transition";
+  const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A2FD6] focus:border-transparent outline-none transition";
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
       <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
         <header className="mb-8">
-          <Link href="/minha-loja" className="text-sm text-gray-400 hover:text-[#FF385C] mb-2 inline-block">
+          <Link href="/minha-loja" className="text-sm text-gray-400 hover:text-[#9A2FD6] mb-2 inline-block">
             ← Voltar para Minha Loja
           </Link>
           <h1 className="text-2xl font-bold text-gray-800">Cadastrar Novo Produto</h1>
@@ -166,7 +166,7 @@ export default function NovoProdutoPage({ lojaId, categorias }: Props) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#FF385C] text-white font-semibold py-3 rounded-lg hover:bg-[#e0314f] transition disabled:opacity-50 mt-4"
+            className="w-full bg-[#9A2FD6] text-white font-semibold py-3 rounded-lg hover:bg-[#821bbd] transition disabled:opacity-50 mt-4"
           >
             {loading ? "Cadastrando..." : "Cadastrar Produto"}
           </button>

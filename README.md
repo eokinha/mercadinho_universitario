@@ -1,5 +1,19 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Configuração do Supabase
+
+Este projeto depende do Supabase para banco de dados, autenticação e storage.
+
+1.  **Variáveis de Ambiente**: Renomeie `.env.local.example` (ou crie um novo `.env.local`) e preencha as chaves:
+    ```bash
+    NEXT_PUBLIC_SUPABASE_URL=sua-url-do-supabase
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon
+    ```
+
+2.  **Banco de Dados**: Vá ao **SQL Editor** do seu projeto no Supabase e execute o conteúdo do arquivo `db/setup_completo.sql`. Ele criará todas as tabelas, triggers, políticas de segurança (RLS) e buckets de storage necessários.
+
+3.  **Dados de Teste**: Se desejar popular o banco com dados de exemplo, execute o conteúdo de `db/seed.sql` após o setup completo.
+
 ## Getting Started
 
 First, run the development server:

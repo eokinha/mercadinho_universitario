@@ -104,7 +104,7 @@ export default function ModalProduto({ produto, onFechar }: Props) {
               <h2 className="text-gray-800 text-2xl font-semibold mt-1">
                 {produto.nome}
               </h2>
-              <p className="text-[#FF385C] text-xl font-semibold mt-2">
+              <p className="text-[#9A2FD6] text-xl font-semibold mt-2">
                 {formatarPreco(produto.preco)}
               </p>
             </div>
@@ -154,7 +154,7 @@ export default function ModalProduto({ produto, onFechar }: Props) {
                 href={whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-[#FF385C] text-white rounded-lg hover:bg-[#e0314f] transition px-4 py-2 font-medium text-center flex-1 inline-flex items-center justify-center gap-2"
+                className="bg-[#9A2FD6] text-white rounded-lg hover:bg-[#821bbd] transition px-4 py-2 font-medium text-center flex-1 inline-flex items-center justify-center gap-2"
               >
                 <IconeWhatsapp className="w-4 h-4" />
                 Falar no WhatsApp

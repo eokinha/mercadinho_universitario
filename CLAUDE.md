@@ -145,8 +145,8 @@ Storage (buckets públicos):
 | Elemento         | Valor                       |
 |------------------|-----------------------------|
 | Fundo da página  | `bg-[#F7F7F7]`              |
-| Acento principal | `#FF385C`                   |
-| Acento hover     | `#e0314f`                   |
+| Acento principal | `#9A2FD6`                   |
+| Acento hover     | `#821bbd`                   |
 | Texto principal  | `text-gray-800`             |
 | Texto secundário | `text-gray-500`             |
 | Bordas           | `border-gray-200`           |
@@ -155,5 +155,5 @@ Storage (buckets públicos):
 - Sem cores dark (`bg-black`, `text-white`, `bg-gray-900`)
 - Sombras apenas no hover: `hover:shadow-md transition`
 - Inputs de busca: `rounded-full`
-- Botões primários: `bg-[#FF385C] text-white rounded-lg`
+- Botões primários: `bg-[#9A2FD6] text-white rounded-lg`
 - Filtros/pills: `rounded-full border border-gray-300`

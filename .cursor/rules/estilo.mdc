@@ -11,8 +11,8 @@ alwaysApply: false
 | Elemento         | Valor                        |
 |------------------|------------------------------|
 | Fundo da página  | `bg-[#F7F7F7]`               |
-| Acento principal | `#FF385C` (vermelho Airbnb)  |
-| Acento hover     | `#e0314f`                    |
+| Acento principal | `#9A2FD6` (vermelho Airbnb)  |
+| Acento hover     | `#821bbd`                    |
 | Texto principal  | `text-gray-800`              |
 | Texto secundário | `text-gray-500`              |
 | Texto sutil      | `text-gray-400`              |
@@ -23,8 +23,8 @@ alwaysApply: false
 
 **Navbar**
 - Fundo branco com `border-b border-gray-200 shadow-sm`
-- Logo em `text-[#FF385C] font-bold`
-- Input de busca com `rounded-full border-gray-300 focus:border-[#FF385C]`
+- Logo em `text-[#9A2FD6] font-bold`
+- Input de busca com `rounded-full border-gray-300 focus:border-[#9A2FD6]`
 - Avatar com `rounded-full border-gray-300 hover:shadow-md`
 
 **Cards de loja**
@@ -34,7 +34,7 @@ alwaysApply: false
 - Texto descrição: `text-gray-400 text-xs`
 
 **Botões primários**
-- `bg-[#FF385C] text-white rounded-lg hover:bg-[#e0314f] transition font-medium`
+- `bg-[#9A2FD6] text-white rounded-lg hover:bg-[#821bbd] transition font-medium`
 
 **Botões secundários / filtros**
 - `border border-gray-300 text-gray-700 rounded-full px-4 py-2 hover:border-gray-800 transition text-sm`

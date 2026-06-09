@@ -19,8 +19,8 @@ export async function getLojas(filtros: GetLojasFiltros = {}, client: SupabaseCl
   const { instituicao_id, categoria_id } = filtros;
 
   const selectClause = categoria_id
-    ? "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, usuarios!inner(instituicoes_id), produtos!inner(categoria_id)"
-    : "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, usuarios!inner(instituicoes_id)";
+    ? "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, cor_tema, usuarios!inner(instituicoes_id), produtos!inner(categoria_id)"
+    : "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, cor_tema, usuarios!inner(instituicoes_id)";
 
   let query = client
     .from("lojas")
@@ -52,6 +52,12 @@ export async function getLojas(filtros: GetLojasFiltros = {}, client: SupabaseCl
       criado_em: item.criado_em,
       avatar_url: item.avatar_url,
       capa_url: item.capa_url,
+      slug: item.slug,
+      instagram_url: item.instagram_url,
+      tiktok_url: item.tiktok_url,
+      whatsapp: item.whatsapp,
+      locais_entrega: item.locais_entrega ?? [],
+      cor_tema: item.cor_tema,
     });
   }
   return lojas;
@@ -61,7 +67,7 @@ export async function getLojaById(id: number, client: SupabaseClient = defaultCl
   const { data, error } = await client
     .from("lojas")
     .select(
-      "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url"
+      "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, cor_tema"
     )
     .eq("id", id)
     .eq("status", "ativo")
@@ -102,12 +108,21 @@ export async function getLojaByAuthId(authId: string, client: SupabaseClient = d
 
   const { data: loja, error: lojaError } = await client
     .from("lojas")
-    .select("id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url")
+    .select("id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, cor_tema")
     .eq("usuario_id", usuario.id)
     .maybeSingle();
 
   if (lojaError) throw lojaError;
   return (loja as Loja | null) ?? null;
+}
+
+export async function updateLoja(lojaId: number, updates: Partial<Loja>, client: SupabaseClient = defaultClient): Promise<void> {
+  const { error } = await client
+    .from("lojas")
+    .update(updates)
+    .eq("id", lojaId);
+
+  if (error) throw error;
 }
 
 export async function getProdutosPrivados(lojaId: number, client: SupabaseClient = defaultClient): Promise<Produto[]> {
@@ -119,6 +134,47 @@ export async function getProdutosPrivados(lojaId: number, client: SupabaseClient
 
   if (error) throw error;
   return (data ?? []) as Produto[];
+}
+
+export async function getLojaBySlug(slug: string, client: SupabaseClient = defaultClient): Promise<Loja | null> {
+  const { data, error } = await client
+    .from("lojas")
+    .select(
+      "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, cor_tema"
+    )
+    .eq("slug", slug)
+    .eq("status", "ativo")
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as Loja | null) ?? null;
+}
+
+export async function toggleFavorito(usuarioId: number, produtoId: number, client: SupabaseClient = defaultClient): Promise<boolean> {
+  const { data: existente } = await client
+    .from("favoritos")
+    .select("id")
+    .eq("usuario_id", usuarioId)
+    .eq("produto_id", produtoId)
+    .maybeSingle();
+
+  if (existente) {
+    await client.from("favoritos").delete().eq("id", existente.id);
+    return false; // Removido
+  } else {
+    await client.from("favoritos").insert({ usuario_id: usuarioId, produto_id: produtoId });
+    return true; // Adicionado
+  }
+}
+
+export async function getFavoritos(usuarioId: number, client: SupabaseClient = defaultClient): Promise<number[]> {
+  const { data, error } = await client
+    .from("favoritos")
+    .select("produto_id")
+    .eq("usuario_id", usuarioId);
+
+  if (error) throw error;
+  return (data ?? []).map(f => f.produto_id);
 }
 
 export async function getProdutosByLoja(lojaId: number, client: SupabaseClient = defaultClient): Promise<Produto[]> {

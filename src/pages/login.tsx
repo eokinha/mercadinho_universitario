@@ -28,14 +28,24 @@ export default function LoginPage() {
 
     if (loginError) {
       console.error("Erro de login:", loginError);
-      setError(loginError.message);
+      
+      // Tradução de erros comuns para o usuário
+      let errorMessage = "Ocorreu um erro ao entrar. Tente novamente.";
+      
+      if (loginError.message === "Invalid login credentials") {
+        errorMessage = "E-mail ou senha incorretos. Verifique seus dados.";
+      } else if (loginError.status === 429) {
+        errorMessage = "Muitas tentativas seguidas. Tente novamente em alguns minutos.";
+      }
+
+      setError(errorMessage);
       setLoading(false);
     } else {
       router.push("/");
     }
   }
 
-  const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF385C] focus:border-transparent outline-none transition";
+  const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A2FD6] focus:border-transparent outline-none transition";
 
   return (
     <div className="max-w-md mx-auto px-4 py-12">
@@ -49,8 +59,17 @@ export default function LoginPage() {
         )}
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
-            {error}
+          <div className="mb-4 p-4 bg-red-50 text-red-700 text-sm rounded-xl border border-red-100 flex flex-col gap-2">
+            <div className="flex items-center gap-2 font-semibold">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+              Atenção
+            </div>
+            <p>{error}</p>
+            {error.includes("incorretos") && (
+              <Link href="/esqueci-senha" className="text-red-800 font-bold hover:underline">
+                Esqueci minha senha →
+              </Link>
+            )}
           </div>
         )}
 
@@ -69,7 +88,7 @@ export default function LoginPage() {
           <div>
             <div className="flex justify-between mb-1">
               <label className="block text-sm font-medium text-gray-700">Senha</label>
-              <Link href="/esqueci-senha" className="text-xs text-gray-400 hover:text-[#FF385C]">
+              <Link href="/esqueci-senha" className="text-xs text-gray-400 hover:text-[#9A2FD6]">
                 Esqueceu a senha?
               </Link>
             </div>
@@ -85,7 +104,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#FF385C] text-white font-semibold py-3 rounded-lg hover:bg-[#e0314f] transition disabled:opacity-50 mt-4"
+            className="w-full bg-[#9A2FD6] text-white font-semibold py-3 rounded-lg hover:bg-[#821bbd] transition disabled:opacity-50 mt-4"
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>
@@ -93,7 +112,7 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-gray-500">
           Ainda não tem conta?{" "}
-          <Link href="/cadastro" className="text-[#FF385C] font-semibold hover:underline">
+          <Link href="/cadastro" className="text-[#9A2FD6] font-semibold hover:underline">
             Cadastre-se
           </Link>
         </p>

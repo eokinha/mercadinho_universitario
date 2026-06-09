@@ -41,3 +41,9 @@ export function validarEmail(email: string): boolean {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(email);
 }
+
+export function validarEmailUniversitario(email: string): boolean {
+  const domains = [".edu.br", ".edu", "aluno.", "unb.br", "usp.br", "ufmg.br", "unijorge.com.br"]; // Exemplos
+  const lowerEmail = email.toLowerCase();
+  return domains.some(domain => lowerEmail.endsWith(domain)) || lowerEmail.includes(".edu.");
+}

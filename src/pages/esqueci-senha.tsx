@@ -26,7 +26,7 @@ export default function EsqueciSenhaPage() {
     }
   }
 
-  const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF385C] focus:border-transparent outline-none transition";
+  const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A2FD6] focus:border-transparent outline-none transition";
 
   return (
     <div className="max-w-md mx-auto px-4 py-12">
@@ -38,7 +38,7 @@ export default function EsqueciSenhaPage() {
             <div className="mb-4 p-3 bg-green-50 text-green-600 text-sm rounded-lg border border-green-100">
               E-mail enviado! Verifique sua caixa de entrada.
             </div>
-            <Link href="/login" className="text-[#FF385C] font-semibold hover:underline text-sm">
+            <Link href="/login" className="text-[#9A2FD6] font-semibold hover:underline text-sm">
               Voltar para o Login
             </Link>
           </div>
@@ -65,14 +65,14 @@ export default function EsqueciSenhaPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#FF385C] text-white font-semibold py-3 rounded-lg hover:bg-[#e0314f] transition disabled:opacity-50 mt-4"
+                className="w-full bg-[#9A2FD6] text-white font-semibold py-3 rounded-lg hover:bg-[#821bbd] transition disabled:opacity-50 mt-4"
               >
                 {loading ? "Enviando..." : "Enviar instruções"}
               </button>
             </form>
 
             <p className="mt-6 text-center text-sm text-gray-500">
-              <Link href="/login" className="text-gray-400 hover:text-[#FF385C] hover:underline">
+              <Link href="/login" className="text-gray-400 hover:text-[#9A2FD6] hover:underline">
                 Voltar para o Login
               </Link>
             </p>

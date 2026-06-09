@@ -34,13 +34,23 @@ export default function Navbar() {
     async function fetchUserData(authId: string) {
       const { data } = await supabase
         .from("usuarios")
-        .select("is_admin, nome")
+        .select("is_admin, nome, instituicoes_id")
         .eq("auth_id", authId)
         .maybeSingle();
       
       if (data) {
         setIsAdmin(!!data.is_admin);
         setNomeUsuario(data.nome || "");
+
+        // Se não tiver instituição e não estiver no onboarding ou login, redireciona
+        const isAuthPage = 
+          router.pathname === "/login" || 
+          router.pathname === "/cadastro" || 
+          router.pathname === "/onboarding";
+
+        if (!data.instituicoes_id && !isAuthPage) {
+          router.push("/onboarding");
+        }
       }
     }
 
@@ -106,9 +116,9 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
         <Link
           href="/"
-          className="text-[#FF385C] font-bold text-base text-center sm:text-lg max-sm:w-[100px]"
+          className="text-[#9A2FD6] font-bold text-base text-center sm:text-lg max-sm:w-[100px]"
         >
-          Mercadinho Universitário
+          Kitanda Universitária
         </Link>
 
         <form onSubmit={handleSubmit} className="flex-1 flex justify-center">
@@ -117,7 +127,7 @@ export default function Navbar() {
             value={termo}
             onChange={(e) => setTermo(e.target.value)}
             placeholder="Buscar produtos"
-            className="w-full max-w-md rounded-[12px] border border-gray-300 focus:border-[#FF385C] focus:outline-none px-5 py-2 text-sm text-gray-800 placeholder-gray-400 text-left"
+            className="w-full max-w-md rounded-[12px] border border-gray-300 focus:border-[#9A2FD6] focus:outline-none px-5 py-2 text-sm text-gray-800 placeholder-gray-400 text-left"
           />
         </form>
 
@@ -128,7 +138,7 @@ export default function Navbar() {
                 onClick={() => setMenuAberto(!menuAberto)}
                 className="w-10 h-10 rounded-full border border-gray-300 hover:shadow-md transition bg-gray-100 flex items-center justify-center overflow-hidden focus:outline-none"
               >
-                <span className="text-sm font-bold text-[#FF385C]">
+                <span className="text-sm font-bold text-[#9A2FD6]">
                   {(nomeUsuario || user.email || "?").charAt(0).toUpperCase()}
                 </span>
               </button>
@@ -170,12 +180,20 @@ export default function Navbar() {
               )}
             </>
           ) : (
-            <Link
-              href="/login"
-              className="text-[#FF385C] border border-[#FF385C] px-6 py-2 rounded-full text-sm font-semibold hover:bg-[#FF385C] hover:text-white transition"
-            >
-              Entrar
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/login"
+                className="text-gray-600 hover:text-gray-900 text-sm font-semibold transition px-2"
+              >
+                Entrar
+              </Link>
+              <Link
+                href="/cadastro"
+                className="bg-[#9A2FD6] border border-[#9A2FD6] px-4 py-2 rounded-full text-sm font-semibold text-white hover:bg-[#821bbd] transition shadow-sm"
+              >
+                Cadastrar
+              </Link>
+            </div>
           )}
         </div>
       </div>

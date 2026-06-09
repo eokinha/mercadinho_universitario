@@ -31,7 +31,7 @@ export default function CardProduto({
       <button
         type="button"
         onClick={() => onAbrir(produto)}
-        className="text-left flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF385C]"
+        className="text-left flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9A2FD6]"
       >
         <div className="aspect-square bg-gray-100">
           {produto.imagem_url && (
@@ -50,11 +50,11 @@ export default function CardProduto({
           <Link
             href={`/listagem?categoria=${produto.categoria_id}`}
             onClick={(e) => e.stopPropagation()}
-            className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mt-0.5 hover:text-[#FF385C] transition-colors inline-block"
+            className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mt-0.5 hover:text-[#9A2FD6] transition-colors inline-block"
           >
             {produto.categoria_nome}
           </Link>
-          <p className="text-[#FF385C] font-semibold text-sm mt-1">
+          <p className="text-[#9A2FD6] font-semibold text-sm mt-1">
             {formatarPreco(produto.preco)}
           </p>
         </div>

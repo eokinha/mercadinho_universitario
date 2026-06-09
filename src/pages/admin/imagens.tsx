@@ -136,7 +136,7 @@ function UploadInput({ id, label, onUpload }: UploadInputProps) {
         className={`inline-block cursor-pointer text-sm rounded-lg px-3 py-1.5 transition ${
           carregando
             ? "bg-gray-200 text-gray-500"
-            : "bg-[#FF385C] text-white hover:bg-[#e0314f]"
+            : "bg-[#9A2FD6] text-white hover:bg-[#821bbd]"
         }`}
       >
         {carregando ? "Enviando…" : label}
@@ -193,7 +193,7 @@ export default function AdminImagensPage({ lojas, produtos }: Props) {
                 key={loja.id}
                 className="bg-white border border-gray-200 rounded-xl overflow-hidden"
               >
-                <div className="relative h-32 bg-gradient-to-br from-[#FF385C]/20 via-pink-100 to-orange-100">
+                <div className="relative h-32 bg-gradient-to-br from-[#9A2FD6]/20 via-pink-100 to-orange-100">
                   {loja.capa_url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img

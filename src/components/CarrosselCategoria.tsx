@@ -24,14 +24,14 @@ export default function CarrosselCategoria({
         {verMaisHref ? (
           <Link
             href={verMaisHref}
-            className="text-[#FF385C] text-sm font-medium hover:underline"
+            className="text-[#9A2FD6] text-sm font-medium hover:underline"
           >
             Ver mais →
           </Link>
         ) : onVerMaisClick ? (
           <button
             onClick={onVerMaisClick}
-            className="text-[#FF385C] text-sm font-medium hover:underline focus:outline-none"
+            className="text-[#9A2FD6] text-sm font-medium hover:underline focus:outline-none"
           >
             Ver mais →
           </button>
