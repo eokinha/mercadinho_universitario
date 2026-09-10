@@ -45,7 +45,7 @@ export default function LoginPage() {
     }
   }
 
-  const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A2FD6] focus:border-transparent outline-none transition";
+  const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF385C] focus:border-transparent outline-none transition";
 
   return (
     <div className="max-w-md mx-auto px-4 py-12">
@@ -88,7 +88,7 @@ export default function LoginPage() {
           <div>
             <div className="flex justify-between mb-1">
               <label className="block text-sm font-medium text-gray-700">Senha</label>
-              <Link href="/esqueci-senha" className="text-xs text-gray-400 hover:text-[#9A2FD6]">
+              <Link href="/esqueci-senha" className="text-xs text-gray-400 hover:text-[#FF385C]">
                 Esqueceu a senha?
               </Link>
             </div>
@@ -104,7 +104,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#9A2FD6] text-white font-semibold py-3 rounded-lg hover:bg-[#821bbd] transition disabled:opacity-50 mt-4"
+            className="w-full bg-[#FF385C] text-white font-semibold py-3 rounded-lg hover:bg-[#e0314f] transition disabled:opacity-50 mt-4"
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>
@@ -112,7 +112,7 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-gray-500">
           Ainda não tem conta?{" "}
-          <Link href="/cadastro" className="text-[#9A2FD6] font-semibold hover:underline">
+          <Link href="/cadastro" className="text-[#FF385C] font-semibold hover:underline">
             Cadastre-se
           </Link>
         </p>

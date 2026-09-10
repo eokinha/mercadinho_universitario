@@ -104,7 +104,7 @@ export default function ModalProduto({ produto, onFechar }: Props) {
               <h2 className="text-gray-800 text-2xl font-semibold mt-1">
                 {produto.nome}
               </h2>
-              <p className="text-[#9A2FD6] text-xl font-semibold mt-2">
+              <p className="text-[#FF385C] text-xl font-semibold mt-2">
                 {formatarPreco(produto.preco)}
               </p>
             </div>
@@ -117,23 +117,37 @@ export default function ModalProduto({ produto, onFechar }: Props) {
 
             <div className="border-t border-gray-200 pt-4">
               <span className="text-gray-400 text-xs uppercase tracking-wide">
-                Vendido por
+                Anunciado por
               </span>
               <div className="mt-1 flex items-center gap-3">
                 <span className="w-10 h-10 rounded-full bg-gray-100 shrink-0 overflow-hidden">
-                  {produto.loja_avatar_url && (
+                  {produto.loja_avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={produto.loja_avatar_url}
                       alt=""
                       className="w-full h-full object-cover"
                     />
+                  ) : (
+                    <span className="w-full h-full flex items-center justify-center font-bold text-gray-500 bg-gray-200 text-sm">
+                      {produto.loja_nome.charAt(0).toUpperCase()}
+                    </span>
                   )}
                 </span>
-                <div className="min-w-0">
-                  <h3 className="text-gray-800 font-medium truncate">
-                    {produto.loja_nome}
-                  </h3>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="text-gray-800 font-semibold truncate">
+                      {produto.loja_nome}
+                    </h3>
+                    {produto.loja_verificada && (
+                      <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        <svg className="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.64.304 1.24.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span>Aluno Verificado</span>
+                      </span>
+                    )}
+                  </div>
                   {produto.loja_descricao && (
                     <p className="text-gray-500 text-sm line-clamp-2">
                       {produto.loja_descricao}
@@ -145,16 +159,16 @@ export default function ModalProduto({ produto, onFechar }: Props) {
 
             <div className="mt-auto flex flex-col sm:flex-row gap-2">
               <Link
-                href={`/lojas/${produto.loja_id}`}
-                className="border border-gray-300 text-gray-800 rounded-lg hover:border-gray-800 transition px-4 py-2 font-medium text-center"
+                href={`/perfil/${produto.loja_id}`}
+                className="border border-gray-300 text-gray-800 rounded-lg hover:border-gray-800 hover:bg-gray-50 transition px-4 py-2 font-medium text-center"
               >
-                Visitar loja
+                Ver perfil
               </Link>
               <Link
                 href={whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-[#9A2FD6] text-white rounded-lg hover:bg-[#821bbd] transition px-4 py-2 font-medium text-center flex-1 inline-flex items-center justify-center gap-2"
+                className="bg-[#FF385C] text-white rounded-lg hover:bg-[#e0314f] transition px-4 py-2 font-medium text-center flex-1 inline-flex items-center justify-center gap-2"
               >
                 <IconeWhatsapp className="w-4 h-4" />
                 Falar no WhatsApp

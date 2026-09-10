@@ -62,6 +62,12 @@ export interface Produto {
 export interface Categoria {
   id: number;
   nome: string;
+  parent_id?: number | null;
+  icone?: string;
+}
+
+export interface CategoriaComFilhos extends Categoria {
+  filhos: Categoria[];
 }
 
 export interface ProdutoListagem {
@@ -78,6 +84,21 @@ export interface ProdutoListagem {
   loja_contato: string;
   loja_avatar_url: string | null;
   destaque: boolean;
+  loja_verificada?: boolean;
+}
+
+export interface UsuarioModeracao {
+  id: number;
+  nome: string;
+  sobrenome: string;
+  email: string;
+  telefone: string;
+  matricula: string;
+  matricula_status: "pendente" | "verificado" | "rejeitado";
+  matricula_validada: boolean;
+  instituicoes_id: number | null;
+  instituicao_nome?: string;
+  loja_id?: number;
 }
 
 export interface GrupoCategoria {
@@ -86,3 +107,26 @@ export interface GrupoCategoria {
 }
 
 export type OrdenacaoProdutos = "recentes" | "preco_asc" | "preco_desc";
+
+export interface PerfilPublico {
+  id: number;
+  usuario_id: number;
+  nome: string;
+  descricao: string;
+  contato: string;
+  status: LojaStatus;
+  criado_em: string;
+  avatar_url: string | null;
+  capa_url: string | null;
+  slug: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
+  whatsapp: string | null;
+  locais_entrega: string[];
+  cor_tema: string;
+  usuario_nome?: string;
+  usuario_sobrenome?: string;
+  usuario_criado_em?: string;
+  matricula_status?: "pendente" | "verificado" | "rejeitado";
+  instituicao_nome?: string;
+}

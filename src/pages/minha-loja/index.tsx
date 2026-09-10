@@ -13,21 +13,11 @@ interface Props {
   produtos: Produto[];
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
-  const supabase = createSupabaseClient(ctx);
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { redirect: { destination: "/login", permanent: false } };
-  }
-
-  const loja = await getLojaByAuthId(user.id, supabase);
-  const produtos = loja ? await getProdutosPrivados(loja.id, supabase) : [];
-
+export const getServerSideProps: GetServerSideProps = async () => {
   return {
-    props: {
-      loja,
-      produtos,
+    redirect: {
+      destination: "/painel",
+      permanent: false,
     },
   };
 };
@@ -58,7 +48,7 @@ export default function MinhaLojaPage({ loja: initialLoja, produtos: initialProd
       <div className="max-w-4xl mx-auto px-4 py-12 text-center">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Você ainda não tem uma loja</h1>
         <p className="text-gray-500 mb-8">Para começar a vender, você precisa solicitar a criação de uma loja.</p>
-        <Link href="/contato" className="bg-[#9A2FD6] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#821bbd] transition">
+        <Link href="/contato" className="bg-[#FF385C] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#e0314f] transition">
           Falar com administrador
         </Link>
       </div>
@@ -87,7 +77,7 @@ export default function MinhaLojaPage({ loja: initialLoja, produtos: initialProd
                 onClick={() => setActiveSection(item.id as Section)}
                 className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition ${
                   activeSection === item.id
-                    ? "bg-[#9A2FD6]/10 text-[#9A2FD6]"
+                    ? "bg-[#FF385C]/10 text-[#FF385C]"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
@@ -98,7 +88,7 @@ export default function MinhaLojaPage({ loja: initialLoja, produtos: initialProd
           </nav>
         </div>
         <div className="mt-auto p-6 border-t border-gray-100">
-           <Link href={`/lojas/${loja.id}`} target="_blank" className="text-sm text-[#9A2FD6] font-medium hover:underline flex items-center gap-2">
+           <Link href={`/lojas/${loja.id}`} target="_blank" className="text-sm text-[#FF385C] font-medium hover:underline flex items-center gap-2">
              <IconExternalLink />
              Ver página pública
            </Link>
@@ -124,7 +114,7 @@ export default function MinhaLojaPage({ loja: initialLoja, produtos: initialProd
             key={item.id}
             onClick={() => setActiveSection(item.id as Section)}
             className={`flex flex-col items-center gap-1 p-2 ${
-              activeSection === item.id ? "text-[#9A2FD6]" : "text-gray-400"
+              activeSection === item.id ? "text-[#FF385C]" : "text-gray-400"
             }`}
           >
             {item.icon}
@@ -146,13 +136,12 @@ function IconUser() { return <svg className="w-5 h-5" fill="none" viewBox="0 0 2
 function IconSettings() { return <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>; }
 function IconExternalLink() { return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>; }
 
-// Section Components
 function SectionVisaoGeral({ loja, produtos }: { loja: Loja; produtos: Produto[] }) {
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-bold text-gray-800">Olá, {loja.nome}! 👋</h1>
-        <p className="text-gray-500">Aqui está um resumo da sua Kitanda.</p>
+        <p className="text-gray-500">Aqui está um resumo da sua loja.</p>
       </header>
       
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -190,7 +179,7 @@ function SectionPersonalizar({ loja, onUpdate }: { loja: Loja; onUpdate: () => v
     whatsapp: loja.whatsapp || "",
     instagram_url: loja.instagram_url || "",
     tiktok_url: loja.tiktok_url || "",
-    cor_tema: loja.cor_tema || "#9A2FD6",
+    cor_tema: loja.cor_tema || "#FF385C",
     locais_entrega: loja.locais_entrega || [],
   });
   const [loading, setLoading] = useState(false);
@@ -209,7 +198,7 @@ function SectionPersonalizar({ loja, onUpdate }: { loja: Loja; onUpdate: () => v
     }
   }
 
-  const colorOptions = ["#9A2FD6", "#3B82F6", "#10B981", "#EF4444", "#F59E0B", "#000000"];
+  const colorOptions = ["#FF385C", "#3B82F6", "#10B981", "#EF4444", "#F59E0B", "#000000"];
   const localOptions = ["Cantina", "Biblioteca", "Entrada Principal", "Bloco A", "Bloco B", "Bloco C", "Correios"];
 
   function toggleLocal(local: string) {
@@ -225,7 +214,7 @@ function SectionPersonalizar({ loja, onUpdate }: { loja: Loja; onUpdate: () => v
     <div className="space-y-8 pb-12">
       <header>
         <h1 className="text-2xl font-bold text-gray-800">Personalizar Loja</h1>
-        <p className="text-gray-500">Deixe sua kitanda com a sua cara.</p>
+        <p className="text-gray-500">Deixe sua loja com a sua cara.</p>
       </header>
 
       {/* Preview Section */}
@@ -246,7 +235,7 @@ function SectionPersonalizar({ loja, onUpdate }: { loja: Loja; onUpdate: () => v
             </div>
             <div className="pb-1">
               <h2 className="text-xl font-bold text-gray-800">{formData.nome || "Minha Loja"}</h2>
-              <p className="text-xs text-gray-400">kitanda.com/lojas/{formData.slug || "..."}</p>
+              <p className="text-xs text-gray-400">mercadinho.com/lojas/{formData.slug || "..."}</p>
             </div>
           </div>
         </div>
@@ -262,28 +251,28 @@ function SectionPersonalizar({ loja, onUpdate }: { loja: Loja; onUpdate: () => v
                 type="text" 
                 value={formData.nome || ""} 
                 onChange={e => setFormData({...formData, nome: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A2FD6] outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF385C] outline-none"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">URL Personalizada</label>
               <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">kitanda.com/</span>
+                <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">mercadinho.com/</span>
                 <input 
                   type="text" 
                   value={formData.slug || ""} 
                   onChange={e => setFormData({...formData, slug: e.target.value})}
-                  className="flex-1 min-w-0 block w-full px-4 py-2 border border-gray-300 rounded-none rounded-r-lg focus:ring-2 focus:ring-[#9A2FD6] outline-none"
+                  className="flex-1 min-w-0 block w-full px-4 py-2 border border-gray-300 rounded-none rounded-r-lg focus:ring-2 focus:ring-[#FF385C] outline-none"
                 />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
               <textarea 
-                rows={3}
+                rows={3} 
                 value={formData.descricao || ""} 
                 onChange={e => setFormData({...formData, descricao: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A2FD6] outline-none resize-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF385C] outline-none resize-none"
                 placeholder="Conte um pouco sobre sua loja..."
               />
             </div>
@@ -297,7 +286,7 @@ function SectionPersonalizar({ loja, onUpdate }: { loja: Loja; onUpdate: () => v
                 type="text" 
                 value={formData.whatsapp || ""} 
                 onChange={e => setFormData({...formData, whatsapp: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A2FD6] outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF385C] outline-none"
                 placeholder="31999999999"
               />
             </div>
@@ -307,7 +296,7 @@ function SectionPersonalizar({ loja, onUpdate }: { loja: Loja; onUpdate: () => v
                 type="text" 
                 value={formData.instagram_url || ""} 
                 onChange={e => setFormData({...formData, instagram_url: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A2FD6] outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF385C] outline-none"
               />
             </div>
             <div>
@@ -316,7 +305,7 @@ function SectionPersonalizar({ loja, onUpdate }: { loja: Loja; onUpdate: () => v
                 type="text" 
                 value={formData.tiktok_url || ""} 
                 onChange={e => setFormData({...formData, tiktok_url: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A2FD6] outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF385C] outline-none"
               />
             </div>
           </div>
@@ -348,7 +337,7 @@ function SectionPersonalizar({ loja, onUpdate }: { loja: Loja; onUpdate: () => v
                   onClick={() => toggleLocal(l)}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition ${
                     formData.locais_entrega?.includes(l)
-                      ? "bg-[#9A2FD6] text-white"
+                      ? "bg-[#FF385C] text-white"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
@@ -363,7 +352,7 @@ function SectionPersonalizar({ loja, onUpdate }: { loja: Loja; onUpdate: () => v
           <button
             type="submit"
             disabled={loading}
-            className="w-full md:w-auto px-12 py-3 bg-[#9A2FD6] text-white font-bold rounded-xl hover:bg-[#821bbd] transition shadow-md disabled:opacity-50"
+            className="w-full md:w-auto px-12 py-3 bg-[#FF385C] text-white font-bold rounded-xl hover:bg-[#e0314f] transition shadow-md disabled:opacity-50"
           >
             {loading ? "Salvando..." : "Salvar Alterações"}
           </button>
@@ -383,7 +372,7 @@ function SectionProdutos({ produtos, onUpdate }: { produtos: Produto[]; onUpdate
           <h1 className="text-2xl font-bold text-gray-800">Meus Anúncios</h1>
           <p className="text-gray-500">Gerencie seus produtos à venda.</p>
         </div>
-        <Link href="/minha-loja/produtos/novo" className="bg-[#9A2FD6] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#821bbd] transition">
+        <Link href="/minha-loja/produtos/novo" className="bg-[#FF385C] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#e0314f] transition">
           + Novo Produto
         </Link>
       </div>
@@ -391,7 +380,7 @@ function SectionProdutos({ produtos, onUpdate }: { produtos: Produto[]; onUpdate
       {produtos.length === 0 ? (
         <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-16 text-center">
           <p className="text-gray-400 mb-4">Você ainda não tem produtos cadastrados.</p>
-          <Link href="/minha-loja/produtos/novo" className="text-[#9A2FD6] font-bold hover:underline">Cadastrar meu primeiro produto</Link>
+          <Link href="/minha-loja/produtos/novo" className="text-[#FF385C] font-bold hover:underline">Cadastrar meu primeiro produto</Link>
         </div>
       ) : (
         <div className="grid gap-4">
@@ -405,7 +394,7 @@ function SectionProdutos({ produtos, onUpdate }: { produtos: Produto[]; onUpdate
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-gray-800 truncate">{produto.nome}</h3>
-                <p className="text-[#9A2FD6] font-semibold">R$ {Number(produto.preco).toFixed(2)}</p>
+                <p className="text-[#FF385C] font-semibold">R$ {Number(produto.preco).toFixed(2)}</p>
                 <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Status: {produto.status}</span>
               </div>
               <div className="flex gap-2">

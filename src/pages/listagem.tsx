@@ -6,12 +6,12 @@ import FiltroBarProdutos from "@/components/FiltroBarProdutos";
 import ModalProduto from "@/components/ModalProduto";
 import { createServerClient } from "@/lib/supabase";
 import {
-  getCategorias,
+  getCategoriasArvore,
   getInstituicoes,
   getProdutosFiltrados,
 } from "@/lib/queries";
 import type {
-  Categoria,
+  CategoriaComFilhos,
   Instituicao,
   OrdenacaoProdutos,
   ProdutoListagem,
@@ -19,7 +19,7 @@ import type {
 
 interface Props {
   produtos: ProdutoListagem[];
-  categorias: Categoria[];
+  categorias: CategoriaComFilhos[];
   instituicoes: Instituicao[];
   q: string;
   ordenacao: OrdenacaoProdutos;
@@ -66,7 +66,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       }),
       ordenar: ordenacao,
     }, supabase),
-    getCategorias(supabase),
+    getCategoriasArvore(supabase),
     getInstituicoes(supabase),
   ]);
 

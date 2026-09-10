@@ -72,7 +72,7 @@ export default function CadastroPage() {
     }
   }
 
-  const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9A2FD6] focus:border-transparent outline-none transition";
+  const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF385C] focus:border-transparent outline-none transition";
 
   return (
     <div className="max-w-md mx-auto px-4 py-12">
@@ -146,7 +146,7 @@ export default function CadastroPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#9A2FD6] text-white font-semibold py-3 rounded-lg hover:bg-[#821bbd] transition disabled:opacity-50 mt-4 shadow-sm"
+            className="w-full bg-[#FF385C] text-white font-semibold py-3 rounded-lg hover:bg-[#e0314f] transition disabled:opacity-50 mt-4 shadow-sm"
           >
             {loading ? "Processando..." : "Finalizar Cadastro"}
           </button>
@@ -154,7 +154,7 @@ export default function CadastroPage() {
 
         <p className="mt-6 text-center text-sm text-gray-500">
           Já possui conta?{" "}
-          <Link href="/login" className="text-[#9A2FD6] font-semibold hover:underline transition">
+          <Link href="/login" className="text-[#FF385C] font-semibold hover:underline transition">
             Entrar
           </Link>
         </p>

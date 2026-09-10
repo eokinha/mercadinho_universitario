@@ -1,14 +1,14 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import type {
-  Categoria,
+  CategoriaComFilhos,
   Instituicao,
   OrdenacaoProdutos,
 } from "@/types";
 
 interface Props {
   instituicoes: Instituicao[];
-  categorias: Categoria[];
+  categorias: CategoriaComFilhos[];
   q: string;
   instituicaoSelecionada?: number;
   categoriaSelecionada?: number;
@@ -55,7 +55,7 @@ export default function FiltroBarProdutos({
           value={termo}
           onChange={(e) => setTermo(e.target.value)}
           placeholder="Buscar produtos por nome"
-          className="w-full rounded-[12px] border border-gray-300 focus:border-[#9A2FD6] focus:outline-none px-5 py-2 text-sm text-gray-800 placeholder-gray-400 bg-white text-left"
+          className="w-full rounded-[12px] border border-gray-300 focus:border-[#FF385C] focus:outline-none px-5 py-2 text-sm text-gray-800 placeholder-gray-400 bg-white text-left"
           aria-label="Buscar produtos por nome"
         />
       </form>
@@ -79,6 +79,7 @@ export default function FiltroBarProdutos({
           ))}
         </select>
 
+        {/* Seletor de categoria hierárquico com optgroup */}
         <select
           aria-label="Categoria"
           value={categoriaSelecionada ?? ""}
@@ -90,11 +91,24 @@ export default function FiltroBarProdutos({
           className={pillSelectClass}
         >
           <option value="">Categoria</option>
-          {categorias.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nome}
-            </option>
-          ))}
+          {categorias.map((pai) =>
+            pai.filhos && pai.filhos.length > 0 ? (
+              // Categoria pai com subcategorias → optgroup
+              <optgroup key={pai.id} label={`${pai.icone ?? ""} ${pai.nome}`}>
+                <option value={pai.id}>Todos em {pai.nome}</option>
+                {pai.filhos.map((sub) => (
+                  <option key={sub.id} value={sub.id}>
+                    {sub.icone ?? ""} {sub.nome}
+                  </option>
+                ))}
+              </optgroup>
+            ) : (
+              // Categoria sem filhos → option simples
+              <option key={pai.id} value={pai.id}>
+                {pai.icone ?? ""} {pai.nome}
+              </option>
+            )
+          )}
         </select>
 
         <select
