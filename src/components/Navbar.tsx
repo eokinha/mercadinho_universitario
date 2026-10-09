@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState, useEffect, useRef, useMemo, type FormEvent } from "react";
+import { useState, useEffect, useRef, useMemo, useSyncExternalStore, type FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
-import { getInstituicoes } from "@/lib/queries";
+import { getInstituicoes, getResumoUsuarioNavbar } from "@/lib/queries";
 import { PAGINAS_PAINEL } from "@/lib/painel-routes";
 import type { User } from "@supabase/supabase-js";
 import type { Instituicao } from "@/types";
@@ -18,7 +18,8 @@ export default function Navbar() {
   // Estados do seletor / combobox de universidades
   const [instituicoes, setInstituicoes] = useState<Instituicao[]>([]);
   const [instituicaoUsuarioId, setInstituicaoUsuarioId] = useState<number | null>(null);
-  const [instituicaoSelecionada, setInstituicaoSelecionada] = useState<number | null>(null);
+  // undefined = usuário ainda não escolheu nada no combobox
+  const [instituicaoEscolhida, setInstituicaoEscolhida] = useState<number | null | undefined>(undefined);
   const [lojaId, setLojaId] = useState<number | null>(null);
   const [comboboxAberto, setComboboxAberto] = useState(false);
   const [buscaUniversidade, setBuscaUniversidade] = useState("");
@@ -38,28 +39,13 @@ export default function Navbar() {
   useEffect(() => {
     async function fetchUserData(authId?: string) {
       if (!authId) return;
-      const { data } = await supabase
-        .from("usuarios")
-        .select("id, is_admin, nome, instituicoes_id")
-        .eq("auth_id", authId)
-        .maybeSingle();
+      const data = await getResumoUsuarioNavbar().catch(() => null);
 
       if (data) {
-        setIsAdmin(!!data.is_admin);
-        setNomeUsuario(data.nome || "");
-        if (data.instituicoes_id) {
-          setInstituicaoUsuarioId(Number(data.instituicoes_id));
-        }
-
-        // Buscar id do perfil de estudante na tabela lojas
-        const { data: lojaData } = await supabase
-          .from("lojas")
-          .select("id")
-          .eq("usuario_id", data.id)
-          .maybeSingle();
-        if (lojaData) {
-          setLojaId(lojaData.id);
-        }
+        setIsAdmin(data.is_admin);
+        setNomeUsuario(data.nome);
+        setInstituicaoUsuarioId(data.instituicoes_id);
+        setLojaId(data.loja_id);
 
         // Se não tiver instituição e não estiver no onboarding ou login, redireciona
         const isAuthPage =
@@ -110,33 +96,33 @@ export default function Navbar() {
     };
   }, [router]);
 
-  // Sincronizar instituição selecionada (URL -> Perfil do Usuário -> localStorage)
+  // Instituição selecionada: URL -> escolha no combobox -> perfil do usuário -> localStorage
+  const instituicaoUrl = router.query.instituicao ? Number(router.query.instituicao) : null;
+  const instituicaoArmazenada = useSyncExternalStore(
+    () => () => {},
+    () => {
+      const stored = localStorage.getItem("mercadinho_instituicao_id");
+      return stored && /^\d+$/.test(stored) ? Number(stored) : null;
+    },
+    () => null
+  );
+  const instituicaoSelecionada =
+    instituicaoUrl ??
+    (instituicaoEscolhida !== undefined
+      ? instituicaoEscolhida
+      : instituicaoUsuarioId ?? instituicaoArmazenada);
+
+  // Auto-aplica na URL da Home/Listagem o campus do perfil (uma vez por sessão)
   useEffect(() => {
-    const urlInst = router.query.instituicao ? Number(router.query.instituicao) : undefined;
+    if (instituicaoUrl || !instituicaoUsuarioId || hasAutoAppliedRef.current) return;
+    hasAutoAppliedRef.current = true;
 
-    if (urlInst) {
-      setInstituicaoSelecionada(urlInst);
-    } else if (instituicaoUsuarioId && !hasAutoAppliedRef.current) {
-      // Auto-aplica o campus fornecido pelo perfil do usuário no momento do cadastro
-      hasAutoAppliedRef.current = true;
-      setInstituicaoSelecionada(instituicaoUsuarioId);
-
-      // Aplica na URL da Home ou Listagem se ainda não tiver filtro
-      if (router.pathname === "/" || router.pathname === "/listagem") {
-        const params = new URLSearchParams(window.location.search);
-        params.set("instituicao", String(instituicaoUsuarioId));
-        router.replace(`${router.pathname}?${params.toString()}`, undefined, { shallow: false });
-      }
-    } else {
-      const stored =
-        typeof window !== "undefined"
-          ? localStorage.getItem("mercadinho_instituicao_id")
-          : null;
-      if (stored && /^\d+$/.test(stored)) {
-        setInstituicaoSelecionada(Number(stored));
-      }
+    if (router.pathname === "/" || router.pathname === "/listagem") {
+      const params = new URLSearchParams(window.location.search);
+      params.set("instituicao", String(instituicaoUsuarioId));
+      router.replace(`${router.pathname}?${params.toString()}`, undefined, { shallow: false });
     }
-  }, [router.query.instituicao, instituicaoUsuarioId, router.pathname]);
+  }, [instituicaoUrl, instituicaoUsuarioId, router]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -158,7 +144,7 @@ export default function Navbar() {
 
   // Ação ao selecionar uma instituição no combobox
   function selecionarInstituicao(id: number | null) {
-    setInstituicaoSelecionada(id);
+    setInstituicaoEscolhida(id);
     if (id) {
       localStorage.setItem("mercadinho_instituicao_id", String(id));
     } else {

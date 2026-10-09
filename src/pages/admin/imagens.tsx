@@ -3,91 +3,35 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { useState } from "react";
 import { createServerClient } from "@/lib/supabase";
+import { getLojasComImagens, getProdutosParaModeracao } from "@/lib/queries";
+import type { Loja, ProdutoModeracao } from "@/types";
 import {
   uploadImagemLoja,
   uploadImagemProduto,
   type TipoImagemLoja,
 } from "@/lib/storage";
 
-interface LojaAdmin {
-  id: number;
-  nome: string;
-  status: string;
-  avatar_url: string | null;
-  capa_url: string | null;
-}
-
-interface ProdutoAdmin {
-  id: number;
-  nome: string;
-  preco: number;
-  imagem_url: string | null;
-  loja_nome: string;
-}
+type LojaAdmin = Pick<Loja, "id" | "nome" | "status" | "avatar_url" | "capa_url">;
 
 interface Props {
   lojas: LojaAdmin[];
-  produtos: ProdutoAdmin[];
-}
-
-interface LojaJoinRaw {
-  nome: string;
-}
-
-interface ProdutoLojaRaw {
-  id: number;
-  nome: string;
-  preco: number;
-  imagem_url: string | null;
-  lojas: LojaJoinRaw | LojaJoinRaw[] | null;
-}
-
-function pickFirst<T>(value: T | T[] | null | undefined): T | undefined {
-  if (Array.isArray(value)) return value[0];
-  return value ?? undefined;
+  produtos: ProdutoModeracao[];
 }
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const supabaseServer = createServerClient(ctx);
   const { data: { user } } = await supabaseServer.auth.getUser();
 
-  // Modo de pré-visualização para testes de UI
-  if (!user && (process.env.NODE_ENV === "development" && (ctx.query.preview === "1" || ctx.query.demo === "1"))) {
-    // Permite visualização em modo teste
-  } else if (!user) {
+  if (!user) {
     return { redirect: { destination: "/login", permanent: false } };
   }
 
-  const { data: lojasData, error: lojasError } = await supabaseServer
-    .from("lojas")
-    .select("id, nome, status, avatar_url, capa_url")
-    .order("id", { ascending: true });
-  if (lojasError) throw lojasError;
+  const [lojas, produtos] = await Promise.all([
+    getLojasComImagens(supabaseServer),
+    getProdutosParaModeracao(supabaseServer),
+  ]);
 
-  const { data: produtosData, error: produtosError } = await supabaseServer
-    .from("produtos")
-    .select("id, nome, preco, imagem_url, lojas!inner(nome)")
-    .order("id", { ascending: true });
-  if (produtosError) throw produtosError;
-
-  const produtos: ProdutoAdmin[] = [];
-  for (const item of (produtosData ?? []) as unknown as ProdutoLojaRaw[]) {
-    const loja = pickFirst(item.lojas);
-    produtos.push({
-      id: item.id,
-      nome: item.nome,
-      preco: Number(item.preco),
-      imagem_url: item.imagem_url,
-      loja_nome: loja?.nome ?? "—",
-    });
-  }
-
-  return {
-    props: {
-      lojas: (lojasData ?? []) as LojaAdmin[],
-      produtos,
-    },
-  };
+  return { props: { lojas, produtos } };
 };
 
 function formatarPreco(valor: number): string {

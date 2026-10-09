@@ -26,6 +26,7 @@ const ITENS_DEMO_TROCA: ProdutoListagem[] = [
     categoria_id: 4,
     categoria_nome: "Livros & Apostilas",
     destaque: true,
+    aceita_troca: true,
   },
   {
     id: -102,
@@ -43,6 +44,7 @@ const ITENS_DEMO_TROCA: ProdutoListagem[] = [
     categoria_id: 2,
     categoria_nome: "Calculadoras & Tech",
     destaque: true,
+    aceita_troca: true,
   },
   {
     id: -103,
@@ -60,6 +62,7 @@ const ITENS_DEMO_TROCA: ProdutoListagem[] = [
     categoria_id: 4,
     categoria_nome: "Livros & Apostilas",
     destaque: true,
+    aceita_troca: true,
   },
   {
     id: -104,
@@ -77,6 +80,7 @@ const ITENS_DEMO_TROCA: ProdutoListagem[] = [
     categoria_id: 6,
     categoria_nome: "Materiais de Lab",
     destaque: true,
+    aceita_troca: true,
   },
   {
     id: -105,
@@ -94,6 +98,7 @@ const ITENS_DEMO_TROCA: ProdutoListagem[] = [
     categoria_id: 2,
     categoria_nome: "Calculadoras & Tech",
     destaque: true,
+    aceita_troca: true,
   },
 ];
 
@@ -254,7 +259,7 @@ export default function SecaoTrocas({ produtos = [], onAbrirProduto }: Props) {
               {/* Botão de Anunciar Item para Troca */}
               <div className="pt-2">
                 <Link
-                  href="/minha-loja/produtos/novo"
+                  href="/anunciar"
                   className="w-full bg-[#FF385C] hover:bg-[#e0314f] text-white text-sm font-semibold rounded-xl py-3 px-4 shadow-md shadow-[#FF385C]/25 transition hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
                 >
                   <svg
@@ -306,7 +311,7 @@ export default function SecaoTrocas({ produtos = [], onAbrirProduto }: Props) {
             onClick={() => setFiltroAtivo("todos")}
             className={`px-3.5 py-1 rounded-full text-xs font-semibold shrink-0 transition ${
               filtroAtivo === "todos"
-                ? "bg-gray-900 text-white shadow-xs"
+                ? "bg-[#FF385C] text-white shadow-xs"
                 : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -317,7 +322,7 @@ export default function SecaoTrocas({ produtos = [], onAbrirProduto }: Props) {
             onClick={() => setFiltroAtivo("livros")}
             className={`px-3.5 py-1 rounded-full text-xs font-semibold shrink-0 transition ${
               filtroAtivo === "livros"
-                ? "bg-gray-900 text-white shadow-xs"
+                ? "bg-[#FF385C] text-white shadow-xs"
                 : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -328,7 +333,7 @@ export default function SecaoTrocas({ produtos = [], onAbrirProduto }: Props) {
             onClick={() => setFiltroAtivo("tech")}
             className={`px-3.5 py-1 rounded-full text-xs font-semibold shrink-0 transition ${
               filtroAtivo === "tech"
-                ? "bg-gray-900 text-white shadow-xs"
+                ? "bg-[#FF385C] text-white shadow-xs"
                 : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -339,7 +344,7 @@ export default function SecaoTrocas({ produtos = [], onAbrirProduto }: Props) {
             onClick={() => setFiltroAtivo("materiais")}
             className={`px-3.5 py-1 rounded-full text-xs font-semibold shrink-0 transition ${
               filtroAtivo === "materiais"
-                ? "bg-gray-900 text-white shadow-xs"
+                ? "bg-[#FF385C] text-white shadow-xs"
                 : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -420,7 +425,7 @@ export default function SecaoTrocas({ produtos = [], onAbrirProduto }: Props) {
                 Cadastre livros ou equipamentos parados e combine com estudantes do campus.
               </p>
               <Link
-                href="/minha-loja/produtos/novo"
+                href="/anunciar"
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs py-2.5 rounded-xl shadow-xs transition"
               >
                 Anunciar para troca
@@ -432,7 +437,7 @@ export default function SecaoTrocas({ produtos = [], onAbrirProduto }: Props) {
         {/* Botões de Ação Inferiores (semelhante ao catálogo completo) */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
-            href="/minha-loja/produtos/novo"
+            href="/anunciar"
             className="bg-[#FF385C] text-white rounded-xl hover:bg-[#e0314f] transition px-7 py-3 font-semibold text-sm shadow-sm flex items-center gap-2"
           >
             <svg

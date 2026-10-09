@@ -21,8 +21,11 @@ export default function CardProduto({
   produto,
   onAbrir,
   largura = "fixa",
-  tagBadge = "Parcele sem juros",
+  tagBadge,
 }: Props) {
+  // Sem etiqueta por padrão; anúncios de troca ganham "Aceita Troca"
+  const etiqueta = tagBadge ?? (produto.aceita_troca || produto.preco === 0 ? "Aceita Troca" : null);
+
   const [favorito, setFavorito] = useState(false);
 
   const larguraClasses =
@@ -104,18 +107,20 @@ export default function CardProduto({
         </h3>
 
         {/* Tag estilo marketplace com tom coral ou esmeralda para troca */}
-        <div className="mt-1.5 flex items-center gap-1.5">
-          <span
-            className={`font-semibold text-[11px] px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 ${
-              tagBadge.toLowerCase().includes("troca")
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
-                : "bg-[#FFE7EB] text-[#FF385C]"
-            }`}
-          >
-            {tagBadge.toLowerCase().includes("troca") && <span>🔄</span>}
-            <span>{tagBadge}</span>
-          </span>
-        </div>
+        {etiqueta && (
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <span
+              className={`font-semibold text-[11px] px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 ${
+                etiqueta.toLowerCase().includes("troca")
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
+                  : "bg-[#FFE7EB] text-[#FF385C]"
+              }`}
+            >
+              {etiqueta.toLowerCase().includes("troca") && <span>🔄</span>}
+              <span>{etiqueta}</span>
+            </span>
+          </div>
+        )}
 
         {/* Preço em destaque */}
         <div className="mt-2 flex items-baseline gap-2">

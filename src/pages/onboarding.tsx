@@ -1,61 +1,80 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
-import { supabase } from "@/lib/supabase";
-import { getInstituicoes } from "@/lib/queries";
+import type { GetServerSideProps } from "next";
+import { createServerClient } from "@/lib/supabase";
+import {
+  getInstituicoes,
+  getMeuUsuario,
+  salvarOnboarding,
+  verificarMatriculaInstantanea,
+} from "@/lib/queries";
 import { validarEmailUniversitario } from "@/lib/validacoes";
 import type { Instituicao } from "@/types";
 
-export default function OnboardingPage() {
-  const router = useRouter();
-  const [instituicoes, setInstituicoes] = useState<Instituicao[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [instituicaoId, setInstituicaoId] = useState("");
-  const [matricula, setMatricula] = useState("");
-  const [error, setError] = useState<string | null>(null);
+interface Props {
+  instituicoes: Instituicao[];
+  usuarioId: number;
+  email: string;
+  instituicaoAtual: number | null;
+  matriculaAtual: string;
+}
 
-  useEffect(() => {
-    getInstituicoes().then(setInstituicoes).catch(console.error);
-  }, []);
+export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
+  const serverSupabase = createServerClient(ctx);
+  const { data: { user } } = await serverSupabase.auth.getUser();
+
+  if (!user) {
+    return { redirect: { destination: "/login", permanent: false } };
+  }
+
+  const [usuario, instituicoes] = await Promise.all([
+    getMeuUsuario(serverSupabase),
+    getInstituicoes(serverSupabase),
+  ]);
+
+  if (!usuario) {
+    return { redirect: { destination: "/login", permanent: false } };
+  }
+
+  return {
+    props: {
+      instituicoes,
+      usuarioId: usuario.id,
+      email: user.email ?? "",
+      instituicaoAtual: usuario.instituicoes_id ?? null,
+      matriculaAtual: usuario.matricula ?? "",
+    },
+  };
+};
+
+export default function OnboardingPage({ instituicoes, usuarioId, email, instituicaoAtual, matriculaAtual }: Props) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [instituicaoId, setInstituicaoId] = useState(instituicaoAtual ? String(instituicaoAtual) : "");
+  const [matricula, setMatricula] = useState(matriculaAtual);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleOnboarding(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.push("/login");
-      return;
-    }
+    try {
+      const instituicoes_id = parseInt(instituicaoId);
+      // Matrícula só volta para "pendente" se foi alterada
+      const matriculaNova = matricula.trim() !== matriculaAtual.trim() ? matricula : undefined;
+      await salvarOnboarding(usuarioId, { instituicoes_id, matricula: matriculaNova });
 
-    const updates: Record<string, any> = {
-      instituicoes_id: parseInt(instituicaoId),
-    };
+      // Se o e-mail for universitário, a validação acontece no banco (RPC)
+      if (validarEmailUniversitario(email)) {
+        await verificarMatriculaInstantanea(matricula, instituicoes_id);
+      }
 
-    if (matricula.trim()) {
-      updates.matricula = matricula.trim();
-    }
-
-    if (matricula.trim()) {
-      updates.matricula_status = "pendente";
-    }
-
-    const { error: updateError } = await supabase
-      .from("usuarios")
-      .update(updates)
-      .eq("auth_id", user.id);
-
-    // Se o e-mail for universitário, a validação acontece no banco (RPC)
-    if (!updateError && validarEmailUniversitario(user.email || "")) {
-      await supabase.rpc("verificar_matricula_por_email");
-    }
-
-    if (updateError) {
-      console.error("Erro no onboarding:", updateError);
+      router.push("/");
+    } catch (err) {
+      console.error("Erro no onboarding:", err);
       setError("Não foi possível salvar sua instituição. Tente novamente.");
       setLoading(false);
-    } else {
-      router.push("/");
     }
   }
 

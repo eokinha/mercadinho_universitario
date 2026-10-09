@@ -91,8 +91,8 @@ export default function AdminLojasPage({ lojasIniciais, produtosIniciais }: Prop
       await moderarLoja(loja.id, status);
       setLojas((prev) => prev.map((l) => (l.id === loja.id ? { ...l, status } : l)));
       setNotificacao({ tipo: "sucesso", texto: `Loja "${loja.nome}" atualizada.` });
-    } catch (err: any) {
-      setNotificacao({ tipo: "erro", texto: err?.message || "Erro ao atualizar a loja." });
+    } catch (err) {
+      setNotificacao({ tipo: "erro", texto: (err as { message?: string })?.message || "Erro ao atualizar a loja." });
     } finally {
       setProcessando(null);
     }
@@ -109,8 +109,8 @@ export default function AdminLojasPage({ lojasIniciais, produtosIniciais }: Prop
         tipo: "sucesso",
         texto: novo ? `"${produto.nome}" impulsionado na home.` : `"${produto.nome}" removido dos destaques.`,
       });
-    } catch (err: any) {
-      setNotificacao({ tipo: "erro", texto: err?.message || "Erro ao atualizar o destaque." });
+    } catch (err) {
+      setNotificacao({ tipo: "erro", texto: (err as { message?: string })?.message || "Erro ao atualizar o destaque." });
     } finally {
       setProcessando(null);
     }
@@ -291,6 +291,7 @@ export default function AdminLojasPage({ lojasIniciais, produtosIniciais }: Prop
                 <div key={p.id} className="bg-white border border-gray-200 rounded-xl p-3 flex gap-3 hover:shadow-md transition">
                   <div className="w-16 h-16 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
                     {p.imagem_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={p.imagem_url} alt={p.nome} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-xl">📦</div>

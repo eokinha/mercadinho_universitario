@@ -153,8 +153,8 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
         tipo: "sucesso",
         texto: novoStatus === "verificado" ? "Matrícula aprovada com sucesso!" : "Matrícula rejeitada.",
       });
-    } catch (err: any) {
-      setNotificacao({ tipo: "erro", texto: err?.message || "Erro ao moderar matrícula." });
+    } catch (err) {
+      setNotificacao({ tipo: "erro", texto: (err as { message?: string })?.message || "Erro ao moderar matrícula." });
     } finally {
       setProcessandoId(null);
     }
@@ -275,7 +275,7 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
                 onClick={() => setFiltroStatus("rejeitado")}
                 className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
                   filtroStatus === "rejeitado"
-                    ? "bg-gray-800 text-white shadow-xs"
+                    ? "bg-gray-500 text-white shadow-xs"
                     : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                 }`}
               >
@@ -286,7 +286,7 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
                 onClick={() => setFiltroStatus("todos")}
                 className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
                   filtroStatus === "todos"
-                    ? "bg-gray-900 text-white shadow-xs"
+                    ? "bg-[#FF385C] text-white shadow-xs"
                     : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                 }`}
               >

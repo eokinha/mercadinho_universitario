@@ -1,4 +1,11 @@
 -- =====================================================================
+-- ATENÇÃO: arquivo histórico. O banco real é definido por este setup
+-- SEGUIDO das migrações em db/migrations/, na ordem:
+--   00, 01, 009, 02, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13
+-- Não altere este arquivo; crie uma nova migração numerada.
+-- =====================================================================
+
+-- =====================================================================
 -- Mercadinho Universitário — Setup Completo do Banco de Dados
 -- Aplique este arquivo no SQL Editor do Supabase para configurar tudo.
 -- =====================================================================

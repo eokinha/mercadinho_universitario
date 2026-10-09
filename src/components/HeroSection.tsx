@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import type { Categoria } from "@/types";
 
 interface Props {
@@ -45,7 +44,6 @@ function iconeParaCategoria(nome: string, iconeDb?: string): string {
 }
 
 export default function HeroSection({ categorias = [] }: Props) {
-  const router = useRouter();
   const [slideAtual, setSlideAtual] = useState(0);
   const [menuCategoriasAberto, setMenuCategoriasAberto] = useState(false);
   const scrollCategoriasRef = useRef<HTMLDivElement>(null);
@@ -450,7 +448,7 @@ export default function HeroSection({ categorias = [] }: Props) {
                   </p>
                   <div className="mt-4 sm:mt-5">
                     <Link
-                      href="/minha-loja"
+                      href="/painel"
                       className="bg-[#FF385C] hover:bg-[#e0314f] text-white text-xs sm:text-sm font-semibold rounded-full px-6 py-2.5 shadow-lg shadow-[#FF385C]/40 transition hover:scale-105 active:scale-95 inline-block"
                     >
                       Criar minha loja grátis
@@ -500,7 +498,7 @@ export default function HeroSection({ categorias = [] }: Props) {
                       Explorar trocas
                     </Link>
                     <Link
-                      href="/minha-loja/produtos/novo"
+                      href="/anunciar"
                       className="text-xs text-rose-200 hover:text-white underline underline-offset-2 transition"
                     >
                       Anunciar troca

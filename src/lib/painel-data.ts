@@ -98,6 +98,7 @@ export async function getPainelServerSideProps(
       matricula_status: mockStatus,
       instituicoes_id: 1,
       status: "ativo",
+      is_admin: false,
     };
 
     return {

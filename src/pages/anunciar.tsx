@@ -3,8 +3,14 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import Head from "next/head";
 import type { GetServerSideProps } from "next";
-import { createServerClient, supabase } from "@/lib/supabase";
-import { getOrCreatePerfilEstudante, getCategoriasArvore, getMeuUsuario } from "@/lib/queries";
+import { createServerClient } from "@/lib/supabase";
+import {
+  criarProduto,
+  getCategoriasArvore,
+  getMeuUsuario,
+  getOrCreatePerfilEstudante,
+  updateLoja,
+} from "@/lib/queries";
 import { uploadImagemProduto } from "@/lib/storage";
 import type { CategoriaComFilhos, Loja } from "@/types";
 
@@ -169,21 +175,14 @@ export default function AnunciarPage({ loja, categorias }: Props) {
       }
 
       // 1. Cadastrar produto
-      const { data: produto, error: createError } = await supabase
-        .from("produtos")
-        .insert({
-          loja_id: loja.id,
-          nome: nome.trim(),
-          descricao: descricaoCompleta,
-          preco: precoFinal,
-          categoria_id: parseInt(categoriaId || categoriaPaiId),
-          status: "ativo",
-          aceita_troca: modalidade === "troca" || modalidade === "ambos",
-        })
-        .select()
-        .single();
-
-      if (createError) throw createError;
+      const produto = await criarProduto({
+        loja_id: loja.id,
+        nome: nome.trim(),
+        descricao: descricaoCompleta,
+        preco: precoFinal,
+        categoria_id: parseInt(categoriaId || categoriaPaiId),
+        aceita_troca: modalidade === "troca" || modalidade === "ambos",
+      });
 
       // 2. Upload de imagem se houver
       if (imageFile && produto) {
@@ -192,16 +191,13 @@ export default function AnunciarPage({ loja, categorias }: Props) {
 
       // 3. Atualizar locais habituais de entrega do perfil se mudou
       if (locaisSelecionados.length > 0) {
-        await supabase
-          .from("lojas")
-          .update({ locais_entrega: locaisSelecionados })
-          .eq("id", loja.id);
+        await updateLoja(loja.id, { locais_entrega: locaisSelecionados });
       }
 
       router.push("/painel/anuncios?sucesso=1");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erro ao cadastrar anúncio:", err);
-      setError(err?.message || "Ocorreu um erro ao publicar seu anúncio. Tente novamente.");
+      setError((err as { message?: string })?.message || "Ocorreu um erro ao publicar seu anúncio. Tente novamente.");
       setLoading(false);
     }
   }
@@ -492,7 +488,7 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                           setImageFile(null);
                           setImagePreview(null);
                         }}
-                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center text-xs hover:bg-black"
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 border border-gray-200 text-gray-700 flex items-center justify-center text-xs hover:text-[#FF385C]"
                       >
                         ✕
                       </button>
@@ -551,7 +547,7 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                         onClick={() => toggleLocal(local)}
                         className={`text-xs px-3 py-1.5 rounded-full border transition flex items-center gap-1.5 ${
                           ativo
-                            ? "bg-gray-900 border-gray-900 text-white font-bold"
+                            ? "bg-[#FF385C] border-[#FF385C] text-white font-bold"
                             : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                         }`}
                       >

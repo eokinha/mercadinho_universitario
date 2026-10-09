@@ -38,12 +38,13 @@ src/
 │   ├── lojas/[slug].tsx  # Perfil público da loja
 │   ├── perfil/[id].tsx   # Perfil público do estudante
 │   ├── painel/           # Painel do estudante (index, anuncios, favoritos, perfil)
-│   ├── minha-loja/       # Gestão da loja (index, produtos/novo)
+│   ├── minha-loja/       # Rotas antigas: só redirecionam para /painel e /anunciar
 │   └── admin/
 │       ├── verificacoes.tsx  # Moderação de matrículas (somente admin)
 │       ├── lojas.tsx         # Status das lojas e produtos impulsionados (somente admin)
 │       └── imagens.tsx       # Upload de avatar/capa/imagens (somente admin)
-├── components/           # Navbar, Footer, HeroSection, CardProduto, ModalProduto, painel/…
+├── components/           # Navbar, Footer, HeroSection, CardProduto, ModalProduto
+│   └── painel/           # PainelEstudante (cabeçalho/visão geral) + SecaoAnuncios, SecaoFavoritos, SecaoPerfil
 ├── lib/
 │   ├── supabase.ts       # Clientes Supabase (browser e servidor via @supabase/ssr)
 │   ├── queries.ts        # Funções de fetch e RPCs
@@ -55,7 +56,7 @@ src/
 └── types/
     └── index.ts          # Interfaces TypeScript
 db/
-├── setup_completo.sql    # Setup de referência (desatualizado — o banco real segue as migrações)
+├── setup_completo.sql    # Setup histórico (rodar antes das migrações; não editar)
 └── migrations/           # Migrações numeradas
 ```
 
@@ -88,8 +89,8 @@ Storage (buckets públicos; caminho relativo ao bucket):
 
 ### Migrações
 
-Aplicadas no projeto de dev, nesta ordem: `00` (alinha banco legado), `01`, `009`, `02`, `04`
-(substitui `03`), `05` … `12`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
+`01`, `009`, `02`, `04`, `05` … `13`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 
 ### Segurança (RLS e triggers)
 
@@ -109,7 +110,7 @@ Aplicadas no projeto de dev, nesta ordem: `00` (alinha banco legado), `01`, `009
 - RPCs (SECURITY DEFINER), expostas em `queries.ts`:
   - `meu_usuario()` → `getMeuUsuario` (dados completos do usuário logado)
   - `verificar_matricula_por_email(p_matricula, p_instituicoes_id)` → `verificarMatriculaInstantanea`
-    (usa o e-mail confirmado do Auth; regra espelha `validarEmailUniversitario`)
+    (usa o e-mail confirmado do Auth; regra em `email_academico()`, espelho de `validarEmailUniversitario` — mudar os dois juntos)
   - `admin_listar_usuarios()` / `admin_moderar_matricula(p_usuario_id, p_status)` — exigem `is_admin()`
   - `admin_listar_lojas()` / `admin_moderar_loja(p_loja_id, p_status)` / `admin_definir_destaque(p_produto_id, p_destaque)`
     → `getLojasParaModeracao`, `moderarLoja`, `definirDestaque` — exigem `is_admin()`
@@ -180,10 +181,16 @@ Aplicadas no projeto de dev, nesta ordem: `00` (alinha banco legado), `01`, `009
   (exceção: `supabase.auth.*` em login, cadastro e recuperação de senha)
 - Sempre tratar erros com `if (error) throw error`
 
+### Testes
+- `npm test` roda `node --test` em `src/lib/__tests__/*.test.ts` (sem dependências extras)
+- Funções puras de `src/lib` (validações, formatação) devem ter teste; imports nos testes usam extensão `.ts`
+
 ### Componentes
 - Props sempre tipadas com `interface Props`
 - Exportação sempre `export default function NomeComponente`
 - Componentes recebem dados via props — não fazem fetch
+  (exceção: `Navbar`, layout global que reage a login/logout; usa `getResumoUsuarioNavbar` no cliente)
+- Mutações disparadas por eventos (salvar, pausar, favoritar) chamam funções de `queries.ts`/`storage.ts`
 
 ---
 

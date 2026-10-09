@@ -42,8 +42,18 @@ export function validarEmail(email: string): boolean {
   return re.test(email);
 }
 
+// Regra espelhada no banco: public.verificar_matricula_por_email (migração 13)
+const SUFIXOS_ACADEMICOS = [".edu.br", ".edu"];
+const DOMINIOS_ACADEMICOS = ["unb.br", "usp.br", "ufmg.br", "unijorge.com.br"];
+
 export function validarEmailUniversitario(email: string): boolean {
-  const domains = [".edu.br", ".edu", "aluno.", "unb.br", "usp.br", "ufmg.br", "unijorge.com.br"]; // Exemplos
-  const lowerEmail = email.toLowerCase();
-  return domains.some(domain => lowerEmail.endsWith(domain)) || lowerEmail.includes(".edu.");
+  const dominio = email.toLowerCase().trim().split("@")[1] ?? "";
+  if (!dominio) return false;
+
+  return (
+    SUFIXOS_ACADEMICOS.some((sufixo) => dominio.endsWith(sufixo)) ||
+    dominio.includes(".edu.") ||
+    dominio.startsWith("aluno.") ||
+    DOMINIOS_ACADEMICOS.some((d) => dominio === d || dominio.endsWith(`.${d}`))
+  );
 }

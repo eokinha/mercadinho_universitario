@@ -345,7 +345,7 @@ export default function PerfilPublicoPage({ perfil, produtos }: Props) {
                   onClick={() => setFiltroTipo("todos")}
                   className={`px-4 py-2 rounded-xl text-sm font-bold transition ${
                     filtroTipo === "todos"
-                      ? "bg-gray-900 text-white shadow-xs"
+                      ? "bg-[#FF385C] text-white shadow-xs"
                       : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
                   }`}
                 >
@@ -356,7 +356,7 @@ export default function PerfilPublicoPage({ perfil, produtos }: Props) {
                   onClick={() => setFiltroTipo("venda")}
                   className={`px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
                     filtroTipo === "venda"
-                      ? "bg-gray-900 text-white shadow-xs"
+                      ? "bg-[#FF385C] text-white shadow-xs"
                       : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
                   }`}
                 >
@@ -405,14 +405,12 @@ export default function PerfilPublicoPage({ perfil, produtos }: Props) {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
                 {produtosFiltrados.map((produto) => {
-                  const isTroca = produto.preco === 0 || produto.nome.toLowerCase().includes("troca");
                   return (
                     <CardProduto
                       key={produto.id}
                       produto={produto}
                       onAbrir={setProdutoAtivo}
                       largura="fluida"
-                      tagBadge={isTroca ? "Aceita Troca" : "Parcele sem juros"}
                     />
                   );
                 })}

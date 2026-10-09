@@ -34,6 +34,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     getProdutosFiltrados(
       {
         ordenar: "recentes",
+        apenasTroca: true,
         ...(instituicaoId ? { instituicao_id: instituicaoId } : {}),
       },
       supabase
@@ -97,7 +98,7 @@ export default function Home({ produtos, produtosTroca, categorias }: Props) {
               </p>
               <div className="mt-4 flex justify-center gap-3">
                 <Link
-                  href="/minha-loja/produtos/novo"
+                  href="/anunciar"
                   className="bg-[#FF385C] text-white rounded-lg hover:bg-[#e0314f] transition px-5 py-2 text-sm font-medium"
                 >
                   Anunciar produto

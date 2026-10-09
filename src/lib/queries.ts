@@ -211,6 +211,20 @@ export async function getOrCreatePerfilEstudante(
   return novaLoja as Loja;
 }
 
+export async function criarProduto(
+  dados: Pick<Produto, "loja_id" | "nome" | "descricao" | "preco" | "categoria_id" | "aceita_troca">,
+  client: SupabaseClient = defaultClient
+): Promise<Produto> {
+  const { data, error } = await client
+    .from("produtos")
+    .insert({ ...dados, status: "ativo" })
+    .select("id, loja_id, nome, descricao, preco, imagem_url, status, criado_em, categoria_id, destaque, aceita_troca")
+    .single();
+
+  if (error) throw error;
+  return data as Produto;
+}
+
 export async function atualizarStatusProduto(
   produtoId: number,
   status: ProdutoStatus,
@@ -289,7 +303,15 @@ export async function getPerfilPublico(
     const { data, error } = await query.maybeSingle();
 
     if (!error && data) {
-      const raw = data as any;
+      const raw = data as unknown as Loja & {
+        usuarios: {
+          nome: string;
+          sobrenome: string;
+          criado_em: string;
+          matricula_status: Usuario["matricula_status"];
+          instituicoes: { nome: string } | null;
+        } | null;
+      };
       const usuario = raw.usuarios;
       const instituicao = usuario?.instituicoes;
 
@@ -393,7 +415,7 @@ export async function getProdutosListagemByLoja(lojaId: number, client: Supabase
   const { data, error } = await client
     .from("produtos")
     .select(
-      `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque,
+      `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque, aceita_troca,
        categorias!inner(id, nome),
        lojas!inner(id, nome, descricao, contato, status, avatar_url, capa_url, usuarios(matricula_status))`
     )
@@ -436,6 +458,7 @@ interface ProdutoComJoinsRaw {
   imagem_url: string | null;
   categoria_id: number;
   destaque: boolean;
+  aceita_troca: boolean;
   categorias: { id: number; nome: string } | { id: number; nome: string }[];
   lojas: LojaJoinRaw | LojaJoinRaw[];
 }
@@ -468,6 +491,7 @@ function mapearProdutoListagem(
     loja_contato: lojaRaw.contato,
     loja_avatar_url: lojaRaw.avatar_url,
     destaque: item.destaque,
+    aceita_troca: item.aceita_troca,
     loja_verificada: isVerificado,
   };
 }
@@ -483,7 +507,7 @@ export async function getProdutosFavoritos(
     const { data, error } = await client
       .from("produtos")
       .select(
-        `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque,
+        `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque, aceita_troca,
          categorias!inner(id, nome),
          lojas!inner(id, nome, descricao, contato, status, avatar_url, capa_url, usuarios(matricula_status))`
       )
@@ -514,7 +538,7 @@ export async function getProdutosAgrupadosPorCategoria(
   let query = client
     .from("produtos")
     .select(
-      `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque,
+      `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque, aceita_troca,
        categorias!inner(id, nome),
        lojas!inner(id, nome, descricao, contato, status, avatar_url, capa_url, usuarios(matricula_status))`
     )
@@ -559,18 +583,19 @@ interface GetProdutosFiltradosOpts {
   instituicao_id?: number;
   ordenar?: OrdenacaoProdutos;
   apenasDestaque?: boolean;
+  apenasTroca?: boolean;
 }
 
 export async function getProdutosFiltrados(
   opts: GetProdutosFiltradosOpts = {},
   client: SupabaseClient = defaultClient
 ): Promise<ProdutoListagem[]> {
-  const { q, categoria_id, instituicao_id, ordenar = "recentes", apenasDestaque } = opts;
+  const { q, categoria_id, instituicao_id, ordenar = "recentes", apenasDestaque, apenasTroca } = opts;
 
   let query = client
     .from("produtos")
     .select(
-      `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque, criado_em,
+      `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque, aceita_troca, criado_em,
        categorias!inner(id, nome),
        lojas!inner(id, nome, descricao, contato, status, avatar_url, capa_url, usuarios!inner(instituicoes_id, matricula_status))`
     )
@@ -579,6 +604,7 @@ export async function getProdutosFiltrados(
   if (q) query = query.ilike("nome", `%${q}%`);
   if (categoria_id) query = query.eq("categoria_id", categoria_id);
   if (apenasDestaque) query = query.eq("destaque", true);
+  if (apenasTroca) query = query.eq("aceita_troca", true);
   if (instituicao_id) {
     query = query.eq("lojas.usuarios.instituicoes_id", instituicao_id);
   }
@@ -625,13 +651,55 @@ export async function solicitarVerificacaoMatricula(
   dados: { matricula: string; instituicoes_id?: number },
   client: SupabaseClient = defaultClient
 ): Promise<void> {
-  const updates: Record<string, any> = {
+  const updates: Record<string, string | number | boolean> = {
     matricula: dados.matricula.trim(),
     matricula_status: "pendente",
     matricula_validada: false,
   };
   if (dados.instituicoes_id) {
     updates.instituicoes_id = dados.instituicoes_id;
+  }
+
+  const { error } = await client
+    .from("usuarios")
+    .update(updates)
+    .eq("id", usuarioId);
+
+  if (error) throw error;
+}
+
+// Dados mínimos do usuário logado para o Navbar (layout global, carregado no cliente)
+export async function getResumoUsuarioNavbar(
+  client: SupabaseClient = defaultClient
+): Promise<{ is_admin: boolean; nome: string; instituicoes_id: number | null; loja_id: number | null } | null> {
+  const usuario = await getMeuUsuario(client);
+  if (!usuario) return null;
+
+  const { data: loja, error } = await client
+    .from("lojas")
+    .select("id")
+    .eq("usuario_id", usuario.id)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  return {
+    is_admin: !!usuario.is_admin,
+    nome: usuario.nome || "",
+    instituicoes_id: usuario.instituicoes_id ? Number(usuario.instituicoes_id) : null,
+    loja_id: loja?.id ?? null,
+  };
+}
+
+export async function salvarOnboarding(
+  usuarioId: number,
+  dados: { instituicoes_id: number; matricula?: string },
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const updates: Record<string, string | number | boolean> = { instituicoes_id: dados.instituicoes_id };
+  if (dados.matricula?.trim()) {
+    updates.matricula = dados.matricula.trim();
+    updates.matricula_status = "pendente";
   }
 
   const { error } = await client
@@ -721,7 +789,8 @@ export async function getProdutosParaModeracao(
 
   if (error) throw error;
 
-  return (data ?? []).map((p: any) => ({
+  type ProdutoComLoja = Omit<ProdutoModeracao, "loja_nome"> & { lojas: { nome: string } | null };
+  return ((data ?? []) as unknown as ProdutoComLoja[]).map((p) => ({
     id: p.id,
     nome: p.nome,
     preco: Number(p.preco),
@@ -749,4 +818,16 @@ export async function definirDestaque(
 ): Promise<void> {
   const { error } = await client.rpc("admin_definir_destaque", { p_produto_id: produtoId, p_destaque: destaque });
   if (error) throw error;
+}
+
+export async function getLojasComImagens(
+  client: SupabaseClient = defaultClient
+): Promise<Pick<Loja, "id" | "nome" | "status" | "avatar_url" | "capa_url">[]> {
+  const { data, error } = await client
+    .from("lojas")
+    .select("id, nome, status, avatar_url, capa_url")
+    .order("id", { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
 }

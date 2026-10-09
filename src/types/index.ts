@@ -17,6 +17,7 @@ export interface Usuario {
   matricula_status: "pendente" | "verificado" | "rejeitado";
   instituicoes_id: number;
   status: string;
+  is_admin: boolean;
 }
 
 export interface Favorito {
@@ -87,6 +88,7 @@ export interface ProdutoListagem {
   loja_contato: string;
   loja_avatar_url: string | null;
   destaque: boolean;
+  aceita_troca: boolean;
   loja_verificada?: boolean;
 }
 

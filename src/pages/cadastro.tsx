@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -15,10 +15,6 @@ export default function CadastroPage() {
     nome: "",
     sobrenome: "",
   });
-
-  useEffect(() => {
-    // getInstituicoes removido daqui, será usado no onboarding
-  }, []);
 
   async function handleCadastro(e: React.FormEvent) {
     e.preventDefault();
