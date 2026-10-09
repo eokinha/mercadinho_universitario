@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Repeat, X } from "lucide-react";
+import SeloVerificado from "@/components/SeloVerificado";
 import { useEffect } from "react";
 import { linkWhatsapp } from "@/lib/contato";
 import type { ProdutoListagem } from "@/types";
@@ -57,35 +59,23 @@ export default function ModalProduto({ produto, onFechar }: Props) {
       aria-modal="true"
       aria-label={`Detalhes do produto ${produto.nome}`}
       onClick={onFechar}
-      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4 py-6"
+      className="fixed inset-0 z-50 bg-tinta/50 flex items-center justify-center px-4 py-6"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto relative"
+        className="bg-superficie rounded-card shadow-flutuante max-w-3xl w-full max-h-[90vh] overflow-y-auto relative"
       >
         <button
           type="button"
           onClick={onFechar}
           aria-label="Fechar"
-          className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/90 border border-gray-200 text-gray-500 hover:text-gray-800 hover:shadow-md transition flex items-center justify-center"
+          className="absolute top-3 right-3 z-10 w-11 h-11 rounded-pill bg-superficie/90 border border-borda text-tinta-suave hover:text-tinta transition flex items-center justify-center focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-5 h-5"
-          >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
+          <X size={20} strokeWidth={1.75} aria-hidden="true" />
         </button>
 
         <div className="grid grid-cols-1 md:grid-cols-2">
-          <div className="aspect-square w-full h-full bg-gray-100">
+          <div className="aspect-square w-full h-full bg-pagina">
             {produto.imagem_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -98,29 +88,35 @@ export default function ModalProduto({ produto, onFechar }: Props) {
 
           <div className="p-6 flex flex-col gap-4">
             <div>
-              <span className="inline-block text-gray-500 text-xs uppercase tracking-wide">
+              <span className="inline-block text-tinta-suave text-xs uppercase tracking-wide">
                 {produto.categoria_nome}
               </span>
-              <h2 className="text-gray-800 text-2xl font-semibold mt-1">
+              <h2 className="text-petroleo text-2xl font-bold mt-1">
                 {produto.nome}
               </h2>
-              <p className="text-[#FF385C] text-xl font-semibold mt-2">
-                {formatarPreco(produto.preco)}
+              <p className="text-tinta text-xl font-bold mt-2">
+                {produto.preco === 0 ? "Só troca" : formatarPreco(produto.preco)}
               </p>
+              {(produto.aceita_troca || produto.preco === 0) && (
+                <span className="mt-2 inline-flex items-center gap-1 rounded-pill text-xs font-semibold px-2.5 py-1 bg-troca-50 text-troca-texto">
+                  <Repeat size={14} strokeWidth={1.75} aria-hidden="true" />
+                  Aceita troca
+                </span>
+              )}
             </div>
 
             {produto.descricao && (
-              <p className="text-gray-500 text-sm leading-relaxed">
+              <p className="text-tinta-suave text-sm leading-relaxed">
                 {produto.descricao}
               </p>
             )}
 
-            <div className="border-t border-gray-200 pt-4">
-              <span className="text-gray-400 text-xs uppercase tracking-wide">
+            <div className="border-t border-borda pt-4">
+              <span className="text-tinta-sutil text-xs uppercase tracking-wide">
                 Anunciado por
               </span>
               <div className="mt-1 flex items-center gap-3">
-                <span className="w-10 h-10 rounded-full bg-gray-100 shrink-0 overflow-hidden">
+                <span className="w-10 h-10 rounded-pill bg-petroleo-50 shrink-0 overflow-hidden">
                   {produto.loja_avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -129,27 +125,22 @@ export default function ModalProduto({ produto, onFechar }: Props) {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="w-full h-full flex items-center justify-center font-bold text-gray-500 bg-gray-200 text-sm">
+                    <span className="w-full h-full flex items-center justify-center font-bold text-petroleo bg-petroleo-50 text-sm">
                       {produto.loja_nome.charAt(0).toUpperCase()}
                     </span>
                   )}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <h3 className="text-gray-800 font-semibold truncate">
+                    <h3 className="text-tinta font-semibold truncate">
                       {produto.loja_nome}
                     </h3>
                     {produto.loja_verificada && (
-                      <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        <svg className="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.64.304 1.24.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <span>Aluno Verificado</span>
-                      </span>
+                      <SeloVerificado />
                     )}
                   </div>
                   {produto.loja_descricao && (
-                    <p className="text-gray-500 text-sm line-clamp-2">
+                    <p className="text-tinta-suave text-sm line-clamp-2">
                       {produto.loja_descricao}
                     </p>
                   )}
@@ -160,7 +151,7 @@ export default function ModalProduto({ produto, onFechar }: Props) {
             <div className="mt-auto flex flex-col sm:flex-row gap-2">
               <Link
                 href={`/perfil/${produto.loja_id}`}
-                className="border border-gray-300 text-gray-800 rounded-lg hover:border-gray-800 hover:bg-gray-50 transition px-4 py-2 font-medium text-center"
+                className="bg-superficie text-petroleo border border-borda-controle hover:border-petroleo rounded-controle transition px-4 py-2.5 min-h-[44px] font-semibold inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
               >
                 Ver perfil
               </Link>
@@ -168,10 +159,10 @@ export default function ModalProduto({ produto, onFechar }: Props) {
                 href={whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-[#FF385C] text-white rounded-lg hover:bg-[#e0314f] transition px-4 py-2 font-medium text-center flex-1 inline-flex items-center justify-center gap-2"
+                className="bg-acao text-white rounded-controle hover:bg-acao-hover transition px-4 py-2.5 min-h-[44px] font-semibold flex-1 inline-flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
               >
                 <IconeWhatsapp className="w-4 h-4" />
-                Falar no WhatsApp
+                Tenho interesse
               </Link>
             </div>
           </div>

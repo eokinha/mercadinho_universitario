@@ -12,7 +12,22 @@ import {
   updateLoja,
 } from "@/lib/queries";
 import { uploadImagemProduto } from "@/lib/storage";
+import { iconeParaCategoria } from "@/lib/icones-categoria";
 import type { CategoriaComFilhos, Loja } from "@/types";
+import {
+  ArrowLeftRight,
+  Camera,
+  Check,
+  ChevronLeft,
+  CornerDownRight,
+  ImagePlus,
+  Plus,
+  Repeat,
+  Send,
+  ShoppingBag,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 
 interface Props {
   loja: Loja;
@@ -52,7 +67,6 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       instagram_url: null,
       tiktok_url: null,
       locais_entrega: ["RU Central", "Biblioteca Universitária"],
-      cor_tema: "#FF385C",
     };
     return {
       props: {
@@ -103,7 +117,7 @@ export default function AnunciarPage({ loja, categorias }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   // Modalidade: venda | troca | ambos
-  const [modalidade, setModalidade] = useState<"venda" | "troca" | "ambos">("troca");
+  const [modalidade, setModalidade] = useState<"venda" | "troca" | "ambos">("venda");
 
   const [nome, setNome] = useState("");
   const [preco, setPreco] = useState("");
@@ -202,149 +216,95 @@ export default function AnunciarPage({ loja, categorias }: Props) {
     }
   }
 
+  const MODOS = [
+    { id: "venda" as const, rotulo: "Vender", descricao: "Defina um preço.", Icone: ShoppingBag, ativa: "bg-petroleo border-petroleo" },
+    { id: "troca" as const, rotulo: "Trocar", descricao: "Troque por outro item.", Icone: Repeat, ativa: "bg-troca border-troca" },
+    { id: "ambos" as const, rotulo: "Vender ou trocar", descricao: "Aceite dinheiro ou troca.", Icone: ArrowLeftRight, ativa: "bg-petroleo border-petroleo" },
+  ];
+
   return (
     <>
       <Head>
-        <title>Publicar Anúncio ou Troca • Mercadinho Universitário</title>
+        <title>Anunciar • Circular</title>
       </Head>
 
-      <div className="min-h-screen bg-[#F8F9FA] py-8 sm:py-12">
+      <div className="min-h-screen bg-pagina py-8 sm:py-12">
         <div className="max-w-2xl mx-auto px-4">
           {/* Navegação superior */}
           <div className="mb-6 flex items-center justify-between">
             <Link
               href="/painel"
-              className="text-xs sm:text-sm font-semibold text-gray-600 hover:text-gray-900 flex items-center gap-1.5 transition"
+              className="text-sm font-semibold text-petroleo hover:underline flex items-center gap-1 min-h-[44px] rounded-controle focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
             >
-              <span>←</span>
-              <span>Voltar ao painel</span>
+              <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
+              Voltar ao painel
             </Link>
 
-            <span className="text-xs text-gray-400 font-medium">
-              Anunciante: <strong>{loja.nome}</strong>
+            <span className="text-sm text-tinta-suave">
+              Anunciando como <strong className="text-tinta">{loja.nome}</strong>
             </span>
           </div>
 
-          <div className="bg-white border border-gray-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
+          <div className="bg-superficie border border-borda rounded-card p-6 sm:p-8">
             {/* Cabeçalho */}
             <div className="mb-8">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFE7EB] text-[#FF385C] text-xs font-bold uppercase tracking-wider mb-2">
-                <span>📢</span>
-                <span>Desapego Universitário</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
-                O que você quer anunciar?
-              </h1>
-              <p className="text-gray-500 text-sm mt-1">
-                Desapegue de livros, materiais acadêmicos ou serviços para outros estudantes do campus.
+              <h1 className="text-2xl sm:text-3xl font-bold text-petroleo tracking-tight">Anunciar item</h1>
+              <p className="text-tinta-suave text-sm mt-1">
+                Livros, materiais de curso ou serviços para outros alunos do seu campus.
               </p>
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50 text-red-700 text-sm rounded-2xl border border-red-100 flex items-start gap-3">
-                <span className="text-lg">⚠️</span>
-                <div>
-                  <p className="font-bold">Atenção</p>
-                  <p className="text-xs mt-0.5">{error}</p>
-                </div>
+              <div role="alert" className="mb-6 p-4 bg-perigo-50 text-perigo text-sm rounded-card flex items-start gap-3">
+                <TriangleAlert size={20} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
+                <p>{error}</p>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* 1. SELETOR DE MODALIDADE (VENDA / TROCA / AMBOS) */}
-              <div>
-                <label className="block text-sm font-bold text-gray-800 mb-2">
-                  Tipo de Anúncio *
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {/* Opção Troca */}
-                  <button
-                    type="button"
-                    onClick={() => setModalidade("troca")}
-                    className={`p-3.5 rounded-2xl border text-left transition relative flex flex-col justify-between ${
-                      modalidade === "troca"
-                        ? "border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-500/20"
-                        : "border-gray-200 hover:border-gray-300 bg-white"
-                    }`}
-                  >
-                    <div>
-                      <span className="text-xl mb-1 block">🔄</span>
-                      <p className="font-bold text-sm text-gray-900 leading-tight">
-                        Apenas Troca
-                      </p>
-                      <p className="text-[11px] text-gray-500 mt-1 leading-snug">
-                        Custo R$ 0. Troque por outro material de estudo.
-                      </p>
-                    </div>
-                    <span className="inline-block mt-2 text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full w-fit">
-                      Economia Circular
-                    </span>
-                  </button>
-
-                  {/* Opção Venda */}
-                  <button
-                    type="button"
-                    onClick={() => setModalidade("venda")}
-                    className={`p-3.5 rounded-2xl border text-left transition relative flex flex-col justify-between ${
-                      modalidade === "venda"
-                        ? "border-[#FF385C] bg-rose-50/40 ring-2 ring-[#FF385C]/20"
-                        : "border-gray-200 hover:border-gray-300 bg-white"
-                    }`}
-                  >
-                    <div>
-                      <span className="text-xl mb-1 block">🏷️</span>
-                      <p className="font-bold text-sm text-gray-900 leading-tight">
-                        Somente Venda
-                      </p>
-                      <p className="text-[11px] text-gray-500 mt-1 leading-snug">
-                        Defina um preço e receba pagamento direto.
-                      </p>
-                    </div>
-                    <span className="inline-block mt-2 text-[10px] font-bold text-rose-700 bg-rose-100/70 px-2 py-0.5 rounded-full w-fit">
-                      Pagamento Direto
-                    </span>
-                  </button>
-
-                  {/* Opção Ambos */}
-                  <button
-                    type="button"
-                    onClick={() => setModalidade("ambos")}
-                    className={`p-3.5 rounded-2xl border text-left transition relative flex flex-col justify-between ${
-                      modalidade === "ambos"
-                        ? "border-blue-500 bg-blue-50/40 ring-2 ring-blue-500/20"
-                        : "border-gray-200 hover:border-gray-300 bg-white"
-                    }`}
-                  >
-                    <div>
-                      <span className="text-xl mb-1 block">🔁</span>
-                      <p className="font-bold text-sm text-gray-900 leading-tight">
-                        Venda ou Troca
-                      </p>
-                      <p className="text-[11px] text-gray-500 mt-1 leading-snug">
-                        Aceita tanto dinheiro quanto troca equivalente.
-                      </p>
-                    </div>
-                    <span className="inline-block mt-2 text-[10px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full w-fit">
-                      Mais Flexível
-                    </span>
-                  </button>
+              {/* 1. Modo do anúncio */}
+              <fieldset>
+                <legend className="block text-sm font-semibold text-tinta mb-2">
+                  O que você quer fazer com este item?
+                </legend>
+                <div role="tablist" aria-label="Modo do anúncio" className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {MODOS.map(({ id, rotulo, descricao, Icone, ativa }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={modalidade === id}
+                      onClick={() => setModalidade(id)}
+                      className={`p-3.5 min-h-[44px] rounded-controle border text-left transition flex items-start gap-2.5 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 ${
+                        modalidade === id ? `${ativa} text-white` : "border-borda-controle bg-superficie text-tinta hover:border-petroleo"
+                      }`}
+                    >
+                      <Icone size={20} strokeWidth={1.75} className="shrink-0 mt-0.5" aria-hidden="true" />
+                      <span>
+                        <span className="block font-semibold text-sm">{rotulo}</span>
+                        <span className={`block text-xs mt-0.5 ${modalidade === id ? "text-white" : "text-tinta-suave"}`}>
+                          {descricao}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
                 </div>
-              </div>
+              </fieldset>
 
               {/* 2. CAMPOS DE VALOR E TROCA CONDICIONAIS */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50/80 border border-gray-100 rounded-2xl p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-pagina border border-borda rounded-card p-4">
                 {/* Preço em R$ */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-tinta mb-1">
                     Preço (R$) {modalidade !== "troca" && "*"}
                   </label>
                   {modalidade === "troca" ? (
-                    <div className="h-10 flex items-center px-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-500 text-sm font-semibold">
-                      <span>R$ 0,00 (Troca Direta)</span>
+                    <div className="min-h-[44px] flex items-center px-3 rounded-controle border border-borda bg-pagina text-tinta-suave text-sm font-semibold">
+                      <span>Sem preço (só troca)</span>
                     </div>
                   ) : (
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-tinta-sutil text-sm font-bold">
                         R$
                       </span>
                       <input
@@ -355,7 +315,7 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                         value={preco}
                         onChange={(e) => setPreco(e.target.value)}
                         placeholder="Ex: 45.00"
-                        className="w-full h-10 pl-9 pr-3 rounded-xl border border-gray-300 focus:border-[#FF385C] focus:outline-none text-sm font-semibold bg-white"
+                        className="w-full pl-9 pr-3 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm font-semibold bg-superficie"
                       />
                     </div>
                   )}
@@ -363,10 +323,10 @@ export default function AnunciarPage({ loja, categorias }: Props) {
 
                 {/* O que busca em troca */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-tinta mb-1">
                     {modalidade === "troca"
                       ? "O que você busca em troca? *"
-                      : "Aceita trocar por quê? (Opcional)"}
+                      : "Aceita trocar por quê? (opcional)"}
                   </label>
                   <input
                     type="text"
@@ -374,15 +334,15 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                     value={itemTrocaDesejado}
                     onChange={(e) => setItemTrocaDesejado(e.target.value)}
                     placeholder="Ex: Livro de Física 1, mouse ou jaleco"
-                    className="w-full h-10 px-3 rounded-xl border border-gray-300 focus:border-[#FF385C] focus:outline-none text-xs sm:text-sm bg-white"
+                    className="w-full px-3 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-xs sm:text-sm bg-superficie"
                   />
                 </div>
               </div>
 
               {/* 3. TÍTULO DO PRODUTO */}
               <div>
-                <label className="block text-sm font-bold text-gray-800 mb-1">
-                  Título do Anúncio *
+                <label className="block text-sm font-semibold text-tinta mb-1">
+                  Título do anúncio *
                 </label>
                 <input
                   type="text"
@@ -390,13 +350,13 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
                   placeholder="Ex: Livro Cálculo James Stewart Vol. 1 (8ª Ed.)"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:border-[#FF385C] focus:outline-none text-sm bg-white"
+                  className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie"
                 />
               </div>
 
               {/* 4. CATEGORIA — seletor em cascata de 2 níveis */}
               <div>
-                <label className="block text-sm font-bold text-gray-800 mb-2">
+                <label className="block text-sm font-semibold text-tinta mb-2">
                   Categoria *
                 </label>
 
@@ -410,14 +370,18 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                         setCategoriaPaiId(String(pai.id));
                         setCategoriaId(""); // reset subcategoria
                       }}
-                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left text-sm font-medium transition ${
+                      aria-pressed={categoriaPaiId === String(pai.id)}
+                      className={`flex items-center gap-2 px-3 py-2.5 min-h-[44px] rounded-controle border text-left text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 ${
                         categoriaPaiId === String(pai.id)
-                          ? "border-[#FF385C] bg-rose-50 text-[#FF385C] ring-1 ring-[#FF385C]/30"
-                          : "border-gray-200 bg-white text-gray-700 hover:border-gray-400"
+                          ? "border-petroleo bg-petroleo-50 text-petroleo"
+                          : "border-borda-controle bg-superficie text-tinta hover:border-petroleo"
                       }`}
                     >
-                      <span className="text-base shrink-0">{pai.icone ?? "🏷️"}</span>
-                      <span className="leading-tight text-xs sm:text-sm">{pai.nome}</span>
+                      {(() => {
+                        const Icone = iconeParaCategoria(pai.nome);
+                        return <Icone size={18} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />;
+                      })()}
+                      <span className="leading-tight text-sm">{pai.nome}</span>
                     </button>
                   ))}
                 </div>
@@ -428,8 +392,8 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                   if (!pai || !pai.filhos || pai.filhos.length === 0) return null;
                   return (
                     <div>
-                      <p className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1.5">
-                        <span>↳</span>
+                      <p className="text-xs font-semibold text-tinta-suave mb-2 flex items-center gap-1.5">
+                        <CornerDownRight size={16} strokeWidth={1.75} aria-hidden="true" />
                         <span>Subcategoria de {pai.nome}</span>
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -438,14 +402,14 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                             key={sub.id}
                             type="button"
                             onClick={() => setCategoriaId(String(sub.id))}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition ${
+                            aria-pressed={categoriaId === String(sub.id)}
+                            className={`flex items-center gap-1.5 px-4 min-h-[44px] rounded-pill border text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 ${
                               categoriaId === String(sub.id)
-                                ? "border-[#FF385C] bg-[#FF385C] text-white"
-                                : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-400"
+                                ? "border-petroleo bg-petroleo text-white"
+                                : "border-borda-controle bg-superficie text-tinta hover:border-petroleo"
                             }`}
                           >
-                            <span>{sub.icone ?? ""}</span>
-                            <span>{sub.nome}</span>
+                            {sub.nome}
                           </button>
                         ))}
                       </div>
@@ -456,26 +420,26 @@ export default function AnunciarPage({ loja, categorias }: Props) {
 
               {/* 5. DESCRIÇÃO */}
               <div>
-                <label className="block text-sm font-bold text-gray-800 mb-1">
-                  Descrição detalhada
+                <label className="block text-sm font-semibold text-tinta mb-1">
+                  Descrição
                 </label>
                 <textarea
                   rows={4}
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value)}
                   placeholder="Descreva o estado de conservação, marcas de uso, edição ou motivo do desapego..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:border-[#FF385C] focus:outline-none text-sm bg-white resize-y"
+                  className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie resize-y"
                 />
               </div>
 
               {/* 6. UPLOAD DE FOTO */}
               <div>
-                <label className="block text-sm font-bold text-gray-800 mb-1">
-                  Foto do Item
+                <label className="block text-sm font-semibold text-tinta mb-1">
+                  Foto do item
                 </label>
                 <div className="flex flex-col sm:flex-row items-center gap-4">
                   {imagePreview ? (
-                    <div className="relative w-32 h-32 rounded-2xl overflow-hidden border-2 border-gray-200 shrink-0">
+                    <div className="relative w-32 h-32 rounded-card overflow-hidden border-2 border-borda shrink-0">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={imagePreview}
@@ -488,32 +452,22 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                           setImageFile(null);
                           setImagePreview(null);
                         }}
-                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 border border-gray-200 text-gray-700 flex items-center justify-center text-xs hover:text-[#FF385C]"
+                        aria-label="Remover foto"
+                        className="absolute top-1 right-1 w-11 h-11 rounded-pill bg-superficie/90 border border-borda text-perigo flex items-center justify-center focus-visible:outline-2 focus-visible:outline-petroleo"
                       >
-                        ✕
+                        <X size={18} strokeWidth={1.75} aria-hidden="true" />
                       </button>
                     </div>
                   ) : (
-                    <div className="w-32 h-32 rounded-2xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 bg-gray-50 shrink-0">
-                      <span className="text-2xl mb-1">📷</span>
-                      <span className="text-[11px] font-medium">Sem foto</span>
+                    <div className="w-32 h-32 rounded-card border-2 border-dashed border-borda-controle flex flex-col items-center justify-center text-tinta-sutil bg-pagina shrink-0">
+                      <Camera size={28} strokeWidth={1.75} className="mb-1" aria-hidden="true" />
+                      <span className="text-xs font-semibold">Sem foto</span>
                     </div>
                   )}
 
                   <div className="flex-1 w-full">
-                    <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-300 hover:border-gray-400 bg-white font-semibold text-xs text-gray-700 cursor-pointer transition shadow-2xs">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        className="w-4 h-4 text-gray-500"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M1 5.25A2.25 2.25 0 013.25 3h13.5A2.25 2.25 0 0119 5.25v9.5A2.25 2.25 0 0116.75 17H3.25A2.25 2.25 0 011 14.75v-9.5zm1.5 5.81v3.69c0 .414.336.75.75.75h13.5a.75.75 0 00.75-.75v-2.69l-3.22-3.22a.75.75 0 00-1.06 0L9.47 12.59 7.03 10.15a.75.75 0 00-1.06 0L2.5 11.06zm10.75-4.56a1.25 1.25 0 100-2.5 1.25 1.25 0 000 2.5z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                    <label className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle hover:border-petroleo bg-superficie font-semibold text-sm text-petroleo cursor-pointer transition">
+                      <ImagePlus size={18} strokeWidth={1.75} aria-hidden="true" />
                       <span>{imagePreview ? "Trocar imagem" : "Escolher foto do produto"}</span>
                       <input
                         type="file"
@@ -522,7 +476,7 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                         className="hidden"
                       />
                     </label>
-                    <p className="text-[11px] text-gray-400 mt-1.5">
+                    <p className="text-xs text-tinta-sutil mt-1.5">
                       Formatos aceitos: JPG, PNG ou WebP. Tamanho máximo: 3 MB.
                     </p>
                   </div>
@@ -531,11 +485,11 @@ export default function AnunciarPage({ loja, categorias }: Props) {
 
               {/* 7. LOCAIS DE ENCONTRO NO CAMPUS */}
               <div>
-                <label className="block text-sm font-bold text-gray-800 mb-1">
-                  Locais sugeridos para entrega no campus
+                <label className="block text-sm font-semibold text-tinta mb-1">
+                  Locais de entrega no campus
                 </label>
-                <p className="text-xs text-gray-500 mb-2.5">
-                  Selecione os pontos de encontro mais práticos para você encontrar o colega:
+                <p className="text-xs text-tinta-suave mb-2.5">
+                  Escolha onde é mais prático encontrar o colega.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {LOCAIS_SUGERIDOS.map((local) => {
@@ -545,14 +499,19 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                         key={local}
                         type="button"
                         onClick={() => toggleLocal(local)}
-                        className={`text-xs px-3 py-1.5 rounded-full border transition flex items-center gap-1.5 ${
+                        aria-pressed={ativo}
+                        className={`text-sm px-4 min-h-[44px] rounded-pill border transition flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 ${
                           ativo
-                            ? "bg-[#FF385C] border-[#FF385C] text-white font-bold"
-                            : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                            ? "bg-petroleo border-petroleo text-white font-semibold"
+                            : "bg-superficie border-borda-controle text-tinta-suave hover:border-petroleo"
                         }`}
                       >
-                        <span>{ativo ? "✓" : "+"}</span>
-                        <span>{local}</span>
+                        {ativo ? (
+                          <Check size={14} strokeWidth={1.75} aria-hidden="true" />
+                        ) : (
+                          <Plus size={14} strokeWidth={1.75} aria-hidden="true" />
+                        )}
+                        {local}
                       </button>
                     );
                   })}
@@ -560,10 +519,10 @@ export default function AnunciarPage({ loja, categorias }: Props) {
               </div>
 
               {/* BOTÕES DE AÇÃO */}
-              <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+              <div className="pt-4 border-t border-borda flex items-center justify-end gap-3">
                 <Link
                   href="/painel"
-                  className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition"
+                  className="px-4 py-2.5 min-h-[44px] inline-flex items-center rounded-controle border border-borda-controle bg-superficie text-petroleo text-sm font-semibold hover:border-petroleo transition focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
                 >
                   Cancelar
                 </Link>
@@ -571,17 +530,17 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-[#FF385C] hover:bg-[#e0314f] text-white text-sm font-bold px-7 py-2.5 rounded-xl shadow-md shadow-[#FF385C]/25 transition hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
+                  className="bg-acao hover:bg-acao-hover text-white text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-controle transition disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
                 >
                   {loading ? (
                     <>
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Publicando...</span>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-pill animate-spin" />
+                      <span>Publicando…</span>
                     </>
                   ) : (
                     <>
-                      <span>Publicar Anúncio</span>
-                      <span>🚀</span>
+                      <span>Publicar anúncio</span>
+                      <Send size={16} strokeWidth={1.75} aria-hidden="true" />
                     </>
                   )}
                 </button>

@@ -1,6 +1,7 @@
-# Mercadinho Universitário
+# Circular
 
-Marketplace universitário onde estudantes encontram lojas dentro de instituições de ensino.
+**Circular** — marketplace universitário onde alunos compram e trocam itens com colegas do próprio campus.
+(Nome anterior: Mercadinho Universitário.)
 
 ## Stack
 
@@ -69,7 +70,7 @@ instituicoes   — id, nome, cnpj
 usuarios       — id, auth_id (uuid → auth.users), nome, sobrenome, email, password (legado, não usar), telefone, cpf, matricula,
                  matricula_validada (bool), matricula_status (pendente|verificado|rejeitado), instituicoes_id, status, is_admin (bool), criado_em
 lojas          — id, usuario_id (UNIQUE), nome, descricao, contato, status (pendente|ativo|pausado|reprovado), criado_em, avatar_url, capa_url,
-                 slug, instagram_url, tiktok_url, whatsapp, locais_entrega (text[]), cor_tema (padrão #FF385C)
+                 slug, instagram_url, tiktok_url, whatsapp, locais_entrega (text[])
 produtos       — id, loja_id, nome, descricao, preco (numeric), imagem_url, status (ativo|pausado), criado_em, categoria_id,
                  destaque (bool — impulsionado na home, só admin), aceita_troca (bool)
 categorias     — id, nome, parent_id (2 níveis), icone
@@ -90,7 +91,7 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `13`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `13` (`14` pendente: aplicar após o deploy sem `cor_tema`). Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 
 ### Segurança (RLS e triggers)
 
@@ -172,7 +173,7 @@ Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00
 - Não criar abstrações desnecessárias — código simples e direto
 - Não usar Context API, Zustand, Redux ou qualquer gerenciador de estado global
 - Não usar axios — cliente Supabase ou fetch nativo
-- Não usar bibliotecas de componentes (shadcn, radix, MUI, etc.)
+- Não usar bibliotecas de componentes (shadcn, radix, MUI, etc.); ícones só de `lucide-react`
 - Sempre tipar com as interfaces de `src/types/index.ts`
 
 ### Fetch de dados
@@ -194,20 +195,14 @@ Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00
 
 ---
 
-## Estilo visual — tema Airbnb
+## Design system — Circular
 
-| Elemento         | Valor                       |
-|------------------|-----------------------------|
-| Fundo da página  | `bg-[#F7F7F7]`              |
-| Acento principal | `#FF385C`                   |
-| Acento hover     | `#e0314f`                   |
-| Texto principal  | `text-gray-800`             |
-| Texto secundário | `text-gray-500`             |
-| Bordas           | `border-gray-200`           |
-| Cards            | `bg-white rounded-xl`       |
+Antes de criar ou alterar qualquer UI, leia `DESIGN_SYSTEM.md`. Use apenas os tokens do `@theme`
+em `src/styles/globals.css`; não use hex soltos nem as cores padrão do Tailwind.
 
-- Sem cores dark (`bg-black`, `text-white`, `bg-gray-900`)
-- Sombras apenas no hover: `hover:shadow-md transition`
-- Inputs de busca: `rounded-full`
-- Botões primários: `bg-[#FF385C] text-white rounded-lg`
-- Filtros/pills: `rounded-full border border-gray-300`
+- Marca: **Circular** · slogan "Deixa Circular." · logo via `src/components/Logo.tsx`
+- Ícones: `lucide-react` (stroke 1.75, 16–20px); **sem emojis na interface**
+- Uma ação principal por tela em `bg-acao`; demais botões no padrão secundário
+- Selo de verificado: `src/components/SeloVerificado.tsx`
+- Ícone de categoria: `iconeParaCategoria` em `src/lib/icones-categoria.ts` (a coluna `categorias.icone` guarda emoji e não é exibida)
+- Todas as lojas seguem a identidade do site (não há cor por loja)

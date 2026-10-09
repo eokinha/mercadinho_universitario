@@ -10,6 +10,9 @@ import {
   uploadImagemProduto,
   type TipoImagemLoja,
 } from "@/lib/storage";
+import {
+  ShieldCheck,
+} from "lucide-react";
 
 type LojaAdmin = Pick<Loja, "id" | "nome" | "status" | "avatar_url" | "capa_url">;
 
@@ -70,10 +73,10 @@ function UploadInput({ id, label, onUpload }: UploadInputProps) {
     <div>
       <label
         htmlFor={id}
-        className={`inline-block cursor-pointer text-sm rounded-lg px-3 py-1.5 transition ${
+        className={`inline-flex items-center min-h-[44px] cursor-pointer text-sm font-semibold rounded-controle px-4 border transition ${
           carregando
-            ? "bg-gray-200 text-gray-500"
-            : "bg-[#FF385C] text-white hover:bg-[#e0314f]"
+            ? "bg-pagina border-borda text-tinta-suave"
+            : "bg-superficie border-borda-controle text-petroleo hover:border-petroleo"
         }`}
       >
         {carregando ? "Enviando…" : label}
@@ -86,7 +89,7 @@ function UploadInput({ id, label, onUpload }: UploadInputProps) {
         onChange={handleChange}
         disabled={carregando}
       />
-      {erro && <p className="text-red-600 text-xs mt-1">{erro}</p>}
+      {erro && <p className="text-perigo text-xs mt-1">{erro}</p>}
     </div>
   );
 }
@@ -102,19 +105,19 @@ export default function AdminImagensPage({ lojas, produtos }: Props) {
     <div className="max-w-6xl mx-auto px-4 py-8">
       <header className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-gray-800 text-2xl font-semibold">
+          <h1 className="text-petroleo text-2xl font-bold">
             Administração de imagens
           </h1>
-          <p className="text-gray-500 mt-1 text-sm">
+          <p className="text-tinta-suave mt-1 text-sm">
             Faça upload de avatar e capa das lojas, e da imagem dos produtos.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Link
             href="/admin/verificacoes"
-            className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-xl transition shadow-xs flex items-center gap-1.5"
+            className="text-xs font-bold text-white bg-troca px-4 py-2 rounded-controle transition flex items-center gap-1.5"
           >
-            <span>🛡️</span>
+            <ShieldCheck size={16} strokeWidth={1.75} aria-hidden="true" />
             <span>Moderar Matrículas</span>
           </Link>
         </div>
@@ -122,7 +125,7 @@ export default function AdminImagensPage({ lojas, produtos }: Props) {
 
       <div
         role="alert"
-        className="mb-8 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg px-4 py-3 text-sm"
+        className="mb-8 bg-doacao-50 border border-doacao text-doacao rounded-controle px-4 py-3 text-sm"
       >
         <strong className="font-semibold">Tela provisória.</strong> Não há
         autenticação ainda — qualquer pessoa com acesso à URL pode trocar
@@ -130,18 +133,18 @@ export default function AdminImagensPage({ lojas, produtos }: Props) {
       </div>
 
       <section className="mb-12">
-        <h2 className="text-gray-800 text-lg font-semibold mb-4">Lojas</h2>
+        <h2 className="text-petroleo text-lg font-semibold mb-4">Lojas</h2>
 
         {lojas.length === 0 ? (
-          <p className="text-gray-500 text-sm">Nenhuma loja cadastrada.</p>
+          <p className="text-tinta-suave text-sm">Nenhuma loja cadastrada.</p>
         ) : (
           <div className="grid gap-4">
             {lojas.map((loja) => (
               <article
                 key={loja.id}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden"
+                className="bg-superficie border border-borda rounded-controle overflow-hidden"
               >
-                <div className="relative h-32 bg-gradient-to-br from-[#FF385C]/20 via-pink-100 to-orange-100">
+                <div className="relative h-32 bg-petroleo-50">
                   {loja.capa_url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -153,7 +156,7 @@ export default function AdminImagensPage({ lojas, produtos }: Props) {
                 </div>
                 <div className="px-4 pb-4">
                   <div className="-mt-8 mb-3 flex items-end gap-3">
-                    <span className="w-16 h-16 rounded-full bg-gray-100 ring-4 ring-white shadow-sm overflow-hidden shrink-0">
+                    <span className="w-16 h-16 rounded-pill bg-pagina ring-4 ring-white overflow-hidden shrink-0">
                       {loja.avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -162,16 +165,16 @@ export default function AdminImagensPage({ lojas, produtos }: Props) {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="w-full h-full flex items-center justify-center text-gray-400 text-xl font-semibold">
+                        <span className="w-full h-full flex items-center justify-center text-tinta-sutil text-xl font-semibold">
                           {loja.nome.charAt(0).toUpperCase()}
                         </span>
                       )}
                     </span>
                     <div className="min-w-0 pb-1">
-                      <h3 className="text-gray-800 font-medium truncate">
+                      <h3 className="text-tinta font-semibold truncate">
                         {loja.nome}
                       </h3>
-                      <span className="text-gray-400 text-xs">
+                      <span className="text-tinta-sutil text-xs">
                         #{loja.id} · {loja.status}
                       </span>
                     </div>
@@ -198,19 +201,19 @@ export default function AdminImagensPage({ lojas, produtos }: Props) {
       </section>
 
       <section>
-        <h2 className="text-gray-800 text-lg font-semibold mb-4">Produtos</h2>
+        <h2 className="text-petroleo text-lg font-semibold mb-4">Produtos</h2>
 
         {produtos.length === 0 ? (
-          <p className="text-gray-500 text-sm">Nenhum produto cadastrado.</p>
+          <p className="text-tinta-suave text-sm">Nenhum produto cadastrado.</p>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <ul className="divide-y divide-gray-100">
+          <div className="bg-superficie border border-borda rounded-controle overflow-hidden">
+            <ul className="divide-y divide-borda">
               {produtos.map((produto) => (
                 <li
                   key={produto.id}
                   className="flex items-center gap-4 px-4 py-3"
                 >
-                  <span className="w-14 h-14 rounded-lg bg-gray-100 shrink-0 overflow-hidden">
+                  <span className="w-14 h-14 rounded-controle bg-pagina shrink-0 overflow-hidden">
                     {produto.imagem_url && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -221,10 +224,10 @@ export default function AdminImagensPage({ lojas, produtos }: Props) {
                     )}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-gray-800 font-medium truncate">
+                    <p className="text-tinta font-semibold truncate">
                       {produto.nome}
                     </p>
-                    <p className="text-gray-500 text-xs">
+                    <p className="text-tinta-suave text-xs">
                       {produto.loja_nome} · {formatarPreco(produto.preco)}
                     </p>
                   </div>

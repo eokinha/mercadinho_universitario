@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useMemo, useSyncExternalStore, type FormEv
 import { supabase } from "@/lib/supabase";
 import { getInstituicoes, getResumoUsuarioNavbar } from "@/lib/queries";
 import { PAGINAS_PAINEL } from "@/lib/painel-routes";
+import Logo from "@/components/Logo";
+import { Check, ChevronDown, Globe, GraduationCap, Image as ImageIcon, LogOut, Plus, Search, ShieldCheck, Store, UserRound, X } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import type { Instituicao } from "@/types";
 
@@ -190,26 +192,33 @@ export default function Navbar() {
   }, [instituicoes, instituicaoSelecionada]);
 
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3 sm:gap-4">
+    <header className="bg-superficie border-b border-borda sticky top-0 z-30">
+      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2 sm:gap-4">
         {/* Logo */}
         <Link
           href="/"
-          className="text-[#FF385C] font-bold text-base sm:text-lg shrink-0"
+          aria-label="Circular — página inicial"
+          className="shrink-0 rounded-controle focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
         >
-          Mercadinho Universitário
+          <span className="hidden sm:block">
+            <Logo />
+          </span>
+          <span className="sm:hidden">
+            <Logo variante="simbolo" />
+          </span>
         </Link>
 
         {/* Barra Central: Busca + Seletor de Universidades */}
-        <div className="flex-1 flex items-center justify-center gap-2 max-w-xl mx-2">
+        <div className="flex-1 min-w-0 flex items-center justify-center gap-2 max-w-xl sm:mx-2">
           {/* Input de Busca de Produtos */}
-          <form onSubmit={handleSubmit} className="flex-1 min-w-[120px]">
+          <form onSubmit={handleSubmit} className="flex-1 min-w-0" role="search">
             <input
               type="search"
               value={termo}
               onChange={(e) => setTermo(e.target.value)}
-              placeholder="Buscar produtos..."
-              className="w-full rounded-[12px] border border-gray-300 focus:border-[#FF385C] focus:outline-none px-3.5 sm:px-4 py-2 text-xs sm:text-sm text-gray-800 placeholder-gray-400 text-left transition bg-gray-50/50 hover:bg-white focus:bg-white"
+              placeholder="Buscar"
+              aria-label="Buscar anúncios"
+              className="w-full rounded-pill border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 px-4 py-2 min-h-[44px] text-sm text-tinta placeholder:text-tinta-sutil transition bg-superficie"
             />
           </form>
 
@@ -218,39 +227,34 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setComboboxAberto(!comboboxAberto)}
-              className="h-[38px] flex items-center gap-1.5 px-2.5 sm:px-3 rounded-[12px] border border-gray-300 hover:border-gray-400 bg-white text-xs font-semibold text-gray-700 transition focus:outline-none focus:border-[#FF385C] max-w-[125px] sm:max-w-[190px] shadow-2xs"
+              className="min-h-[44px] flex items-center gap-1.5 px-3 rounded-pill border border-borda-controle hover:border-petroleo bg-superficie text-xs font-semibold text-tinta transition focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 sm:max-w-[190px]"
               title={
                 instituicaoAtivaObj
                   ? `Campus ativo: ${instituicaoAtivaObj.nome}`
                   : "Todas as universidades"
               }
             >
-              <span className="text-sm shrink-0">🎓</span>
-              <span className="truncate text-left font-medium">
-                {instituicaoAtivaObj ? instituicaoAtivaObj.nome : "Todas as Faculdades"}
+              <GraduationCap size={16} strokeWidth={1.75} className="shrink-0 text-petroleo" aria-hidden="true" />
+              <span className="hidden sm:inline truncate text-left font-semibold">
+                {instituicaoAtivaObj ? instituicaoAtivaObj.nome : "Todas as faculdades"}
               </span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className={`w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform duration-200 ${
-                  comboboxAberto ? "rotate-180 text-[#FF385C]" : ""
+              <span className="sr-only sm:hidden">Escolher faculdade</span>
+              <ChevronDown
+                size={16}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className={`text-tinta-sutil shrink-0 transition-transform duration-200 ${
+                  comboboxAberto ? "rotate-180 text-petroleo" : ""
                 }`}
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              />
             </button>
 
             {/* Dropdown Popover do Combobox */}
             {comboboxAberto && (
-              <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white border border-gray-200 rounded-2xl shadow-xl p-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="px-2 py-1 flex items-center justify-between text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+              <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-superficie border border-borda rounded-card shadow-flutuante p-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="px-2 py-1 flex items-center justify-between text-xs font-bold text-tinta-sutil uppercase tracking-wider mb-2">
                   <span>Filtrar por Campus</span>
-                  <span className="text-[10px] text-gray-400 font-normal">
+                  <span className="text-xs text-tinta-sutil font-normal">
                     {instituicoes.length} faculdades
                   </span>
                 </div>
@@ -262,19 +266,18 @@ export default function Navbar() {
                     value={buscaUniversidade}
                     onChange={(e) => setBuscaUniversidade(e.target.value)}
                     placeholder="Buscar faculdade ou sigla..."
-                    className="w-full text-xs px-3 py-2 pl-8 rounded-xl border border-gray-200 focus:outline-none focus:border-[#FF385C] bg-gray-50 focus:bg-white"
+                    className="w-full text-xs px-3 py-2 pl-8 rounded-controle border border-borda-controle focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 focus:border-petroleo bg-superficie"
                     autoFocus
                   />
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
-                    🔍
-                  </span>
+                  <Search size={16} strokeWidth={1.75} aria-hidden="true" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tinta-sutil" />
                   {buscaUniversidade && (
                     <button
                       type="button"
                       onClick={() => setBuscaUniversidade("")}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                      aria-label="Limpar busca"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tinta-sutil hover:text-tinta"
                     >
-                      ✕
+                      <X size={16} strokeWidth={1.75} aria-hidden="true" />
                     </button>
                   )}
                 </div>
@@ -285,24 +288,24 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={() => selecionarInstituicao(null)}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium flex items-center justify-between transition ${
+                    className={`w-full text-left px-3 py-2 rounded-controle text-xs font-semibold flex items-center justify-between transition ${
                       instituicaoSelecionada === null
-                        ? "bg-[#FFE7EB] text-[#FF385C] font-bold"
-                        : "hover:bg-gray-50 text-gray-700"
+                        ? "bg-petroleo-50 text-petroleo font-bold"
+                        : "hover:bg-pagina text-tinta"
                     }`}
                   >
                     <span className="flex items-center gap-2">
-                      <span>🌐</span>
+                      <Globe size={16} strokeWidth={1.75} aria-hidden="true" />
                       <span>Todas as Universidades (Sem filtro)</span>
                     </span>
                     {instituicaoSelecionada === null && (
-                      <span className="text-sm font-bold text-[#FF385C]">✓</span>
+                      <Check size={16} strokeWidth={1.75} className="text-petroleo" aria-label="Selecionado" />
                     )}
                   </button>
 
                   {/* Lista de Instituições */}
                   {instituicoesFiltradas.length === 0 ? (
-                    <p className="text-center py-4 text-xs text-gray-400">
+                    <p className="text-center py-4 text-xs text-tinta-sutil">
                       Nenhuma universidade encontrada com este termo.
                     </p>
                   ) : (
@@ -315,22 +318,22 @@ export default function Navbar() {
                           key={inst.id}
                           type="button"
                           onClick={() => selecionarInstituicao(inst.id)}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium flex items-center justify-between gap-2 transition ${
+                          className={`w-full text-left px-3 py-2 rounded-controle text-xs font-semibold flex items-center justify-between gap-2 transition ${
                             isSelecionada
-                              ? "bg-[#FFE7EB] text-[#FF385C] font-bold"
-                              : "hover:bg-gray-50 text-gray-700"
+                              ? "bg-petroleo-50 text-petroleo font-bold"
+                              : "hover:bg-pagina text-tinta"
                           }`}
                         >
                           <div className="min-w-0 flex-1">
                             <p className="truncate">{inst.nome}</p>
                             {isCampusUsuario && (
-                              <span className="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.2 rounded mt-0.5">
-                                Seu campus de cadastro 🏠
+                              <span className="inline-block text-xs font-semibold text-petroleo bg-petroleo-50 px-2 py-0.5 rounded-pill mt-0.5">
+                                Seu campus de cadastro
                               </span>
                             )}
                           </div>
                           {isSelecionada && (
-                            <span className="shrink-0 text-sm font-bold text-[#FF385C]">✓</span>
+                            <Check size={16} strokeWidth={1.75} className="shrink-0 text-petroleo" aria-label="Selecionado" />
                           )}
                         </button>
                       );
@@ -346,9 +349,10 @@ export default function Navbar() {
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Link
             href="/anunciar"
-            className="inline-flex items-center gap-1.5 bg-[#FF385C] hover:bg-[#e0314f] text-white text-xs sm:text-sm font-semibold px-3 sm:px-3.5 py-2 rounded-xl transition shadow-2xs hover:shadow-xs shrink-0"
+            aria-label="Anunciar"
+            className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-white text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-controle transition shrink-0 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
           >
-            <span className="text-base font-bold leading-none">+</span>
+            <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
             <span className="hidden sm:inline">Anunciar</span>
           </Link>
 
@@ -359,25 +363,26 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setMenuAberto(!menuAberto)}
-                  className="w-10 h-10 rounded-full border border-gray-300 hover:shadow-md transition bg-gray-100 flex items-center justify-center overflow-hidden focus:outline-none"
+                  aria-label="Menu da conta"
+                  className="w-11 h-11 rounded-pill border border-borda-controle hover:border-petroleo transition bg-petroleo-50 flex items-center justify-center overflow-hidden focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
                 >
-                  <span className="text-sm font-bold text-[#FF385C]">
+                  <span className="text-sm font-bold text-petroleo">
                     {(nomeUsuario || user.email || "?").charAt(0).toUpperCase()}
                   </span>
                 </button>
 
                 {menuAberto && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="px-4 py-2 border-b border-gray-100 mb-1">
-                      <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                  <div className="absolute right-0 mt-2 w-56 bg-superficie border border-borda rounded-card shadow-flutuante py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="px-4 py-2 border-b border-borda mb-1">
+                      <p className="text-xs text-tinta-sutil uppercase font-bold tracking-wider">
                         Conta do Estudante
                       </p>
-                      <p className="text-sm font-medium text-gray-800 truncate">
+                      <p className="text-sm font-semibold text-tinta truncate">
                         {nomeUsuario || user.email}
                       </p>
                       {instituicaoAtivaObj && (
-                        <p className="text-[11px] text-gray-500 truncate flex items-center gap-1 mt-0.5">
-                          <span>🎓</span>
+                        <p className="text-xs text-tinta-suave truncate flex items-center gap-1 mt-0.5">
+                          <GraduationCap size={14} strokeWidth={1.75} aria-hidden="true" />
                           <span>{instituicaoAtivaObj.nome}</span>
                         </p>
                       )}
@@ -388,10 +393,10 @@ export default function Navbar() {
                         key={pagina.id}
                         href={pagina.href}
                         onClick={() => setMenuAberto(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-tinta hover:bg-pagina transition"
                       >
-                        <span className="text-base">{pagina.icon}</span>
-                        <span className="font-medium">{pagina.label}</span>
+                        <pagina.icon size={18} strokeWidth={1.75} className="text-tinta-suave" aria-hidden="true" />
+                        <span className="font-semibold">{pagina.label}</span>
                       </Link>
                     ))}
 
@@ -399,9 +404,9 @@ export default function Navbar() {
                       <Link
                         href={`/perfil/${lojaId}`}
                         onClick={() => setMenuAberto(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#FF385C] hover:bg-[#FFE7EB]/50 font-medium transition"
+                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-petroleo hover:bg-petroleo-50 font-semibold transition"
                       >
-                        <span className="text-base">👤</span>
+                        <UserRound size={18} strokeWidth={1.75} aria-hidden="true" />
                         <span>Ver perfil público</span>
                       </Link>
                     )}
@@ -411,37 +416,37 @@ export default function Navbar() {
                         <Link
                           href="/admin/verificacoes"
                           onClick={() => setMenuAberto(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50 font-medium transition"
+                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-petroleo hover:bg-petroleo-50 font-semibold transition"
                         >
-                          <span className="text-base">🛡️</span>
+                          <ShieldCheck size={18} strokeWidth={1.75} aria-hidden="true" />
                           <span>Moderar Matrículas</span>
                         </Link>
                         <Link
                           href="/admin/lojas"
                           onClick={() => setMenuAberto(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#FF385C] hover:bg-red-50 font-medium transition"
+                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-petroleo hover:bg-petroleo-50 font-semibold transition"
                         >
-                          <span className="text-base">🏪</span>
+                          <Store size={18} strokeWidth={1.75} aria-hidden="true" />
                           <span>Lojas e Destaques</span>
                         </Link>
                         <Link
                           href="/admin/imagens"
                           onClick={() => setMenuAberto(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-purple-700 hover:bg-purple-50 transition"
+                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-petroleo hover:bg-petroleo-50 transition"
                         >
-                          <span className="text-base">🖼️</span>
+                          <ImageIcon size={18} strokeWidth={1.75} aria-hidden="true" />
                           <span>Painel Imagens</span>
                         </Link>
                       </>
                     )}
 
-                    <div className="border-t border-gray-100 mt-1 pt-1">
+                    <div className="border-t border-borda mt-1 pt-1">
                       <button
                         type="button"
                         onClick={handleLogout}
-                        className="flex items-center gap-2.5 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+                        className="flex items-center gap-2.5 w-full text-left px-4 py-2 text-sm text-perigo hover:bg-perigo-50 transition"
                       >
-                        <span className="text-base">🚪</span>
+                        <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />
                         <span>Sair</span>
                       </button>
                     </div>
@@ -449,16 +454,16 @@ export default function Navbar() {
                 )}
               </>
             ) : (
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-1 sm:gap-3">
                 <Link
                   href="/login"
-                  className="text-gray-600 hover:text-gray-900 text-xs sm:text-sm font-semibold transition px-2"
+                  className="text-petroleo hover:underline text-sm font-semibold transition px-2 min-h-[44px] inline-flex items-center"
                 >
                   Entrar
                 </Link>
                 <Link
                   href="/cadastro"
-                  className="bg-[#FF385C] border border-[#FF385C] px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold text-white hover:bg-[#e0314f] transition shadow-xs"
+                  className="hidden sm:inline-flex bg-superficie text-petroleo border border-borda-controle hover:border-petroleo px-4 py-2.5 min-h-[44px] items-center rounded-controle text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
                 >
                   Cadastrar
                 </Link>

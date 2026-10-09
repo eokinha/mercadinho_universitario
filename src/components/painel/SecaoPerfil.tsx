@@ -7,8 +7,17 @@ import {
 } from "@/lib/queries";
 import { normalizarTelefone } from "@/lib/contato";
 import { uploadImagemLoja } from "@/lib/storage";
+import SeloVerificado from "@/components/SeloVerificado";
 import { validarEmailUniversitario } from "@/lib/validacoes";
 import type { Instituicao, Loja, Usuario } from "@/types";
+import {
+  Check,
+  CircleCheck,
+  Clock,
+  Plus,
+  ShieldCheck,
+  TriangleAlert,
+} from "lucide-react";
 
 type MatriculaStatus = Usuario["matricula_status"];
 
@@ -171,7 +180,7 @@ export default function SecaoPerfil({
         locais_entrega: locais,
       });
 
-      setMensagemPerfil({ tipo: "sucesso", texto: "Perfil universitário atualizado com sucesso!" });
+      setMensagemPerfil({ tipo: "sucesso", texto: "Perfil atualizado." });
     } catch (err) {
       setMensagemPerfil({
         tipo: "erro",
@@ -183,23 +192,23 @@ export default function SecaoPerfil({
   }
 
   return (
-    <div className="w-full bg-white border border-gray-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
-      <h2 className="text-lg sm:text-xl font-black text-gray-900 mb-1">
-        Editar Perfil Universitário
+    <div className="w-full bg-superficie border border-borda rounded-card p-6 sm:p-8">
+      <h2 className="text-lg sm:text-xl font-bold text-petroleo mb-1">
+        Editar perfil
       </h2>
-      <p className="text-xs text-gray-500 mb-6">
+      <p className="text-sm text-tinta-suave mb-6">
         Essas informações aparecem no seu perfil público para os outros alunos do campus.
       </p>
 
       {mensagemPerfil && (
         <div
-          className={`mb-6 p-4 rounded-2xl text-xs font-semibold flex items-center gap-2 ${
+          className={`mb-6 p-4 rounded-card text-xs font-semibold flex items-center gap-2 ${
             mensagemPerfil.tipo === "sucesso"
-              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-              : "bg-red-50 text-red-800 border border-red-200"
+              ? "bg-troca-50 text-troca-texto"
+              : "bg-perigo-50 text-perigo"
           }`}
         >
-          <span>{mensagemPerfil.tipo === "sucesso" ? "✓" : "⚠️"}</span>
+          <span aria-hidden="true">{mensagemPerfil.tipo === "sucesso" ? <Check size={16} strokeWidth={1.75} aria-hidden="true" /> : <TriangleAlert size={16} strokeWidth={1.75} aria-hidden="true" />}</span>
           <span>{mensagemPerfil.texto}</span>
         </div>
       )}
@@ -207,11 +216,11 @@ export default function SecaoPerfil({
       <form onSubmit={handleSalvarPerfil} className="space-y-5">
         {/* Upload Foto de Perfil */}
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-tinta mb-2">
             Foto de Perfil
           </label>
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center">
+            <div className="w-20 h-20 rounded-card bg-pagina border border-borda overflow-hidden shrink-0 flex items-center justify-center">
               {loja.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -220,14 +229,14 @@ export default function SecaoPerfil({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-2xl font-bold text-gray-400">
+                <span className="text-2xl font-bold text-tinta-sutil">
                   {nome.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
 
             <div>
-              <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 hover:border-gray-400 bg-white font-semibold text-xs text-gray-700 cursor-pointer transition shadow-2xs">
+              <label className="inline-flex items-center gap-2 px-4 py-2 rounded-controle border border-borda-controle hover:border-borda-controle bg-superficie font-semibold text-xs text-tinta cursor-pointer transition">
                 <span>{avatarUploading ? "Enviando..." : "Alterar foto"}</span>
                 <input
                   type="file"
@@ -237,7 +246,7 @@ export default function SecaoPerfil({
                   className="hidden"
                 />
               </label>
-              <p className="text-[11px] text-gray-400 mt-1">
+              <p className="text-xs text-tinta-sutil mt-1">
                 Formatos JPG, PNG ou WebP até 3 MB.
               </p>
             </div>
@@ -246,7 +255,7 @@ export default function SecaoPerfil({
 
         {/* Nome de Exibição */}
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">
+          <label className="block text-sm font-semibold text-tinta mb-1">
             Nome de Exibição *
           </label>
           <input
@@ -255,13 +264,13 @@ export default function SecaoPerfil({
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             placeholder="Seu nome"
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:border-[#FF385C] focus:outline-none text-sm bg-white"
+            className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie"
           />
         </div>
 
         {/* WhatsApp */}
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">
+          <label className="block text-sm font-semibold text-tinta mb-1">
             WhatsApp para Negociação *
           </label>
           <input
@@ -270,16 +279,16 @@ export default function SecaoPerfil({
             value={whatsapp}
             onChange={(e) => setWhatsapp(e.target.value)}
             placeholder="(31) 99999-9999"
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:border-[#FF385C] focus:outline-none text-sm bg-white"
+            className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie"
           />
-          <p className="text-[11px] text-gray-400 mt-1">
+          <p className="text-xs text-tinta-sutil mt-1">
             Os colegas usam este número para combinar compras e trocas com você.
           </p>
         </div>
 
         {/* Bio */}
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">
+          <label className="block text-sm font-semibold text-tinta mb-1">
             Bio / Apresentação
           </label>
           <textarea
@@ -287,13 +296,13 @@ export default function SecaoPerfil({
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
             placeholder="Ex: Aluno do 4º semestre de Engenharia desapegando de livros do ciclo básico..."
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:border-[#FF385C] focus:outline-none text-sm bg-white resize-y"
+            className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie resize-y"
           />
         </div>
 
         {/* Locais de Encontro */}
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">
+          <label className="block text-sm font-semibold text-tinta mb-1">
             Locais que você costuma entregar no campus
           </label>
           <div className="flex flex-wrap gap-2 mt-2">
@@ -304,14 +313,19 @@ export default function SecaoPerfil({
                   key={local}
                   type="button"
                   onClick={() => toggleLocal(local)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition flex items-center gap-1.5 ${
+                  aria-pressed={ativo}
+                  className={`text-sm px-4 min-h-[44px] rounded-pill border transition flex items-center gap-1.5 ${
                     ativo
-                      ? "bg-[#FF385C] border-[#FF385C] text-white font-bold"
-                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                      ? "bg-petroleo border-petroleo text-white font-semibold"
+                      : "bg-superficie border-borda-controle text-tinta-suave hover:border-petroleo"
                   }`}
                 >
-                  <span>{ativo ? "✓" : "+"}</span>
-                  <span>{local}</span>
+                  {ativo ? (
+                    <Check size={14} strokeWidth={1.75} aria-hidden="true" />
+                  ) : (
+                    <Plus size={14} strokeWidth={1.75} aria-hidden="true" />
+                  )}
+                  {local}
                 </button>
               );
             })}
@@ -319,84 +333,75 @@ export default function SecaoPerfil({
         </div>
 
         {/* Botão Salvar */}
-        <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+        <div className="pt-4 border-t border-borda flex items-center justify-between">
           <Link
             href={`/perfil/${loja.id}`}
-            className="text-xs font-bold text-[#FF385C] hover:underline"
+            className="text-sm font-semibold text-petroleo hover:underline"
           >
-            Ver meu perfil público →
+            Ver meu perfil público
           </Link>
 
           <button
             type="submit"
             disabled={salvandoPerfil}
-            className="bg-[#FF385C] hover:bg-[#e0314f] text-white text-xs sm:text-sm font-bold px-6 py-2.5 rounded-xl shadow-xs transition disabled:opacity-50"
+            className="bg-acao hover:bg-acao-hover text-white text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-controle transition disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
           >
-            {salvandoPerfil ? "Salvando..." : "Salvar Alterações"}
+            {salvandoPerfil ? "Salvando..." : "Salvar alterações"}
           </button>
         </div>
       </form>
 
       {/* Seção de Verificação Acadêmica */}
-      <div className="mt-8 pt-8 border-t border-gray-200">
+      <div className="mt-8 pt-8 border-t border-borda">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🛡️</span>
-            <h3 className="text-base font-black text-gray-900">
-              Verificação de Matrícula & Vínculo
-            </h3>
+            <ShieldCheck size={22} strokeWidth={1.75} className="text-petroleo" aria-hidden="true" />
+            <h3 className="text-base font-bold text-petroleo">Verificação de matrícula</h3>
           </div>
 
           {matriculaStatus === "verificado" ? (
-            <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-3 py-1 rounded-full">
-              <span>✓</span>
-              <span>Aluno Verificado</span>
-            </span>
+            <SeloVerificado tamanho="md" />
           ) : matriculaStatus === "pendente" ? (
-            <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold px-3 py-1 rounded-full">
-              <span>⏳</span>
-              <span>Em Análise</span>
+            <span className="inline-flex items-center gap-1.5 bg-doacao-50 text-doacao text-xs font-bold px-3 py-1 rounded-pill">
+              <Clock size={14} strokeWidth={1.75} aria-hidden="true" />
+              <span>Em análise</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 border border-gray-300 text-xs font-bold px-3 py-1 rounded-full">
-              <span>⚠️</span>
-              <span>Não Verificado</span>
+            <span className="inline-flex items-center gap-1.5 bg-pagina text-tinta border border-borda-controle text-xs font-bold px-3 py-1 rounded-pill">
+              <TriangleAlert size={16} strokeWidth={1.75} aria-hidden="true" />
+              <span>Não verificado</span>
             </span>
           )}
         </div>
 
-        <p className="text-xs text-gray-500 mb-5 leading-relaxed">
-          O selo <strong>Aluno Verificado 🛡️</strong> confirma seu vínculo ativo com a universidade, gerando confiança imediata para outros estudantes comprarem ou trocarem com você no campus.
+        <p className="text-sm text-tinta-suave mb-5 leading-relaxed">
+          O selo <strong>Verificado</strong> mostra que você tem vínculo ativo com a universidade. Só alunos verificados podem anunciar.
         </p>
 
         {mensagemVerificacao && (
           <div
-            className={`mb-5 p-4 rounded-2xl text-xs font-semibold flex items-center gap-2 ${
+            className={`mb-5 p-4 rounded-card text-xs font-semibold flex items-center gap-2 ${
               mensagemVerificacao.tipo === "sucesso"
-                ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                : "bg-red-50 text-red-800 border border-red-200"
+                ? "bg-troca-50 text-troca-texto"
+                : "bg-perigo-50 text-perigo"
             }`}
           >
-            <span>{mensagemVerificacao.tipo === "sucesso" ? "🎉" : "⚠️"}</span>
+            <span aria-hidden="true">{mensagemVerificacao.tipo === "sucesso" ? <CircleCheck size={16} strokeWidth={1.75} aria-hidden="true" /> : <TriangleAlert size={16} strokeWidth={1.75} aria-hidden="true" />}</span>
             <span>{mensagemVerificacao.texto}</span>
           </div>
         )}
 
         {matriculaStatus === "verificado" ? (
-          <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-5 text-emerald-900">
+          <div className="bg-petroleo-50 rounded-card p-5 text-petroleo">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 text-lg font-bold">
-                🛡️
+              <div className="w-10 h-10 rounded-pill bg-superficie flex items-center justify-center shrink-0">
+                <ShieldCheck size={20} strokeWidth={1.75} aria-hidden="true" />
               </div>
               <div>
-                <h4 className="font-bold text-sm text-emerald-950">
-                  Sua credencial de estudante está ativa!
-                </h4>
-                <p className="text-xs text-emerald-800/90 mt-1 leading-relaxed">
-                  Todos os seus anúncios, vitrine e perfil contam com o selo oficial de Aluno Verificado.
-                </p>
+                <h4 className="font-bold text-sm">Sua matrícula está verificada</h4>
+                <p className="text-sm mt-1 leading-relaxed">Seus anúncios e seu perfil mostram o selo Verificado.</p>
                 {usuario?.matricula && (
-                  <p className="text-[11px] text-emerald-700 font-semibold mt-2">
+                  <p className="text-xs font-semibold mt-2">
                     Matrícula registrada: {usuario.matricula}
                   </p>
                 )}
@@ -407,16 +412,16 @@ export default function SecaoPerfil({
           <div className="space-y-4">
             {/* Opção 1: Validação Instantânea por E-mail Institucional */}
             {emailEhUniversitario && (
-              <div className="bg-gradient-to-r from-emerald-50/80 to-teal-50/60 border border-emerald-200 rounded-2xl p-4 sm:p-5">
+              <div className="bg-troca-50 rounded-card p-4 sm:p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">
-                      Recomendado & Instantâneo ⚡
+                    <span className="text-xs font-semibold text-troca-texto bg-superficie px-2.5 py-1 rounded-pill">
+                      Recomendado
                     </span>
-                    <h4 className="text-sm font-bold text-gray-900 mt-1">
+                    <h4 className="text-sm font-bold text-tinta mt-1">
                       Validar com seu e-mail institucional
                     </h4>
-                    <p className="text-xs text-gray-600 mt-0.5">
+                    <p className="text-xs text-tinta-suave mt-0.5">
                       Detectamos que seu e-mail <strong>{userEmail}</strong> pertence a um domínio acadêmico reconhecido.
                     </p>
                   </div>
@@ -424,33 +429,33 @@ export default function SecaoPerfil({
                     type="button"
                     disabled={verificandoInstantaneo}
                     onClick={handleValidacaoInstantanea}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-xs shrink-0 disabled:opacity-50"
+                    className="bg-acao hover:bg-acao-hover text-white text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-controle transition shrink-0 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
                   >
-                    {verificandoInstantaneo ? "Validando..." : "Validar Agora (1 clique)"}
+                    {verificandoInstantaneo ? "Validando..." : "Validar agora"}
                   </button>
                 </div>
               </div>
             )}
 
             {/* Opção 2: Validação por Matrícula e Faculdade */}
-            <div className="bg-gray-50 border border-gray-200/90 rounded-2xl p-4 sm:p-5">
-              <h4 className="text-xs font-bold text-gray-800 mb-1">
+            <div className="bg-pagina border border-borda rounded-card p-4 sm:p-5">
+              <h4 className="text-sm font-semibold text-tinta mb-1">
                 {emailEhUniversitario ? "Ou informe sua matrícula para o registro:" : "Informe seus dados acadêmicos para validação:"}
               </h4>
-              <p className="text-[11px] text-gray-500 mb-4">
-                Envie sua matrícula para que nossa moderação valide seu vínculo acadêmico.
+              <p className="text-sm text-tinta-suave mb-4">
+                A moderação confere sua matrícula e libera o selo.
               </p>
 
               <form onSubmit={handleSubmeterMatricula} className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                      Sua Faculdade / Campus
+                    <label className="block text-sm font-semibold text-tinta mb-1">
+                      Sua faculdade ou campus
                     </label>
                     <select
                       value={instituicaoSelecionada}
                       onChange={(e) => setInstituicaoSelecionada(e.target.value ? Number(e.target.value) : "")}
-                      className="w-full text-xs px-3 py-2 rounded-xl border border-gray-300 focus:border-[#FF385C] focus:outline-none bg-white"
+                      className="w-full text-sm px-3 py-2 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 bg-superficie"
                     >
                       <option value="">Selecione sua instituição...</option>
                       {instituicoes.map((inst) => (
@@ -462,8 +467,8 @@ export default function SecaoPerfil({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                      Número da Matrícula Acadêmica *
+                    <label className="block text-sm font-semibold text-tinta mb-1">
+                      Número da matrícula *
                     </label>
                     <input
                       type="text"
@@ -471,7 +476,7 @@ export default function SecaoPerfil({
                       value={matriculaInput}
                       onChange={(e) => setMatriculaInput(e.target.value)}
                       placeholder="Ex: 2024019283"
-                      className="w-full text-xs px-3 py-2 rounded-xl border border-gray-300 focus:border-[#FF385C] focus:outline-none bg-white"
+                      className="w-full text-sm px-3 py-2 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 bg-superficie"
                     />
                   </div>
                 </div>
@@ -480,9 +485,9 @@ export default function SecaoPerfil({
                   <button
                     type="submit"
                     disabled={enviandoMatricula || !matriculaInput.trim()}
-                    className="bg-[#FF385C] hover:bg-[#e0314f] text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow-xs disabled:opacity-50"
+                    className="bg-superficie text-petroleo border border-borda-controle hover:border-petroleo text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-controle transition disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
                   >
-                    {enviandoMatricula ? "Enviando..." : matriculaStatus === "pendente" ? "Atualizar Dados em Análise" : "Solicitar Verificação de Matrícula"}
+                    {enviandoMatricula ? "Enviando..." : matriculaStatus === "pendente" ? "Atualizar dados enviados" : "Enviar matrícula"}
                   </button>
                 </div>
               </form>

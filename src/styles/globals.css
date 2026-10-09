@@ -1,11 +1,52 @@
+/* Circular — Design System 2.0 (fonte: circular-design-system/DESIGN_SYSTEM.md) */
 @import "tailwindcss";
+
+@theme {
+  /* Desliga a paleta padrão do Tailwind: só os tokens abaixo existem */
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* Plus Jakarta Sans é carregada em _app.tsx via next/font (variável --font-jakarta) */
+  --font-sans: var(--font-jakarta), system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-petroleo: #0f4c5c; /* Cor da marca: logo, navbar, títulos, links, foco. 9,5:1 sobre branco. */
+  --color-petroleo-900: #0a3540; /* Rodapé e fundo do hero; texto branco sobre ele 13:1. */
+  --color-petroleo-50: #e6f0f1; /* Fundos de seção e item selecionado; texto petroleo sobre ele 8,2:1. */
+  --color-acao: #b9521a; /* Terracota: só ações principais (Anunciar, Tenho interesse). Texto branco 4,9:1. */
+  --color-acao-hover: #9c4415; /* Hover/pressed de acao; também texto de tag sobre acao-50 (5,6:1). */
+  --color-acao-50: #fbede4; /* Fundo de destaques de ação (impulsionado, giros). */
+  --color-troca: #2f7d4f; /* Modo Trocar: aba, ícone, botão. Texto branco 5,0:1. */
+  --color-troca-texto: #256a41; /* Texto de tag Trocar sobre troca-50 (5,7:1). */
+  --color-troca-50: #e7f3ec; /* Fundo de tag e aba ativa Trocar. */
+  --color-doacao: #966000; /* Modo Doar: aba, ícone, texto de tag. Branco 5,3:1; sobre doacao-50 4,7:1. */
+  --color-doacao-50: #fbf1dc; /* Fundo de tag e aba ativa Doar. */
+  --color-pagina: #f7f6f3; /* Fundo da página (off-white quente). */
+  --color-superficie: #ffffff; /* Cards, navbar, modais, inputs. */
+  --color-tinta: #1c2b2f; /* Texto principal; 13,5:1 sobre pagina. */
+  --color-tinta-suave: #55656a; /* Texto secundário e metadados; 5,6:1 sobre pagina. */
+  --color-tinta-sutil: #5f6e73; /* Placeholders e legendas; use sobre superficie ou pagina. */
+  --color-borda: #e3e1dc; /* Divisórias e borda de cards (decorativa). */
+  --color-borda-controle: #8c8981; /* Borda de inputs, pills e botões secundários (3,5:1, mínimo para controles). */
+  --color-perigo: #b42318; /* Erros, denúncia, favorito ativo. */
+  --color-perigo-50: #fdecea; /* Fundo de alertas de erro; texto perigo sobre ele 5,8:1. */
+
+  --radius-controle: 8px;
+  --radius-card: 16px;
+  --radius-pill: 9999px;
+  --shadow-flutuante: 0 1px 2px 0 rgba(15,76,92,0.08), 0 4px 12px -2px rgba(15,76,92,0.10);
+  --shadow-hover: 0 8px 24px -6px rgba(15,76,92,0.18);
+}
 
 html {
   scroll-behavior: smooth;
 }
 
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--color-pagina);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
 }
 
 @layer utilities {
@@ -17,4 +58,3 @@ body {
     scrollbar-width: none;
   }
 }
-

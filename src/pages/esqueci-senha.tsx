@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import { supabase } from "@/lib/supabase";
 
 export default function EsqueciSenhaPage() {
@@ -26,33 +27,34 @@ export default function EsqueciSenhaPage() {
     }
   }
 
-  const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF385C] focus:border-transparent outline-none transition";
+  const inputClass = "w-full px-4 py-2 border border-borda-controle rounded-controle focus:ring-2 focus:ring-petroleo focus:border-transparent outline-none transition";
 
   return (
     <div className="max-w-md mx-auto px-4 py-12">
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">Recuperar senha</h1>
+      <div className="bg-superficie p-8 rounded-card border border-borda">
+        <div className="flex justify-center mb-4"><Logo variante="simbolo" /></div>
+        <h1 className="text-2xl font-bold text-petroleo mb-6 text-center">Recuperar senha</h1>
 
         {success ? (
           <div className="text-center">
-            <div className="mb-4 p-3 bg-green-50 text-green-600 text-sm rounded-lg border border-green-100">
+            <div className="mb-4 p-3 bg-petroleo-50 text-petroleo text-sm rounded-controle border border-petroleo">
               E-mail enviado! Verifique sua caixa de entrada.
             </div>
-            <Link href="/login" className="text-[#FF385C] font-semibold hover:underline text-sm">
+            <Link href="/login" className="text-petroleo font-semibold hover:underline text-sm">
               Voltar para o Login
             </Link>
           </div>
         ) : (
           <>
             {error && (
-              <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
+              <div className="mb-4 p-3 bg-perigo-50 text-perigo text-sm rounded-controle border border-perigo">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleReset} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Seu e-mail de cadastro</label>
+                <label className="block text-sm font-semibold text-tinta mb-1">Seu e-mail de cadastro</label>
                 <input
                   type="email"
                   required
@@ -65,14 +67,14 @@ export default function EsqueciSenhaPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#FF385C] text-white font-semibold py-3 rounded-lg hover:bg-[#e0314f] transition disabled:opacity-50 mt-4"
+                className="w-full bg-acao text-white font-semibold py-3 rounded-controle hover:bg-acao-hover transition disabled:opacity-50 mt-4"
               >
                 {loading ? "Enviando..." : "Enviar instruções"}
               </button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-gray-500">
-              <Link href="/login" className="text-gray-400 hover:text-[#FF385C] hover:underline">
+            <p className="mt-6 text-center text-sm text-tinta-suave">
+              <Link href="/login" className="text-tinta-sutil hover:text-petroleo hover:underline">
                 Voltar para o Login
               </Link>
             </p>

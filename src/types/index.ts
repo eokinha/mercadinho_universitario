@@ -44,7 +44,6 @@ export interface Loja {
   tiktok_url: string | null;
   whatsapp: string | null;
   locais_entrega: string[];
-  cor_tema: string;
 }
 
 export type ProdutoStatus = "ativo" | "pausado";
@@ -154,7 +153,6 @@ export interface PerfilPublico {
   tiktok_url: string | null;
   whatsapp: string | null;
   locais_entrega: string[];
-  cor_tema: string;
   usuario_nome?: string;
   usuario_sobrenome?: string;
   usuario_criado_em?: string;

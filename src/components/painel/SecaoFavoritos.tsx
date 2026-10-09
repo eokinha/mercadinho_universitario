@@ -1,6 +1,10 @@
 import Link from "next/link";
 import CardProduto from "@/components/CardProduto";
 import type { ProdutoListagem } from "@/types";
+import {
+  Heart,
+  X,
+} from "lucide-react";
 
 interface Props {
   favoritos: ProdutoListagem[];
@@ -13,29 +17,29 @@ export default function SecaoFavoritos({ favoritos, onAbrir, onRemover }: Props)
     <div>
       <div className="mb-6 flex items-baseline justify-between">
         <div>
-          <h2 className="text-lg font-black text-gray-900">
-            Itens que você salvou no campus
+          <h2 className="text-lg font-bold text-petroleo">
+            Itens que você salvou
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Fale com o anunciante via WhatsApp para negociar a compra ou troca.
+          <p className="text-sm text-tinta-suave mt-0.5">
+            Fale com quem anunciou pelo WhatsApp para combinar a compra ou a troca.
           </p>
         </div>
       </div>
 
       {favoritos.length === 0 ? (
-        <div className="bg-white border border-dashed border-gray-200 rounded-3xl p-12 text-center my-6">
-          <span className="text-4xl block mb-2">❤️</span>
-          <p className="text-gray-800 font-bold text-base">
-            Você ainda não favoritou nenhum item.
+        <div className="bg-superficie border border-dashed border-borda-controle rounded-card p-12 text-center my-6">
+          <Heart size={40} strokeWidth={1.75} className="mx-auto mb-2 text-petroleo" aria-hidden="true" />
+          <p className="text-tinta font-semibold text-base">
+            Você ainda não salvou nenhum item.
           </p>
-          <p className="text-gray-400 text-xs mt-1 mb-5">
-            Explore o catálogo ou a Feira de Trocas e clique no coração para salvar o que gostar.
+          <p className="text-tinta-suave text-sm mt-1 mb-5">
+            Toque no coração de um anúncio para salvá-lo aqui.
           </p>
           <Link
             href="/listagem"
-            className="inline-flex items-center gap-2 bg-[#FF385C] text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-[#e0314f] transition shadow-xs"
+            className="inline-flex items-center gap-2 bg-superficie text-petroleo border border-borda-controle hover:border-petroleo px-4 py-2.5 min-h-[44px] rounded-controle text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
           >
-            Explorar produtos
+            Ver anúncios
           </Link>
         </div>
       ) : (
@@ -50,10 +54,11 @@ export default function SecaoFavoritos({ favoritos, onAbrir, onRemover }: Props)
               <button
                 type="button"
                 onClick={() => onRemover(produto.id)}
-                className="absolute top-2 left-2 bg-white/90 border border-gray-200 text-gray-700 text-[10px] px-2 py-0.5 rounded-full hover:text-[#FF385C] hover:shadow-md transition z-20"
-                title="Remover dos favoritos"
+                aria-label={`Remover ${produto.nome} dos favoritos`}
+                className="absolute top-2 left-2 min-h-[44px] inline-flex items-center gap-1 bg-superficie/90 border border-borda-controle text-perigo text-xs font-semibold px-3 rounded-pill transition z-20 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
               >
-                ✕ Remover
+                <X size={14} strokeWidth={1.75} aria-hidden="true" />
+                Remover
               </button>
             </div>
           ))}

@@ -130,10 +130,10 @@ export default function ListagemPage({
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <header className="mb-6">
-        <h1 className="text-gray-800 text-2xl font-semibold">
+        <h1 className="text-petroleo text-2xl font-bold">
           Todos os produtos
         </h1>
-        <p className="text-gray-500 mt-1">
+        <p className="text-tinta-suave mt-1">
           Filtre por instituição, categoria ou ordene como preferir.
         </p>
       </header>
@@ -162,7 +162,7 @@ export default function ListagemPage({
       </div>
 
       {produtos.length === 0 ? (
-        <p className="text-center text-gray-500 py-16">
+        <p className="text-center text-tinta-suave py-16">
           Nenhum produto encontrado.
         </p>
       ) : (

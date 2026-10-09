@@ -1,31 +1,33 @@
+import { Heart, LayoutDashboard, Package, User } from "lucide-react";
+
 export const PAGINAS_PAINEL = {
   "visao-geral": {
     id: "visao-geral",
     href: "/painel",
     label: "Visão geral",
     title: "Meu painel",
-    icon: "📊",
+    icon: LayoutDashboard,
   },
   anuncios: {
     id: "anuncios",
     href: "/painel/anuncios",
     label: "Meus anúncios",
     title: "Meus anúncios",
-    icon: "📦",
+    icon: Package,
   },
   favoritos: {
     id: "favoritos",
     href: "/painel/favoritos",
     label: "Meus favoritos",
     title: "Meus favoritos",
-    icon: "❤️",
+    icon: Heart,
   },
   perfil: {
     id: "perfil",
     href: "/painel/perfil",
     label: "Meu perfil",
     title: "Meu perfil",
-    icon: "👤",
+    icon: User,
   },
 } as const;
 

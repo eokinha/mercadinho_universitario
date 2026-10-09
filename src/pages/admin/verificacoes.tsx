@@ -5,6 +5,14 @@ import type { GetServerSideProps } from "next";
 import { createServerClient } from "@/lib/supabase";
 import { getUsuariosParaModeracao, moderarMatricula } from "@/lib/queries";
 import type { UsuarioModeracao } from "@/types";
+import {
+  Check,
+  CircleCheck,
+  Clock,
+  ShieldCheck,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 
 interface Props {
   usuariosIniciais: UsuarioModeracao[];
@@ -163,24 +171,24 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
   return (
     <>
       <Head>
-        <title>Moderação de Matrículas • Painel Admin</title>
+        <title>Matrículas • Admin Circular</title>
       </Head>
 
-      <div className="min-h-screen bg-[#F8F9FA] pb-16">
+      <div className="min-h-screen bg-pagina pb-16">
         {/* Top Header Admin */}
-        <div className="bg-white border-b border-gray-200 sticky top-[65px] z-20">
+        <div className="bg-superficie border-b border-borda sticky top-[69px] z-20">
           <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link
                 href="/painel"
-                className="text-xs font-semibold text-gray-500 hover:text-gray-900 flex items-center gap-1 transition"
+                className="text-xs font-semibold text-tinta-suave hover:text-tinta flex items-center gap-1 transition"
               >
-                <span>←</span>
+                <span></span>
                 <span>Meu Painel</span>
               </Link>
-              <span className="text-gray-300">|</span>
-              <span className="text-sm font-black text-gray-900 flex items-center gap-1.5">
-                <span>🛡️</span>
+              <span className="text-tinta-sutil">|</span>
+              <span className="text-sm font-bold text-tinta flex items-center gap-1.5">
+                <ShieldCheck size={16} strokeWidth={1.75} aria-hidden="true" />
                 <span>Moderação de Matrículas</span>
               </span>
             </div>
@@ -188,13 +196,13 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
             <div className="flex items-center gap-2">
               <Link
                 href="/admin/lojas"
-                className="text-xs font-medium text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition"
               >
                 Lojas e Destaques
               </Link>
               <Link
                 href="/admin/imagens"
-                className="text-xs font-medium text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition"
               >
                 Gerenciar Imagens
               </Link>
@@ -204,79 +212,81 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
 
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="mb-6">
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+            <h1 className="text-2xl font-bold text-petroleo tracking-tight">
               Verificação de Vínculo Acadêmico
             </h1>
-            <p className="text-xs text-gray-500 mt-1">
-              Avalie e aprove solicitações de matrícula para conceder o selo oficial <strong>Aluno Verificado 🛡️</strong>.
+            <p className="text-xs text-tinta-suave mt-1">
+              Avalie e aprove solicitações de matrícula para conceder o selo oficial <strong>Aluno Verificado</strong>.
             </p>
           </div>
 
           {notificacao && (
             <div
-              className={`mb-6 p-4 rounded-2xl text-xs font-semibold flex items-center gap-2 ${
+              className={`mb-6 p-4 rounded-card text-xs font-semibold flex items-center gap-2 ${
                 notificacao.tipo === "sucesso"
-                  ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                  : "bg-red-50 text-red-800 border border-red-200"
+                  ? "bg-troca-50 text-troca-texto"
+                  : "bg-perigo-50 text-perigo"
               }`}
             >
-              <span>{notificacao.tipo === "sucesso" ? "✓" : "⚠️"}</span>
+              <span>{notificacao.tipo === "sucesso" ? <Check size={16} strokeWidth={1.75} aria-hidden="true" /> : <TriangleAlert size={16} strokeWidth={1.75} aria-hidden="true" />}</span>
               <span>{notificacao.texto}</span>
             </div>
           )}
 
           {/* Cards de Métricas */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <div className="bg-white border border-gray-200/90 rounded-2xl p-4 shadow-2xs">
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total de Alunos</p>
-              <p className="text-2xl font-black text-gray-900 mt-1">{total}</p>
+            <div className="bg-superficie border border-borda rounded-card p-4">
+              <p className="text-xs font-bold text-tinta-sutil uppercase tracking-wider">Total de Alunos</p>
+              <p className="text-2xl font-bold text-tinta mt-1">{total}</p>
             </div>
-            <div className="bg-white border border-amber-200 bg-amber-50/20 rounded-2xl p-4 shadow-2xs">
-              <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Pendentes</p>
-              <p className="text-2xl font-black text-amber-700 mt-1">{pendentes}</p>
+            <div className="bg-superficie border border-doacao bg-doacao-50 rounded-card p-4">
+              <p className="text-xs font-bold text-doacao uppercase tracking-wider">Pendentes</p>
+              <p className="text-2xl font-bold text-doacao mt-1">{pendentes}</p>
             </div>
-            <div className="bg-white border border-emerald-200 bg-emerald-50/20 rounded-2xl p-4 shadow-2xs">
-              <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Verificados</p>
-              <p className="text-2xl font-black text-emerald-700 mt-1">{verificados}</p>
+            <div className="bg-superficie border border-troca bg-troca-50 rounded-card p-4">
+              <p className="text-xs font-bold text-troca-texto uppercase tracking-wider">Verificados</p>
+              <p className="text-2xl font-bold text-troca-texto mt-1">{verificados}</p>
             </div>
-            <div className="bg-white border border-gray-200/90 rounded-2xl p-4 shadow-2xs">
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Rejeitados</p>
-              <p className="text-2xl font-black text-gray-600 mt-1">{rejeitados}</p>
+            <div className="bg-superficie border border-borda rounded-card p-4">
+              <p className="text-xs font-bold text-tinta-sutil uppercase tracking-wider">Rejeitados</p>
+              <p className="text-2xl font-bold text-tinta-suave mt-1">{rejeitados}</p>
             </div>
           </div>
 
           {/* Barra de Filtros e Busca */}
-          <div className="bg-white border border-gray-200/90 rounded-2xl p-3 sm:p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
+          <div className="bg-superficie border border-borda rounded-card p-3 sm:p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar">
               <button
                 type="button"
                 onClick={() => setFiltroStatus("pendente")}
-                className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
+                className={`text-sm px-4 min-h-[44px] rounded-pill font-semibold border transition whitespace-nowrap flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 ${
                   filtroStatus === "pendente"
-                    ? "bg-amber-500 text-white shadow-xs"
-                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                    ? "bg-doacao border-doacao text-white"
+                    : "bg-superficie border-borda-controle text-tinta-suave hover:border-petroleo"
                 }`}
               >
-                <span>⏳ Pendentes ({pendentes})</span>
+                <Clock size={16} strokeWidth={1.75} aria-hidden="true" />
+                <span>Pendentes ({pendentes})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setFiltroStatus("verificado")}
-                className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
+                className={`text-sm px-4 min-h-[44px] rounded-pill font-semibold border transition whitespace-nowrap flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 ${
                   filtroStatus === "verificado"
-                    ? "bg-emerald-600 text-white shadow-xs"
-                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                    ? "bg-troca border-troca text-white"
+                    : "bg-superficie border-borda-controle text-tinta-suave hover:border-petroleo"
                 }`}
               >
-                <span>✓ Verificados ({verificados})</span>
+                <Check size={16} strokeWidth={1.75} aria-hidden="true" />
+                <span>Verificados ({verificados})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setFiltroStatus("rejeitado")}
-                className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
+                className={`text-sm px-4 min-h-[44px] rounded-pill font-semibold border transition whitespace-nowrap flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 ${
                   filtroStatus === "rejeitado"
-                    ? "bg-gray-500 text-white shadow-xs"
-                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                    ? "bg-tinta-suave border-tinta-suave text-white"
+                    : "bg-superficie border-borda-controle text-tinta-suave hover:border-petroleo"
                 }`}
               >
                 <span>Rejeitados ({rejeitados})</span>
@@ -284,10 +294,10 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
               <button
                 type="button"
                 onClick={() => setFiltroStatus("todos")}
-                className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
+                className={`text-sm px-4 min-h-[44px] rounded-pill font-semibold border transition whitespace-nowrap flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 ${
                   filtroStatus === "todos"
-                    ? "bg-[#FF385C] text-white shadow-xs"
-                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                    ? "bg-petroleo border-petroleo text-white"
+                    : "bg-superficie border-borda-controle text-tinta-suave hover:border-petroleo"
                 }`}
               >
                 <span>Todos ({total})</span>
@@ -300,27 +310,27 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 placeholder="Buscar por aluno, email, matrícula..."
-                className="w-full text-xs px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#FF385C] bg-gray-50"
+                className="w-full text-xs px-3.5 py-2 rounded-controle border border-borda focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 focus:border-petroleo bg-pagina"
               />
             </div>
           </div>
 
           {/* Tabela de Estudantes */}
           {usuariosFiltrados.length === 0 ? (
-            <div className="bg-white border border-dashed border-gray-200 rounded-3xl p-12 text-center">
-              <span className="text-4xl block mb-2">🎉</span>
-              <h3 className="text-base font-bold text-gray-800">
+            <div className="bg-superficie border border-dashed border-borda rounded-card p-12 text-center">
+              <CircleCheck size={40} strokeWidth={1.75} className="mx-auto mb-2" aria-hidden="true" />
+              <h3 className="text-base font-bold text-tinta">
                 Nenhum estudante encontrado com este filtro!
               </h3>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-tinta-sutil mt-1">
                 Todas as solicitações de matrícula nesta seção estão em dia.
               </p>
             </div>
           ) : (
-            <div className="bg-white border border-gray-200/90 rounded-2xl overflow-hidden shadow-2xs">
+            <div className="bg-superficie border border-borda rounded-card overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-gray-50/80 border-b border-gray-200 text-gray-400 uppercase text-[10px] font-bold tracking-wider">
+                  <thead className="bg-pagina border-b border-borda text-tinta-sutil uppercase text-xs font-bold tracking-wider">
                     <tr>
                       <th className="py-3.5 px-4">Estudante</th>
                       <th className="py-3.5 px-4">Instituição</th>
@@ -329,52 +339,52 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
                       <th className="py-3.5 px-4 text-right">Ações de Moderação</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-borda">
                     {usuariosFiltrados.map((u) => {
                       const isProcessing = processandoId === u.id;
 
                       return (
-                        <tr key={u.id} className="hover:bg-gray-50/50 transition">
+                        <tr key={u.id} className="hover:bg-pagina transition">
                           <td className="py-3.5 px-4">
-                            <div className="font-bold text-gray-900">
+                            <div className="font-bold text-tinta">
                               {u.nome} {u.sobrenome}
                             </div>
-                            <div className="text-gray-400 text-[11px]">{u.email}</div>
+                            <div className="text-tinta-sutil text-xs">{u.email}</div>
                             {u.telefone && (
-                              <div className="text-gray-400 text-[10px]">{u.telefone}</div>
+                              <div className="text-tinta-sutil text-xs">{u.telefone}</div>
                             )}
                           </td>
 
                           <td className="py-3.5 px-4">
-                            <span className="text-gray-700 font-medium">
+                            <span className="text-tinta font-semibold">
                               {u.instituicao_nome || "— Não informada"}
                             </span>
                           </td>
 
                           <td className="py-3.5 px-4">
                             {u.matricula ? (
-                              <code className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded font-mono text-xs">
+                              <code className="bg-pagina text-tinta px-2 py-0.5 rounded font-mono text-xs">
                                 {u.matricula}
                               </code>
                             ) : (
-                              <span className="text-gray-400 italic">Não informada</span>
+                              <span className="text-tinta-sutil italic">Não informada</span>
                             )}
                           </td>
 
                           <td className="py-3.5 px-4">
                             {u.matricula_status === "verificado" ? (
-                              <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                                <span>✓</span>
+                              <span className="inline-flex items-center gap-1 bg-troca-50 text-troca-texto text-xs font-bold px-2.5 py-0.5 rounded-pill">
+                                <Check size={16} strokeWidth={1.75} aria-hidden="true" />
                                 <span>Verificado</span>
                               </span>
                             ) : u.matricula_status === "pendente" ? (
-                              <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                                <span>⏳</span>
+                              <span className="inline-flex items-center gap-1 bg-doacao-50 text-doacao text-xs font-bold px-2.5 py-0.5 rounded-pill">
+                                <Clock size={14} strokeWidth={1.75} aria-hidden="true" />
                                 <span>Pendente</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 border border-gray-200 text-[11px] font-medium px-2.5 py-0.5 rounded-full">
-                                <span>✕</span>
+                              <span className="inline-flex items-center gap-1 bg-pagina text-tinta-suave border border-borda text-xs font-semibold px-2.5 py-0.5 rounded-pill">
+                                <X size={16} strokeWidth={1.75} aria-hidden="true" />
                                 <span>Rejeitado</span>
                               </span>
                             )}
@@ -386,9 +396,9 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
                                 <Link
                                   href={`/perfil/${u.loja_id}`}
                                   target="_blank"
-                                  className="text-gray-500 hover:text-gray-800 text-[11px] font-semibold px-2 py-1 rounded hover:bg-gray-100 transition mr-1"
+                                  className="text-tinta-suave hover:text-tinta text-xs font-semibold px-2 py-1 rounded hover:bg-pagina transition mr-1"
                                 >
-                                  Ver perfil ↗
+                                  Ver perfil
                                 </Link>
                               )}
 
@@ -396,10 +406,10 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
                                 type="button"
                                 disabled={isProcessing}
                                 onClick={() => handleAcao(u.id, "verificado")}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl transition shadow-xs disabled:opacity-50 flex items-center gap-1"
+                                className="bg-troca text-white font-bold text-xs px-3 py-1.5 rounded-controle transition disabled:opacity-50 flex items-center gap-1"
                                 title="Aprovar matrícula e conceder selo Aluno Verificado"
                               >
-                                <span>✓</span>
+                                <Check size={16} strokeWidth={1.75} aria-hidden="true" />
                                 <span>Aprovar</span>
                               </button>
 
@@ -407,11 +417,10 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
                                 type="button"
                                 disabled={isProcessing}
                                 onClick={() => handleAcao(u.id, "rejeitado")}
-                                className="bg-white border border-gray-300 hover:border-red-400 hover:text-red-600 text-gray-700 font-semibold text-xs px-2.5 py-1.5 rounded-xl transition disabled:opacity-50"
+                                className="bg-superficie border border-borda-controle hover:border-perigo hover:text-perigo text-tinta font-semibold text-xs px-2.5 py-1.5 rounded-controle transition disabled:opacity-50"
                                 title="Rejeitar solicitação"
                               >
-                                ✕
-                              </button>
+                                <X size={16} strokeWidth={1.75} aria-hidden="true" /> </button>
                             </div>
                           </td>
                         </tr>

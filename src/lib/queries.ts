@@ -68,8 +68,8 @@ export async function getLojas(filtros: GetLojasFiltros = {}, client: SupabaseCl
   const { instituicao_id, categoria_id } = filtros;
 
   const selectClause = categoria_id
-    ? "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, cor_tema, usuarios!inner(instituicoes_id), produtos!inner(categoria_id)"
-    : "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, cor_tema, usuarios!inner(instituicoes_id)";
+    ? "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, usuarios!inner(instituicoes_id), produtos!inner(categoria_id)"
+    : "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, usuarios!inner(instituicoes_id)";
 
   let query = client
     .from("lojas")
@@ -106,7 +106,6 @@ export async function getLojas(filtros: GetLojasFiltros = {}, client: SupabaseCl
       tiktok_url: item.tiktok_url,
       whatsapp: item.whatsapp,
       locais_entrega: item.locais_entrega ?? [],
-      cor_tema: item.cor_tema,
     });
   }
   return lojas;
@@ -116,7 +115,7 @@ export async function getLojaById(id: number, client: SupabaseClient = defaultCl
   const { data, error } = await client
     .from("lojas")
     .select(
-      "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, cor_tema"
+      "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega"
     )
     .eq("id", id)
     .eq("status", "ativo")
@@ -146,7 +145,7 @@ export async function getLojaByAuthId(
 
   const { data: loja, error: lojaError } = await client
     .from("lojas")
-    .select("id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, cor_tema")
+    .select("id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega")
     .eq("usuario_id", usuario.id)
     .maybeSingle();
 
@@ -176,7 +175,7 @@ export async function getOrCreatePerfilEstudante(
   const { data: lojaExistente, error: lojaError } = await client
     .from("lojas")
     .select(
-      "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, cor_tema"
+      "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega"
     )
     .eq("usuario_id", usuario.id)
     .maybeSingle();
@@ -202,7 +201,6 @@ export async function getOrCreatePerfilEstudante(
       status: "ativo",
       slug: slugGerado,
       locais_entrega: ["RU Central", "Biblioteca"],
-      cor_tema: "#FF385C",
     })
     .select()
     .single();
@@ -265,7 +263,7 @@ export async function getLojaBySlug(slug: string, client: SupabaseClient = defau
   const { data, error } = await client
     .from("lojas")
     .select(
-      "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, cor_tema"
+      "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega"
     )
     .eq("slug", slug)
     .eq("status", "ativo")
@@ -286,7 +284,7 @@ export async function getPerfilPublico(
     let query = client
       .from("lojas")
       .select(`
-        id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, cor_tema,
+        id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega,
         usuarios (
           id, nome, sobrenome, matricula_status, criado_em,
           instituicoes ( id, nome )
@@ -330,7 +328,6 @@ export async function getPerfilPublico(
         tiktok_url: raw.tiktok_url,
         whatsapp: raw.whatsapp,
         locais_entrega: raw.locais_entrega ?? [],
-        cor_tema: raw.cor_tema || "#FF385C",
         usuario_nome: usuario?.nome,
         usuario_sobrenome: usuario?.sobrenome,
         usuario_criado_em: usuario?.criado_em,
@@ -354,7 +351,6 @@ export async function getPerfilPublico(
 
   return {
     ...fallbackLoja,
-    cor_tema: fallbackLoja.cor_tema || "#FF385C",
   };
 }
 

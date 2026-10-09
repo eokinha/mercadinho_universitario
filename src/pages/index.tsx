@@ -8,6 +8,7 @@ import SecaoTrocas from "@/components/SecaoTrocas";
 import { createServerClient } from "@/lib/supabase";
 import { getCategorias, getProdutosFiltrados } from "@/lib/queries";
 import type { Categoria, ProdutoListagem } from "@/types";
+import { ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
 
 interface Props {
   produtos: ProdutoListagem[];
@@ -66,46 +67,46 @@ export default function Home({ produtos, produtosTroca, categorias }: Props) {
     <>
       <HeroSection categorias={categorias} />
 
-      <section id="produtos" className="py-8 scroll-mt-20">
+      <section id="produtos" className="py-8 scroll-mt-32">
         <header className="max-w-6xl mx-auto px-4 mb-4">
           <div className="flex items-baseline justify-between">
             <div>
-              <h2 className="text-gray-900 text-xl sm:text-2xl font-bold tracking-tight">
-                Em alta no seu campus - &quot;destaques&quot;
+              <h2 className="text-petroleo text-xl sm:text-2xl font-bold tracking-tight">
+                Impulsionados no seu campus
               </h2>
-              <p className="text-gray-500 text-sm mt-0.5">
-                Os produtos e serviços mais procurados pelos estudantes hoje.
+              <p className="text-tinta-suave text-sm mt-0.5">
+                Anúncios em destaque de alunos verificados.
               </p>
             </div>
             <Link
               href="/listagem"
-              className="text-[#FF385C] hover:text-[#e0314f] text-sm font-semibold hover:underline hidden sm:inline-block"
+              className="text-petroleo text-sm font-semibold hover:underline hidden sm:inline-block"
             >
-              Ver todos →
+              Ver todos
             </Link>
           </div>
         </header>
 
         <div className="max-w-6xl mx-auto px-4 relative">
           {produtos.length === 0 ? (
-            <div className="text-center py-16 bg-white border border-gray-200/80 rounded-2xl p-6">
-              <span className="text-4xl">🛍️</span>
-              <p className="text-gray-700 font-medium mt-3">
-                Ainda não há produtos em destaque no campus.
+            <div className="text-center py-16 bg-superficie border border-borda rounded-card p-6">
+              <ShoppingBag size={40} strokeWidth={1.75} className="mx-auto text-petroleo" aria-hidden="true" />
+              <p className="text-tinta font-semibold mt-3">
+                Ainda não há anúncios em destaque no seu campus.
               </p>
-              <p className="text-gray-400 text-sm mt-1">
-                Seja o primeiro a publicar um desapego ou serviço!
+              <p className="text-tinta-suave text-sm mt-1">
+                Enquanto isso, veja todos os anúncios ou publique o seu.
               </p>
               <div className="mt-4 flex justify-center gap-3">
                 <Link
                   href="/anunciar"
-                  className="bg-[#FF385C] text-white rounded-lg hover:bg-[#e0314f] transition px-5 py-2 text-sm font-medium"
+                  className="bg-acao text-white rounded-controle hover:bg-acao-hover transition px-4 py-2.5 min-h-[44px] inline-flex items-center text-sm font-semibold focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
                 >
-                  Anunciar produto
+                  Anunciar item
                 </Link>
                 <Link
                   href="/listagem"
-                  className="border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition px-5 py-2 text-sm font-medium"
+                  className="bg-superficie text-petroleo border border-borda-controle hover:border-petroleo rounded-controle transition px-5 py-2 text-sm font-semibold"
                 >
                   Explorar catálogo
                 </Link>
@@ -118,20 +119,9 @@ export default function Home({ produtos, produtosTroca, categorias }: Props) {
                 type="button"
                 onClick={() => rolarProdutos("esq")}
                 aria-label="Rolar produtos para a esquerda"
-                className="absolute -left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50 z-20 transition hover:scale-105 active:scale-95 focus:outline-none"
+                className="absolute -left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-pill bg-superficie shadow-flutuante border border-borda flex items-center justify-center text-petroleo z-20 transition focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="w-5 h-5"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <ChevronLeft size={20} strokeWidth={1.75} aria-hidden="true" />
               </button>
 
               {/* Seta circular para rolar horizontalmente à direita (como na imagem) */}
@@ -139,20 +129,9 @@ export default function Home({ produtos, produtosTroca, categorias }: Props) {
                 type="button"
                 onClick={() => rolarProdutos("dir")}
                 aria-label="Rolar produtos para a direita"
-                className="absolute -right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50 z-20 transition hover:scale-105 active:scale-95 focus:outline-none"
+                className="absolute -right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-pill bg-superficie shadow-flutuante border border-borda flex items-center justify-center text-petroleo z-20 transition focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="w-5 h-5"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <ChevronRight size={20} strokeWidth={1.75} aria-hidden="true" />
               </button>
 
               {/* Linha horizontal com os cards de produtos com scroll suave */}
@@ -175,9 +154,9 @@ export default function Home({ produtos, produtosTroca, categorias }: Props) {
           <div className="mt-8 flex justify-center">
             <Link
               href="/listagem"
-              className="bg-[#FF385C] text-white rounded-xl hover:bg-[#e0314f] transition px-8 py-3 font-semibold text-sm shadow-sm"
+              className="bg-superficie text-petroleo border border-borda-controle hover:border-petroleo rounded-controle transition px-4 py-2.5 min-h-[44px] inline-flex items-center font-semibold text-sm focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
             >
-              Ver catálogo completo
+              Ver todos os anúncios
             </Link>
           </div>
         </div>

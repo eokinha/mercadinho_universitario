@@ -20,7 +20,7 @@ interface Props {
 }
 
 const pillSelectClass =
-  "rounded-[12px] border border-gray-300 text-sm px-4 py-2 hover:border-gray-800 bg-white text-gray-800 focus:outline-none focus:border-gray-800 transition cursor-pointer";
+  "rounded-pill border border-borda-controle text-sm px-4 py-2 min-h-[44px] hover:border-petroleo bg-superficie text-tinta focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 transition cursor-pointer";
 
 export default function FiltroBarProdutos({
   instituicoes,
@@ -55,7 +55,7 @@ export default function FiltroBarProdutos({
           value={termo}
           onChange={(e) => setTermo(e.target.value)}
           placeholder="Buscar produtos por nome"
-          className="w-full rounded-[12px] border border-gray-300 focus:border-[#FF385C] focus:outline-none px-5 py-2 text-sm text-gray-800 placeholder-gray-400 bg-white text-left"
+          className="w-full rounded-pill border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 px-5 py-2 min-h-[44px] text-sm text-tinta placeholder:text-tinta-sutil bg-superficie"
           aria-label="Buscar produtos por nome"
         />
       </form>

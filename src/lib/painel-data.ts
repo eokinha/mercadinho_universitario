@@ -74,7 +74,6 @@ export async function getPainelServerSideProps(
       instagram_url: "@lucas_eng",
       tiktok_url: null,
       locais_entrega: ["RU Central", "Biblioteca Universitária", "Centro de Vivência"],
-      cor_tema: "#FF385C",
     };
     const produtosIniciais = await getProdutosPrivados(1, serverSupabase);
     const favoritosIniciais = await getProdutosFavoritos(1, serverSupabase);

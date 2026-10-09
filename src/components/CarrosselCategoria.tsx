@@ -20,23 +20,23 @@ export default function CarrosselCategoria({
   return (
     <section className="mb-10">
       <div className="max-w-6xl mx-auto px-4 flex items-baseline justify-between mb-3">
-        <h2 className="text-gray-800 text-lg font-semibold">{categoria.nome}</h2>
+        <h2 className="text-petroleo text-lg font-bold">{categoria.nome}</h2>
         {verMaisHref ? (
           <Link
             href={verMaisHref}
-            className="text-[#FF385C] text-sm font-medium hover:underline"
+            className="text-petroleo text-sm font-semibold hover:underline"
           >
-            Ver mais →
+            Ver mais
           </Link>
         ) : onVerMaisClick ? (
           <button
             onClick={onVerMaisClick}
-            className="text-[#FF385C] text-sm font-medium hover:underline focus:outline-none"
+            className="text-petroleo text-sm font-semibold hover:underline focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
           >
-            Ver mais →
+            Ver mais
           </button>
         ) : (
-          <span className="text-gray-400 text-xs">
+          <span className="text-tinta-sutil text-xs">
             {produtos.length} {produtos.length === 1 ? "item" : "itens"}
           </span>
         )}

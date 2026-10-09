@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import { supabase } from "@/lib/supabase";
 import { validarEmail, validarEmailUniversitario } from "@/lib/validacoes";
 
@@ -68,23 +69,24 @@ export default function CadastroPage() {
     }
   }
 
-  const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF385C] focus:border-transparent outline-none transition";
+  const inputClass = "w-full px-4 py-2 border border-borda-controle rounded-controle focus:ring-2 focus:ring-petroleo focus:border-transparent outline-none transition";
 
   return (
     <div className="max-w-md mx-auto px-4 py-12">
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">Criar conta</h1>
+      <div className="bg-superficie p-8 rounded-card border border-borda">
+        <div className="flex justify-center mb-4"><Logo variante="simbolo" /></div>
+        <h1 className="text-2xl font-bold text-petroleo mb-6 text-center">Criar conta</h1>
         
         {error && (
-          <div className="mb-4 p-4 bg-red-50 text-red-700 text-sm rounded-xl border border-red-100 flex flex-col gap-2">
+          <div className="mb-4 p-4 bg-perigo-50 text-perigo text-sm rounded-controle border border-perigo flex flex-col gap-2">
             <div className="flex items-center gap-2 font-semibold">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
               Atenção
             </div>
             <p>{error}</p>
             {error.includes("cadastrado") && (
-              <Link href="/login" className="text-red-800 font-bold hover:underline">
-                Ir para o Login →
+              <Link href="/login" className="text-perigo font-bold hover:underline">
+                Ir para o Login
               </Link>
             )}
           </div>
@@ -93,7 +95,7 @@ export default function CadastroPage() {
         <form onSubmit={handleCadastro} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+              <label className="block text-sm font-semibold text-tinta mb-1">Nome</label>
               <input
                 type="text"
                 required
@@ -103,7 +105,7 @@ export default function CadastroPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sobrenome</label>
+              <label className="block text-sm font-semibold text-tinta mb-1">Sobrenome</label>
               <input
                 type="text"
                 required
@@ -115,7 +117,7 @@ export default function CadastroPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+            <label className="block text-sm font-semibold text-tinta mb-1">E-mail</label>
             <input
               type="email"
               required
@@ -127,7 +129,7 @@ export default function CadastroPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+            <label className="block text-sm font-semibold text-tinta mb-1">Senha</label>
             <input
               type="password"
               required
@@ -142,15 +144,15 @@ export default function CadastroPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#FF385C] text-white font-semibold py-3 rounded-lg hover:bg-[#e0314f] transition disabled:opacity-50 mt-4 shadow-sm"
+            className="w-full bg-acao text-white font-semibold py-3 rounded-controle hover:bg-acao-hover transition disabled:opacity-50 mt-4"
           >
             {loading ? "Processando..." : "Finalizar Cadastro"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-tinta-suave">
           Já possui conta?{" "}
-          <Link href="/login" className="text-[#FF385C] font-semibold hover:underline transition">
+          <Link href="/login" className="text-petroleo font-semibold hover:underline transition">
             Entrar
           </Link>
         </p>

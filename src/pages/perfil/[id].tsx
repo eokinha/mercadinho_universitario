@@ -1,5 +1,17 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import {
+  Calendar,
+  ChevronLeft,
+  Clock,
+  GraduationCap,
+  MapPin,
+  Package,
+  Repeat,
+  ShieldCheck,
+  ShoppingBag,
+} from "lucide-react";
+import SeloVerificado from "@/components/SeloVerificado";
 import Head from "next/head";
 import type { GetServerSideProps } from "next";
 import { createServerClient } from "@/lib/supabase";
@@ -23,7 +35,7 @@ function formatarTempoPlataforma(dataString?: string): string {
       "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
       "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
     ];
-    return `No Mercadinho desde ${meses[data.getMonth()]} de ${data.getFullYear()}`;
+    return `Desde ${meses[data.getMonth()].toLowerCase()} de ${data.getFullYear()}`;
   } catch {
     return "Membro do campus";
   }
@@ -72,13 +84,11 @@ export default function PerfilPublicoPage({ perfil, produtos }: Props) {
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "venda" | "troca">("todos");
   const [busca, setBusca] = useState("");
 
-  const themeColor = perfil.cor_tema || "#FF385C";
-  
   // Mensagem personalizada para iniciar contato no WhatsApp
   const mensagemWhatsapp = encodeURIComponent(
-    `Olá, ${perfil.nome}! Vi seu perfil no Mercadinho Universitário e gostaria de saber mais sobre seus anúncios.`
+    `Olá, ${perfil.nome}! Vi seu perfil na Circular e quero saber mais sobre seus anúncios.`
   );
-  const whatsappUrl = linkWhatsapp(perfil.whatsapp || perfil.contato) + `&text=${mensagemWhatsapp}`;
+  const whatsappUrl = linkWhatsapp(perfil.whatsapp || perfil.contato) + `?text=${mensagemWhatsapp}`;
 
   const nomeExibicao = perfil.usuario_nome 
     ? `${perfil.usuario_nome} ${perfil.usuario_sobrenome || ""}`.trim()
@@ -88,7 +98,7 @@ export default function PerfilPublicoPage({ perfil, produtos }: Props) {
 
   // Separa anúncios de venda e troca
   const produtosTroca = useMemo(
-    () => produtos.filter((p) => p.preco === 0 || p.nome.toLowerCase().includes("troca") || (p.descricao && p.descricao.toLowerCase().includes("troco"))),
+    () => produtos.filter((p) => p.aceita_troca || p.preco === 0),
     [produtos]
   );
   
@@ -114,219 +124,119 @@ export default function PerfilPublicoPage({ perfil, produtos }: Props) {
     return lista;
   }, [produtos, produtosTroca, produtosVenda, filtroTipo, busca]);
 
+  const FOCO = "focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2";
+  const ABAS = [
+    { id: "todos" as const, rotulo: `Todos (${produtos.length})`, Icone: null, ativa: "bg-petroleo border-petroleo" },
+    { id: "venda" as const, rotulo: `Comprar (${produtosVenda.length})`, Icone: ShoppingBag, ativa: "bg-petroleo border-petroleo" },
+    { id: "troca" as const, rotulo: `Trocar (${produtosTroca.length})`, Icone: Repeat, ativa: "bg-troca border-troca" },
+  ];
+
   return (
     <>
       <Head>
-        <title>{nomeExibicao} • Perfil no Mercadinho Universitário</title>
-        <meta
-          name="description"
-          content={`Confira os anúncios e itens para troca de ${nomeExibicao} no Mercadinho Universitário.`}
-        />
+        <title>{`${nomeExibicao} • Circular`}</title>
+        <meta name="description" content={`Anúncios e itens para troca de ${nomeExibicao} na Circular.`} />
       </Head>
 
-      <div className="min-h-screen bg-[#F8F9FA] pb-16">
-        {/* Barra superior de navegação / voltar */}
-        <div className="bg-white border-b border-gray-200/80 sticky top-[65px] z-20">
-          <div className="max-w-6xl mx-auto px-4 h-12 flex items-center justify-between">
-            <Link
-              href="/"
-              className="text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-900 flex items-center gap-1.5 transition"
-            >
-              <span>←</span>
-              <span>Voltar para o início</span>
-            </Link>
-
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <span>Perfil do Universitário</span>
-              <span>•</span>
-              <span className="font-semibold text-gray-800">{nomeExibicao}</span>
-            </div>
-          </div>
-        </div>
-
+      <div className="min-h-screen bg-pagina pb-16">
         <div className="max-w-6xl mx-auto px-4 pt-6 sm:pt-8">
-          {/* 1. CARD PRINCIPAL DE PERFIL (ESTILO OLX / AIRBNB P2P) */}
-          <header className="bg-white border border-gray-200/80 rounded-3xl overflow-hidden shadow-xs mb-8">
-            {/* Banner de Capa */}
-            <div
-              className="relative h-36 sm:h-48 md:h-56 w-full overflow-hidden"
-              style={{
-                background: perfil.capa_url
-                  ? "transparent"
-                  : `linear-gradient(135deg, ${themeColor}15 0%, #180a1010 100%)`,
-              }}
-            >
-              {perfil.capa_url ? (
+          <Link href="/" className={`inline-flex items-center gap-1 min-h-[44px] text-sm font-semibold text-petroleo hover:underline rounded-controle mb-2 ${FOCO}`}>
+            <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
+            Voltar para o início
+          </Link>
+
+          <header className="bg-superficie border border-borda rounded-card overflow-hidden mb-8">
+            <div className="relative h-36 sm:h-48 w-full overflow-hidden bg-petroleo-50">
+              {perfil.capa_url && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={perfil.capa_url}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-end p-6 justify-end opacity-20">
-                  <span className="text-8xl select-none">🎓</span>
-                </div>
+                <img src={perfil.capa_url} alt="" className="w-full h-full object-cover" />
               )}
             </div>
 
-            {/* Conteúdo do Perfil */}
-            <div className="px-6 sm:px-8 pb-8 pt-0 relative">
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 -mt-16 sm:-mt-20 mb-6">
-                
-                {/* Avatar com badge */}
+            <div className="px-6 sm:px-8 pb-8 relative z-10">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 -mt-14 mb-6">
                 <div className="flex items-end gap-5">
-                  <div className="relative">
-                    <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl sm:rounded-3xl bg-white border-4 border-white shadow-lg overflow-hidden shrink-0">
-                      {perfil.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={perfil.avatar_url}
-                          alt={nomeExibicao}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-500 text-4xl font-black">
-                          {nomeExibicao.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    {/* Selo de ativo / online */}
-                    <span
-                      className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white shadow-xs"
-                      title="Estudante ativo na plataforma"
-                    />
+                  <div className="w-28 h-28 rounded-pill bg-superficie border-4 border-white overflow-hidden shrink-0">
+                    {perfil.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={perfil.avatar_url} alt={nomeExibicao} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-petroleo-50 text-petroleo text-4xl font-bold">
+                        {nomeExibicao.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Nome e Instituição */}
                   <div className="mb-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
-                        {nomeExibicao}
-                      </h1>
-                      
-                      {/* Selo Estudante Verificado Dinâmico */}
+                      <h1 className="text-2xl sm:text-3xl font-bold text-petroleo tracking-tight">{nomeExibicao}</h1>
                       {perfil.matricula_status === "verificado" ? (
-                        <span
-                          className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full"
-                          title="Matrícula universitária ativa e verificada"
-                        >
-                          <svg
-                            className="w-3.5 h-3.5 text-emerald-600"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.64.304 1.24.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <span>Aluno Verificado</span>
-                        </span>
+                        <SeloVerificado tamanho="md" />
                       ) : perfil.matricula_status === "pendente" ? (
-                        <span
-                          className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200/80 text-amber-700 text-xs font-semibold px-2.5 py-0.5 rounded-full"
-                          title="Comprovante de matrícula em processo de verificação"
-                        >
-                          <span>⏳ Matrícula em Análise</span>
+                        <span className="inline-flex items-center gap-1 rounded-pill text-xs font-semibold px-2.5 py-1 bg-doacao-50 text-doacao">
+                          <Clock size={14} strokeWidth={1.75} aria-hidden="true" />
+                          Matrícula em análise
                         </span>
                       ) : null}
                     </div>
-
-                    <p className="text-gray-500 text-sm mt-0.5 flex items-center gap-1.5 font-medium">
-                      <span>🎓</span>
-                      <span>
-                        {perfil.instituicao_nome
-                          ? `Estudante na ${perfil.instituicao_nome}`
-                          : "Universitário no campus"}
-                      </span>
+                    <p className="text-tinta-suave text-sm mt-1 flex items-center gap-1.5">
+                      <GraduationCap size={16} strokeWidth={1.75} aria-hidden="true" />
+                      {perfil.instituicao_nome ? `Aluno da ${perfil.instituicao_nome}` : "Aluno no campus"}
                     </p>
                   </div>
                 </div>
 
-                {/* Botões de Contato */}
                 <div className="flex items-center gap-3 w-full md:w-auto">
                   {perfil.instagram_url && (
                     <Link
                       href={`https://instagram.com/${perfil.instagram_url.replace("@", "")}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-3 rounded-2xl border border-gray-200 text-gray-500 hover:text-pink-600 hover:border-pink-200 bg-white transition shadow-xs"
-                      title="Instagram do estudante"
+                      aria-label="Instagram"
+                      className={`w-11 h-11 inline-flex items-center justify-center rounded-controle border border-borda-controle text-petroleo hover:border-petroleo bg-superficie transition ${FOCO}`}
                     >
                       <IconeInstagram className="w-5 h-5" />
                     </Link>
                   )}
-
                   <Link
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 md:flex-none bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm px-6 py-3 rounded-2xl shadow-sm transition hover:scale-105 active:scale-95 inline-flex items-center justify-center gap-2"
+                    className={`flex-1 md:flex-none bg-acao hover:bg-acao-hover text-white font-semibold text-sm px-4 py-2.5 min-h-[44px] rounded-controle transition inline-flex items-center justify-center gap-2 ${FOCO}`}
                   >
                     <IconeWhatsapp className="w-5 h-5" />
-                    <span>Conversar no WhatsApp</span>
+                    Falar no WhatsApp
                   </Link>
                 </div>
               </div>
 
-              {/* Bio / Apresentação do Estudante */}
               {perfil.descricao && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-gray-700 text-sm leading-relaxed max-w-3xl">
-                    {perfil.descricao}
-                  </p>
-                </div>
+                <p className="mt-4 pt-4 border-t border-borda text-tinta text-sm leading-relaxed max-w-3xl">{perfil.descricao}</p>
               )}
 
-              {/* Badges de Confiança no estilo OLX */}
-              <div className="mt-6 pt-5 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-3">
-                  <span className="text-xs text-gray-400 block font-medium">Tempo de casa</span>
-                  <span className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-1 mt-0.5">
-                    <span>📅</span>
-                    <span>{formatarTempoPlataforma(dataRegistro)}</span>
-                  </span>
-                </div>
+              <dl className="mt-6 pt-5 border-t border-borda grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { Icone: Calendar, rotulo: "Na Circular", valor: formatarTempoPlataforma(dataRegistro), cor: "text-tinta" },
+                  { Icone: Package, rotulo: "Anúncios ativos", valor: `${produtos.length}`, cor: "text-tinta" },
+                  { Icone: Repeat, rotulo: "Aceitam troca", valor: `${produtosTroca.length}`, cor: "text-troca-texto" },
+                ].map(({ Icone, rotulo, valor, cor }) => (
+                  <div key={rotulo} className="bg-pagina rounded-card p-3">
+                    <dt className="text-xs text-tinta-suave font-semibold">{rotulo}</dt>
+                    <dd className={`text-sm font-bold flex items-center gap-1.5 mt-0.5 ${cor}`}>
+                      <Icone size={16} strokeWidth={1.75} aria-hidden="true" />
+                      {valor}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
 
-                <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-3">
-                  <span className="text-xs text-gray-400 block font-medium">Anúncios ativos</span>
-                  <span className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-1 mt-0.5">
-                    <span>📦</span>
-                    <span>{produtos.length} {produtos.length === 1 ? "item publicado" : "itens publicados"}</span>
-                  </span>
-                </div>
-
-                <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-3">
-                  <span className="text-xs text-gray-400 block font-medium">Disponíveis para troca</span>
-                  <span className="text-xs sm:text-sm font-bold text-emerald-700 flex items-center gap-1 mt-0.5">
-                    <span>🔄</span>
-                    <span>{produtosTroca.length} {produtosTroca.length === 1 ? "item aceita troca" : "itens aceitam troca"}</span>
-                  </span>
-                </div>
-
-                <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-3">
-                  <span className="text-xs text-gray-400 block font-medium">Atendimento</span>
-                  <span className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-1 mt-0.5">
-                    <span>⚡</span>
-                    <span>Responde via WhatsApp</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Locais habituais de encontro no campus */}
               {perfil.locais_entrega && perfil.locais_entrega.length > 0 && (
                 <div className="mt-5 flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Locais de encontro no campus:
-                  </span>
+                  <span className="text-sm font-semibold text-tinta-suave">Locais de encontro:</span>
                   {perfil.locais_entrega.map((local) => (
-                    <span
-                      key={local}
-                      className="text-xs font-medium px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition"
-                    >
-                      📍 {local}
+                    <span key={local} className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-petroleo-50 text-petroleo rounded-pill">
+                      <MapPin size={14} strokeWidth={1.75} aria-hidden="true" />
+                      {local}
                     </span>
                   ))}
                 </div>
@@ -334,123 +244,69 @@ export default function PerfilPublicoPage({ perfil, produtos }: Props) {
             </div>
           </header>
 
-          {/* 2. GRADE DE ANÚNCIOS DO USUÁRIO COM FILTROS */}
-          <section id="anuncios" className="scroll-mt-20">
-            {/* Header com Abas e Busca */}
+          <section id="anuncios" className="scroll-mt-32">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              {/* Abas */}
-              <div className="flex items-center gap-2 border-b border-gray-200 pb-2 sm:pb-0 sm:border-none">
-                <button
-                  type="button"
-                  onClick={() => setFiltroTipo("todos")}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition ${
-                    filtroTipo === "todos"
-                      ? "bg-[#FF385C] text-white shadow-xs"
-                      : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  Todos ({produtos.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFiltroTipo("venda")}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
-                    filtroTipo === "venda"
-                      ? "bg-[#FF385C] text-white shadow-xs"
-                      : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  <span>🏷️</span>
-                  <span>À Venda ({produtosVenda.length})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFiltroTipo("troca")}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
-                    filtroTipo === "troca"
-                      ? "bg-emerald-600 text-white shadow-xs"
-                      : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  <span>🔄</span>
-                  <span>Aceita Troca ({produtosTroca.length})</span>
-                </button>
+              <div role="tablist" aria-label="Tipo de anúncio" className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                {ABAS.map(({ id, rotulo, Icone, ativa }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={filtroTipo === id}
+                    onClick={() => setFiltroTipo(id)}
+                    className={`px-4 min-h-[44px] rounded-pill text-sm font-semibold transition border flex items-center gap-1.5 shrink-0 ${FOCO} ${
+                      filtroTipo === id ? `${ativa} text-white` : "bg-superficie border-borda-controle text-tinta-suave hover:border-petroleo"
+                    }`}
+                  >
+                    {Icone && <Icone size={16} strokeWidth={1.75} aria-hidden="true" />}
+                    {rotulo}
+                  </button>
+                ))}
               </div>
 
-              {/* Campo de busca nos anúncios */}
               {produtos.length > 4 && (
-                <div className="w-full sm:w-64">
-                  <input
-                    type="search"
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    placeholder="Buscar nos anúncios..."
-                    className="w-full text-xs px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:border-[#FF385C] bg-white"
-                  />
-                </div>
+                <input
+                  type="search"
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar nos anúncios"
+                  aria-label="Buscar nos anúncios"
+                  className={`w-full sm:w-64 text-sm px-4 min-h-[44px] rounded-pill border border-borda-controle focus:border-petroleo bg-superficie placeholder:text-tinta-sutil ${FOCO}`}
+                />
               )}
             </div>
 
-            {/* Lista dos Produtos */}
             {produtosFiltrados.length === 0 ? (
-              <div className="bg-white border border-dashed border-gray-200 rounded-3xl p-12 text-center my-6">
-                <span className="text-4xl block mb-2">📦</span>
-                <p className="text-gray-700 font-bold text-base">
-                  Nenhum anúncio encontrado nesta categoria.
-                </p>
-                <p className="text-gray-400 text-xs mt-1">
-                  {busca ? "Tente buscar por outro termo." : "O estudante ainda não cadastrou itens com este filtro."}
+              <div className="bg-superficie border border-dashed border-borda-controle rounded-card p-12 text-center my-6">
+                <Package size={40} strokeWidth={1.75} className="mx-auto mb-2 text-petroleo" aria-hidden="true" />
+                <p className="text-tinta font-semibold text-base">Nenhum anúncio neste filtro.</p>
+                <p className="text-tinta-suave text-sm mt-1">
+                  {busca ? "Tente buscar por outro termo." : "Escolha outro filtro para ver mais anúncios."}
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
-                {produtosFiltrados.map((produto) => {
-                  return (
-                    <CardProduto
-                      key={produto.id}
-                      produto={produto}
-                      onAbrir={setProdutoAtivo}
-                      largura="fluida"
-                    />
-                  );
-                })}
+                {produtosFiltrados.map((produto) => (
+                  <CardProduto key={produto.id} produto={produto} onAbrir={setProdutoAtivo} largura="fluida" />
+                ))}
               </div>
             )}
           </section>
 
-          {/* 3. DICA DE SEGURANÇA UNIVERSITÁRIA (ESTILO OLX) */}
-          <div className="mt-12 bg-white border border-gray-200/80 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0 font-bold">
-                🛡️
-              </span>
-              <div>
-                <h4 className="text-gray-900 font-bold text-sm">
-                  Dica de negociação segura no campus
-                </h4>
-                <p className="text-gray-500 text-xs mt-0.5">
-                  Combine o encontro em locais movimentados (Biblioteca, RU ou Centro de Vivência) e confira o estado do material antes de concluir.
-                </p>
-              </div>
+          <div className="mt-12 bg-petroleo-50 rounded-card p-5 flex items-start gap-3 text-petroleo">
+            <ShieldCheck size={22} strokeWidth={1.75} className="shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <h2 className="font-bold text-sm">Negocie com segurança</h2>
+              <p className="text-sm mt-0.5">
+                Combine o encontro em locais movimentados, como a biblioteca, o RU ou o centro de vivência, e confira o
+                estado do item antes de fechar.
+              </p>
             </div>
-
-            <Link
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#FF385C] hover:text-[#e0314f] text-xs font-bold hover:underline shrink-0"
-            >
-              Falar com {nomeExibicao} →
-            </Link>
           </div>
         </div>
       </div>
 
-      {/* Modal de Detalhes do Produto */}
-      <ModalProduto
-        produto={produtoAtivo}
-        onFechar={() => setProdutoAtivo(null)}
-      />
+      <ModalProduto produto={produtoAtivo} onFechar={() => setProdutoAtivo(null)} />
     </>
   );
 }

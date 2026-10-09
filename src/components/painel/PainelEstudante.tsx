@@ -6,10 +6,22 @@ import { atualizarStatusProduto, deletarProduto, toggleFavorito } from "@/lib/qu
 import type { PainelProps } from "@/lib/painel-data";
 import { PAGINAS_PAINEL, type AbaPainel } from "@/lib/painel-routes";
 import ModalProduto from "@/components/ModalProduto";
+import SeloVerificado from "@/components/SeloVerificado";
 import SecaoAnuncios from "@/components/painel/SecaoAnuncios";
 import SecaoFavoritos from "@/components/painel/SecaoFavoritos";
 import SecaoPerfil from "@/components/painel/SecaoPerfil";
 import type { Loja, Produto, ProdutoListagem, ProdutoStatus, Usuario } from "@/types";
+import {
+  CircleCheck,
+  Clock,
+  ExternalLink,
+  Heart,
+  Package,
+  Plus,
+  TriangleAlert,
+  User,
+  X,
+} from "lucide-react";
 
 export default function PainelEstudante({
   loja: lojaInicial,
@@ -75,17 +87,17 @@ export default function PainelEstudante({
   return (
     <>
       <Head>
-        <title>{PAGINAS_PAINEL[abaAtiva].title} • Mercadinho Universitário</title>
+        <title>{PAGINAS_PAINEL[abaAtiva].title} • Circular</title>
       </Head>
 
-      <div className="min-h-screen bg-[#F8F9FA] pb-16">
+      <div className="min-h-screen bg-pagina pb-16">
         {/* Cabeçalho do Painel */}
-        <div className="bg-white border-b border-gray-200/80">
+        <div className="bg-superficie border-b border-borda">
           <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center shadow-xs">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-pill bg-petroleo-50 overflow-hidden shrink-0 flex items-center justify-center">
                     {loja.avatar_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -94,49 +106,43 @@ export default function PainelEstudante({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <span className="text-2xl font-black text-[#FF385C]">
+                      <span className="text-2xl font-bold text-petroleo">
                         {loja.nome.charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
-                  <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full" />
                 </div>
 
                 <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                    <h1 className="text-xl sm:text-2xl font-bold text-petroleo tracking-tight">
                       {loja.nome}
                     </h1>
                     {matriculaStatus === "verificado" ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                        <svg className="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.64.304 1.24.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <span>Aluno Verificado</span>
-                      </span>
+                      <SeloVerificado tamanho="md" />
                     ) : matriculaStatus === "pendente" ? (
-                      <span className="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
-                        ⏳ Matrícula em Análise
+                      <span className="inline-flex items-center gap-1 rounded-pill text-xs font-semibold px-2.5 py-1 bg-doacao-50 text-doacao">
+                        <Clock size={14} strokeWidth={1.75} aria-hidden="true" />
+                        Matrícula em análise
                       </span>
                     ) : (
                       <Link
                         href={PAGINAS_PAINEL.perfil.href}
-                        className="text-[10px] font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-2 py-0.5 rounded-full transition flex items-center gap-1"
-                        title="Clique para verificar seu vínculo acadêmico"
+                        className="inline-flex items-center gap-1 rounded-pill text-xs font-semibold px-2.5 py-1 bg-superficie border border-borda-controle hover:border-petroleo text-petroleo transition"
                       >
-                        <span>⚠️ Não Verificado</span>
-                        <span className="text-xs text-[#FF385C]">Verificar →</span>
+                        <TriangleAlert size={14} strokeWidth={1.75} aria-hidden="true" />
+                        Verifique sua matrícula
                       </Link>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5 font-medium">{userEmail}</p>
-                  <div className="mt-1.5 flex items-center gap-3 text-xs text-gray-500">
+                  <p className="text-xs text-tinta-suave mt-0.5 font-semibold">{userEmail}</p>
+                  <div className="mt-1.5 flex items-center gap-3 text-xs text-tinta-suave">
                     <Link
                       href={`/perfil/${loja.id}`}
-                      className="text-[#FF385C] hover:text-[#e0314f] font-semibold flex items-center gap-1 hover:underline"
+                      className="text-petroleo font-semibold flex items-center gap-1 hover:underline"
                     >
-                      <span>Ver meu perfil público</span>
-                      <span>↗</span>
+                      Ver meu perfil público
+                      <ExternalLink size={14} strokeWidth={1.75} aria-hidden="true" />
                     </Link>
                   </div>
                 </div>
@@ -146,17 +152,10 @@ export default function PainelEstudante({
               <div className="shrink-0 flex items-center gap-2">
                 <Link
                   href="/anunciar"
-                  className="w-full sm:w-auto bg-[#FF385C] hover:bg-[#e0314f] text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md shadow-[#FF385C]/25 transition hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto bg-acao hover:bg-acao-hover text-white font-semibold text-sm px-4 py-2.5 min-h-[44px] rounded-controle transition flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="w-4 h-4"
-                  >
-                    <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                  </svg>
-                  <span>+ Novo Anúncio</span>
+                  <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
+                  Novo anúncio
                 </Link>
               </div>
             </div>
@@ -164,7 +163,7 @@ export default function PainelEstudante({
             {/* Páginas do Painel */}
             <nav
               aria-label="Seções do painel"
-              className="mt-8 flex items-center gap-4 border-b border-gray-100 overflow-x-auto no-scrollbar"
+              className="mt-8 flex items-center gap-4 border-b border-borda overflow-x-auto no-scrollbar"
             >
               {Object.values(PAGINAS_PAINEL).map((pagina) => {
                 const ativa = abaAtiva === pagina.id;
@@ -180,13 +179,13 @@ export default function PainelEstudante({
                     key={pagina.id}
                     href={pagina.href}
                     aria-current={ativa ? "page" : undefined}
-                    className={`pb-3 font-bold text-xs sm:text-sm transition flex items-center gap-2 border-b-2 shrink-0 ${
+                    className={`pb-3 min-h-[44px] font-semibold text-sm transition flex items-center gap-2 border-b-2 shrink-0 ${
                       ativa
-                        ? "border-[#FF385C] text-[#FF385C]"
-                        : "border-transparent text-gray-500 hover:text-gray-800"
+                        ? "border-petroleo text-petroleo"
+                        : "border-transparent text-tinta-suave hover:text-tinta"
                     }`}
                   >
-                    <span>{pagina.icon}</span>
+                    <pagina.icon size={18} strokeWidth={1.75} aria-hidden="true" />
                     <span>
                       {pagina.label}
                       {quantidade !== null ? ` (${quantidade})` : ""}
@@ -201,17 +200,18 @@ export default function PainelEstudante({
         {/* Notificação de sucesso ao cadastrar anúncio */}
         {abaAtiva === "anuncios" && router.query.sucesso && (
           <div className="max-w-6xl mx-auto px-4 mt-6">
-            <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center justify-between text-xs sm:text-sm font-medium">
+            <div role="status" className="p-4 bg-troca-50 text-troca-texto rounded-card flex items-center justify-between text-sm font-semibold">
               <div className="flex items-center gap-2">
-                <span>🎉</span>
+                <CircleCheck size={16} strokeWidth={1.75} aria-hidden="true" />
                 <span>Anúncio publicado com sucesso! Ele já está disponível no campus.</span>
               </div>
               <button
                 type="button"
                 onClick={() => router.replace(PAGINAS_PAINEL.anuncios.href, undefined, { shallow: true })}
-                className="text-emerald-700 hover:text-emerald-900 font-bold ml-4"
+                aria-label="Fechar aviso"
+                className="ml-4 w-11 h-11 inline-flex items-center justify-center rounded-controle text-troca-texto focus-visible:outline-2 focus-visible:outline-petroleo"
               >
-                ✕
+                <X size={18} strokeWidth={1.75} aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -222,8 +222,8 @@ export default function PainelEstudante({
           {abaAtiva === "visao-geral" && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-lg sm:text-xl font-black text-gray-900">Visão geral</h2>
-                <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                <h2 className="text-lg sm:text-xl font-bold text-petroleo">Visão geral</h2>
+                <p className="text-xs sm:text-sm text-tinta-suave mt-1">
                   Acompanhe sua conta e acesse rapidamente cada área do painel.
                 </p>
               </div>
@@ -231,62 +231,62 @@ export default function PainelEstudante({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Link
                   href={PAGINAS_PAINEL.anuncios.href}
-                  className="bg-white border border-gray-200/90 rounded-2xl p-5 shadow-2xs transition hover:border-gray-300 hover:shadow-xs"
+                  className="bg-superficie border border-borda rounded-card p-5 transition hover:shadow-hover"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-bold text-gray-700">Meus anúncios</span>
-                    <span className="text-xl">📦</span>
+                    <span className="text-sm font-bold text-tinta">Meus anúncios</span>
+                    <Package size={20} strokeWidth={1.75} className="text-petroleo" aria-hidden="true" />
                   </div>
-                  <strong className="block text-3xl font-black text-gray-900 mt-4">{totalProdutos}</strong>
-                  <span className="text-xs text-gray-500 mt-1 block">
+                  <strong className="block text-3xl font-bold text-tinta mt-4">{totalProdutos}</strong>
+                  <span className="text-xs text-tinta-suave mt-1 block">
                     {produtosAtivos.length} ativo{produtosAtivos.length === 1 ? "" : "s"} · {produtosPausados.length} pausado{produtosPausados.length === 1 ? "" : "s"}
                   </span>
                 </Link>
 
                 <Link
                   href={PAGINAS_PAINEL.favoritos.href}
-                  className="bg-white border border-gray-200/90 rounded-2xl p-5 shadow-2xs transition hover:border-gray-300 hover:shadow-xs"
+                  className="bg-superficie border border-borda rounded-card p-5 transition hover:shadow-hover"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-bold text-gray-700">Meus favoritos</span>
-                    <span className="text-xl">❤️</span>
+                    <span className="text-sm font-bold text-tinta">Meus favoritos</span>
+                    <Heart size={20} strokeWidth={1.75} className="text-petroleo" aria-hidden="true" />
                   </div>
-                  <strong className="block text-3xl font-black text-gray-900 mt-4">{favoritos.length}</strong>
-                  <span className="text-xs text-gray-500 mt-1 block">itens salvos para ver depois</span>
+                  <strong className="block text-3xl font-bold text-tinta mt-4">{favoritos.length}</strong>
+                  <span className="text-xs text-tinta-suave mt-1 block">itens salvos para ver depois</span>
                 </Link>
 
                 <Link
                   href={PAGINAS_PAINEL.perfil.href}
-                  className="bg-white border border-gray-200/90 rounded-2xl p-5 shadow-2xs transition hover:border-gray-300 hover:shadow-xs"
+                  className="bg-superficie border border-borda rounded-card p-5 transition hover:shadow-hover"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-bold text-gray-700">Meu perfil</span>
-                    <span className="text-xl">👤</span>
+                    <span className="text-sm font-bold text-tinta">Meu perfil</span>
+                    <User size={20} strokeWidth={1.75} className="text-petroleo" aria-hidden="true" />
                   </div>
-                  <strong className="block text-lg font-black text-gray-900 mt-4">
+                  <strong className="block text-lg font-bold text-tinta mt-4">
                     {matriculaStatus === "verificado"
                       ? "Perfil verificado"
                       : matriculaStatus === "pendente"
                         ? "Verificação em análise"
                         : "Verificação pendente"}
                   </strong>
-                  <span className="text-xs text-gray-500 mt-2 block">Atualize seus dados e seu perfil público</span>
+                  <span className="text-xs text-tinta-suave mt-2 block">Atualize seus dados e seu perfil público</span>
                 </Link>
               </div>
 
-              <div className="bg-white border border-gray-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
-                <h3 className="text-base font-black text-gray-900">Ações rápidas</h3>
-                <p className="text-xs text-gray-500 mt-1">Continue gerenciando sua atividade no Mercadinho Universitário.</p>
+              <div className="bg-superficie border border-borda rounded-card p-6 sm:p-8">
+                <h3 className="text-base font-bold text-tinta">Ações rápidas</h3>
+                <p className="text-xs text-tinta-suave mt-1">Atalhos para o que você mais usa.</p>
                 <div className="flex flex-col sm:flex-row gap-3 mt-5">
                   <Link
                     href="/anunciar"
-                    className="inline-flex items-center justify-center gap-2 bg-[#FF385C] hover:bg-[#e0314f] text-white text-xs sm:text-sm font-bold px-5 py-2.5 rounded-xl shadow-xs transition"
+                    className="inline-flex items-center justify-center gap-2 bg-acao hover:bg-acao-hover text-white text-xs sm:text-sm font-bold px-5 py-2.5 rounded-controle transition"
                   >
                     <span>+ Publicar anúncio</span>
                   </Link>
                   <Link
                     href={PAGINAS_PAINEL.perfil.href}
-                    className="inline-flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold px-5 py-2.5 rounded-xl transition"
+                    className="inline-flex items-center justify-center gap-2 bg-superficie border border-borda-controle hover:bg-pagina text-tinta text-xs sm:text-sm font-bold px-5 py-2.5 rounded-controle transition"
                   >
                     <span>Editar perfil</span>
                   </Link>
