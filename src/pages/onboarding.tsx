@@ -36,18 +36,19 @@ export default function OnboardingPage() {
       updates.matricula = matricula.trim();
     }
 
-    // Se o e-mail for universitário, auto-valida a matrícula
-    if (validarEmailUniversitario(user.email || "")) {
-      updates.matricula_status = "verificado";
-      updates.matricula_validada = true;
-    } else if (matricula.trim()) {
+    if (matricula.trim()) {
       updates.matricula_status = "pendente";
     }
 
     const { error: updateError } = await supabase
       .from("usuarios")
       .update(updates)
-      .eq("email", user.email);
+      .eq("auth_id", user.id);
+
+    // Se o e-mail for universitário, a validação acontece no banco (RPC)
+    if (!updateError && validarEmailUniversitario(user.email || "")) {
+      await supabase.rpc("verificar_matricula_por_email");
+    }
 
     if (updateError) {
       console.error("Erro no onboarding:", updateError);

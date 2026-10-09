@@ -12,7 +12,14 @@ Este projeto depende do Supabase para banco de dados, autenticação e storage.
 
 2.  **Banco de Dados**: Vá ao **SQL Editor** do seu projeto no Supabase e execute o conteúdo do arquivo `db/setup_completo.sql`. Ele criará todas as tabelas, triggers, políticas de segurança (RLS) e buckets de storage necessários.
 
-3.  **Dados de Teste**: Se desejar popular o banco com dados de exemplo, execute o conteúdo de `db/seed.sql` após o setup completo.
+3.  **Migrações**: Em seguida, execute em ordem os arquivos de `db/migrations/` (`01_…` até `05_seguranca_usuarios.sql`). A `05` é obrigatória: ela protege os dados pessoais e cria as funções (RPC) usadas no painel, na verificação de matrícula e no admin.
+
+4.  **Administrador**: Para acessar `/admin`, marque seu usuário como admin no SQL Editor:
+    ```sql
+    UPDATE usuarios SET is_admin = true WHERE email = 'seu-email';
+    ```
+
+5.  **Dados de Teste**: Se desejar popular o banco com dados de exemplo, execute o conteúdo de `db/seed.sql` após o setup completo.
 
 ## Getting Started
 
@@ -30,7 +37,7 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can start editing the page by modifying `src/pages/index.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

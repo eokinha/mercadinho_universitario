@@ -5,9 +5,13 @@ import type {
   GrupoCategoria,
   Instituicao,
   Loja,
+  LojaModeracao,
+  LojaStatus,
   OrdenacaoProdutos,
   Produto,
   ProdutoListagem,
+  ProdutoModeracao,
+  ProdutoStatus,
   PerfilPublico,
   Usuario,
   UsuarioModeracao,
@@ -135,22 +139,9 @@ export async function getInstituicoes(client: SupabaseClient = defaultClient): P
 }
 
 export async function getLojaByAuthId(
-  authIdOrEmail: string,
-  client: SupabaseClient = defaultClient,
-  userEmail?: string
+  client: SupabaseClient = defaultClient
 ): Promise<Loja | null> {
-  const emailToFind = userEmail || (authIdOrEmail.includes("@") ? authIdOrEmail : undefined);
-  let usuario = null;
-
-  if (emailToFind) {
-    const { data } = await client
-      .from("usuarios")
-      .select("id")
-      .eq("email", emailToFind)
-      .maybeSingle();
-    usuario = data;
-  }
-
+  const usuario = await getMeuUsuario(client);
   if (!usuario) return null;
 
   const { data: loja, error: lojaError } = await client
@@ -173,53 +164,12 @@ export async function updateLoja(lojaId: number, updates: Partial<Loja>, client:
 }
 
 export async function getOrCreatePerfilEstudante(
-  authIdOrEmail: string,
-  client: SupabaseClient = defaultClient,
-  userEmail?: string
+  client: SupabaseClient = defaultClient
 ): Promise<Loja> {
-  const emailToFind = userEmail || (authIdOrEmail.includes("@") ? authIdOrEmail : undefined);
-  let usuario: { id: number; nome?: string; sobrenome?: string; telefone?: string } | null = null;
-
-  if (emailToFind) {
-    const { data } = await client
-      .from("usuarios")
-      .select("id, nome, sobrenome, telefone")
-      .eq("email", emailToFind)
-      .maybeSingle();
-    usuario = data;
-  }
-
-  // Se o usuário ainda não tiver registro na tabela 'usuarios', cria automaticamente
+  // A linha em 'usuarios' é criada pelo trigger de signup (handle_new_user)
+  const usuario = await getMeuUsuario(client);
   if (!usuario) {
-    const fallbackNome = emailToFind ? emailToFind.split("@")[0] : "Estudante";
-    const { data: novoUsuario, error: createUsuarioError } = await client
-      .from("usuarios")
-      .insert({
-        email: emailToFind || `aluno-${Date.now()}@universidade.edu.br`,
-        nome: fallbackNome,
-        sobrenome: "Universitário",
-        password: "auth-managed",
-        matricula_validada: true,
-        matricula_status: "verificado",
-      })
-      .select("id, nome, sobrenome, telefone")
-      .maybeSingle();
-
-    if (!createUsuarioError && novoUsuario) {
-      usuario = novoUsuario;
-    } else {
-      // Tenta recuperar qualquer usuário existente ou pelo email
-      const { data: fallbackUser } = await client
-        .from("usuarios")
-        .select("id, nome, sobrenome, telefone")
-        .limit(1)
-        .maybeSingle();
-      usuario = fallbackUser;
-    }
-  }
-
-  if (!usuario) {
-    throw new Error("Não foi possível carregar ou criar o registro do estudante.");
+    throw new Error("Cadastro do estudante não encontrado.");
   }
 
   // Verifica se já tem registro de loja/perfil
@@ -263,7 +213,7 @@ export async function getOrCreatePerfilEstudante(
 
 export async function atualizarStatusProduto(
   produtoId: number,
-  status: string,
+  status: ProdutoStatus,
   client: SupabaseClient = defaultClient
 ): Promise<void> {
   const { error } = await client
@@ -289,7 +239,7 @@ export async function deletarProduto(
 export async function getProdutosPrivados(lojaId: number, client: SupabaseClient = defaultClient): Promise<Produto[]> {
   const { data, error } = await client
     .from("produtos")
-    .select("id, loja_id, nome, descricao, preco, imagem_url, status, criado_em, categoria_id, destaque")
+    .select("id, loja_id, nome, descricao, preco, imagem_url, status, criado_em, categoria_id, destaque, aceita_troca")
     .eq("loja_id", lojaId)
     .order("criado_em", { ascending: false });
 
@@ -430,7 +380,7 @@ export async function getProdutosByLoja(lojaId: number, client: SupabaseClient =
   const { data, error } = await client
     .from("produtos")
     .select(
-      "id, loja_id, nome, descricao, preco, imagem_url, status, criado_em, categoria_id, destaque"
+      "id, loja_id, nome, descricao, preco, imagem_url, status, criado_em, categoria_id, destaque, aceita_troca"
     )
     .eq("loja_id", lojaId)
     .order("criado_em", { ascending: false });
@@ -661,18 +611,13 @@ export async function getProdutosFiltrados(
    FUNÇÕES DE VERIFICAÇÃO ACADÊMICA & MODERAÇÃO
    ========================================================================= */
 
-export async function getUsuarioByIdOrEmail(
-  idOrEmail: string | number,
+// Dados completos do usuário logado (RPC: colunas pessoais não são legíveis via select)
+export async function getMeuUsuario(
   client: SupabaseClient = defaultClient
 ): Promise<Usuario | null> {
-  const isNumeric = typeof idOrEmail === "number" || /^\d+$/.test(String(idOrEmail));
-  const query = client.from("usuarios").select("*");
-  const { data, error } = isNumeric
-    ? await query.eq("id", Number(idOrEmail)).maybeSingle()
-    : await query.eq("email", String(idOrEmail)).maybeSingle();
-
-  if (error) return null;
-  return data as Usuario | null;
+  const { data, error } = await client.rpc("meu_usuario").maybeSingle();
+  if (error) throw error;
+  return (data as Usuario | null) ?? null;
 }
 
 export async function solicitarVerificacaoMatricula(
@@ -698,48 +643,24 @@ export async function solicitarVerificacaoMatricula(
 }
 
 export async function verificarMatriculaInstantanea(
-  usuarioId: number,
   matriculaOpcional?: string,
   instituicoes_id?: number,
   client: SupabaseClient = defaultClient
 ): Promise<{ success: boolean; message: string }> {
-  const { data: usuario, error: userError } = await client
-    .from("usuarios")
-    .select("id, email, matricula")
-    .eq("id", usuarioId)
-    .maybeSingle();
+  // A checagem do domínio do e-mail acontece no banco, com o e-mail confirmado do Auth
+  const { data: verificado, error } = await client.rpc("verificar_matricula_por_email", {
+    p_matricula: matriculaOpcional?.trim() || null,
+    p_instituicoes_id: instituicoes_id ?? null,
+  });
 
-  if (userError || !usuario) {
-    throw new Error("Usuário não encontrado.");
-  }
+  if (error) throw error;
 
-  const { validarEmailUniversitario } = await import("@/lib/validacoes");
-  const isUniversitario = validarEmailUniversitario(usuario.email);
-
-  if (!isUniversitario) {
+  if (!verificado) {
     return {
       success: false,
-      message: "Seu e-mail cadastrado não possui um domínio acadêmico reconhecido (.edu.br, .edu, ufmg.br, usp.br, etc.). Use a verificação manual por matrícula.",
+      message: "Seu e-mail cadastrado não possui um domínio acadêmico reconhecido (.edu.br, .edu, ufmg.br, usp.br, etc.) ou ainda não foi confirmado. Use a verificação manual por matrícula.",
     };
   }
-
-  const updates: Record<string, any> = {
-    matricula_status: "verificado",
-    matricula_validada: true,
-  };
-  if (matriculaOpcional) {
-    updates.matricula = matriculaOpcional.trim();
-  }
-  if (instituicoes_id) {
-    updates.instituicoes_id = instituicoes_id;
-  }
-
-  const { error: updateError } = await client
-    .from("usuarios")
-    .update(updates)
-    .eq("id", usuarioId);
-
-  if (updateError) throw updateError;
 
   return {
     success: true,
@@ -752,15 +673,10 @@ export async function moderarMatricula(
   status: "verificado" | "rejeitado",
   client: SupabaseClient = defaultClient
 ): Promise<void> {
-  const updates: Record<string, any> = {
-    matricula_status: status,
-    matricula_validada: status === "verificado",
-  };
-
-  const { error } = await client
-    .from("usuarios")
-    .update(updates)
-    .eq("id", usuarioId);
+  const { error } = await client.rpc("admin_moderar_matricula", {
+    p_usuario_id: usuarioId,
+    p_status: status,
+  });
 
   if (error) throw error;
 }
@@ -768,33 +684,69 @@ export async function moderarMatricula(
 export async function getUsuariosParaModeracao(
   client: SupabaseClient = defaultClient
 ): Promise<UsuarioModeracao[]> {
-  try {
-    const { data, error } = await client
-      .from("usuarios")
-      .select(`
-        id, nome, sobrenome, email, telefone, matricula, matricula_status, matricula_validada, instituicoes_id,
-        instituicoes(nome),
-        lojas(id)
-      `)
-      .order("id", { ascending: false });
+  const { data, error } = await client.rpc("admin_listar_usuarios");
+  if (error) throw error;
 
-    if (error) throw error;
+  return ((data ?? []) as UsuarioModeracao[]).map((u) => ({
+    ...u,
+    telefone: u.telefone || "",
+    matricula: u.matricula || "",
+    matricula_status: u.matricula_status || "pendente",
+    instituicao_nome: u.instituicao_nome ?? undefined,
+    loja_id: u.loja_id ?? undefined,
+  }));
+}
 
-    return (data ?? []).map((u: any) => ({
-      id: u.id,
-      nome: u.nome,
-      sobrenome: u.sobrenome,
-      email: u.email,
-      telefone: u.telefone || "",
-      matricula: u.matricula || "",
-      matricula_status: (u.matricula_status as "pendente" | "verificado" | "rejeitado") || "pendente",
-      matricula_validada: !!u.matricula_validada,
-      instituicoes_id: u.instituicoes_id,
-      instituicao_nome: Array.isArray(u.instituicoes) ? u.instituicoes[0]?.nome : u.instituicoes?.nome,
-      loja_id: Array.isArray(u.lojas) ? u.lojas[0]?.id : u.lojas?.id,
-    }));
-  } catch (err) {
-    console.error("Erro ao buscar usuários para moderação:", err);
-    return [];
-  }
+export async function getLojasParaModeracao(
+  client: SupabaseClient = defaultClient
+): Promise<LojaModeracao[]> {
+  const { data, error } = await client.rpc("admin_listar_lojas");
+  if (error) throw error;
+
+  return ((data ?? []) as LojaModeracao[]).map((l) => ({
+    ...l,
+    total_produtos: Number(l.total_produtos),
+    produtos_ativos: Number(l.produtos_ativos),
+  }));
+}
+
+export async function getProdutosParaModeracao(
+  client: SupabaseClient = defaultClient
+): Promise<ProdutoModeracao[]> {
+  const { data, error } = await client
+    .from("produtos")
+    .select("id, nome, preco, imagem_url, status, destaque, loja_id, lojas(nome)")
+    .order("destaque", { ascending: false })
+    .order("criado_em", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((p: any) => ({
+    id: p.id,
+    nome: p.nome,
+    preco: Number(p.preco),
+    imagem_url: p.imagem_url,
+    status: p.status,
+    destaque: p.destaque,
+    loja_id: p.loja_id,
+    loja_nome: p.lojas?.nome ?? "—",
+  }));
+}
+
+export async function moderarLoja(
+  lojaId: number,
+  status: LojaStatus,
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const { error } = await client.rpc("admin_moderar_loja", { p_loja_id: lojaId, p_status: status });
+  if (error) throw error;
+}
+
+export async function definirDestaque(
+  produtoId: number,
+  destaque: boolean,
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const { error } = await client.rpc("admin_definir_destaque", { p_produto_id: produtoId, p_destaque: destaque });
+  if (error) throw error;
 }

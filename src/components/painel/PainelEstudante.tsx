@@ -2,35 +2,21 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Head from "next/head";
-import type { GetServerSideProps } from "next";
-import { createServerClient, supabase } from "@/lib/supabase";
 import {
-  getOrCreatePerfilEstudante,
-  getProdutosPrivados,
-  getProdutosFavoritos,
   atualizarStatusProduto,
   deletarProduto,
-  updateLoja,
-  toggleFavorito,
-  getInstituicoes,
-  getUsuarioByIdOrEmail,
-  verificarMatriculaInstantanea,
   solicitarVerificacaoMatricula,
+  toggleFavorito,
+  updateLoja,
+  verificarMatriculaInstantanea,
 } from "@/lib/queries";
+import type { PainelProps } from "@/lib/painel-data";
+import { PAGINAS_PAINEL, type AbaPainel } from "@/lib/painel-routes";
 import { uploadImagemLoja } from "@/lib/storage";
 import { validarEmailUniversitario } from "@/lib/validacoes";
 import CardProduto from "@/components/CardProduto";
 import ModalProduto from "@/components/ModalProduto";
-import type { Loja, Produto, ProdutoListagem, Instituicao, Usuario } from "@/types";
-
-interface Props {
-  loja: Loja;
-  produtosIniciais: Produto[];
-  favoritosIniciais: ProdutoListagem[];
-  userEmail: string;
-  usuarioInicial: Usuario | null;
-  instituicoes: Instituicao[];
-}
+import type { Loja, Produto, ProdutoListagem, ProdutoStatus, Usuario } from "@/types";
 
 const LOCAIS_SUGERIDOS = [
   "RU Central",
@@ -48,110 +34,16 @@ function formatarPreco(valor: number): string {
   }).format(valor);
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
-  const serverSupabase = createServerClient(ctx);
-  const {
-    data: { user },
-  } = await serverSupabase.auth.getUser();
-
-  // Modo de pré-visualização para testes de UI
-  if (!user && (ctx.query.preview === "1" || process.env.NODE_ENV === "development" && ctx.query.demo === "1")) {
-    const mockLoja: Loja = {
-      id: 1,
-      usuario_id: 1,
-      nome: "Lucas Silva",
-      descricao: "Estudante de Engenharia desapegando e trocando livros e eletrônicos no campus",
-      contato: "(31) 99999-0001",
-      whatsapp: "(31) 99999-0001",
-      status: "ativo",
-      criado_em: "2026-04-26T00:14:02.38628+00:00",
-      avatar_url: "https://api.dicebear.com/7.x/initials/svg?seed=LucasSilva&backgroundColor=ff385c",
-      capa_url: null,
-      slug: "lucas-silva",
-      instagram_url: "@lucas_eng",
-      tiktok_url: null,
-      locais_entrega: ["RU Central", "Biblioteca Universitária", "Centro de Vivência"],
-      cor_tema: "#FF385C",
-    };
-    const produtosIniciais = await getProdutosPrivados(1, serverSupabase);
-    const favoritosIniciais = await getProdutosFavoritos(1, serverSupabase);
-    const instituicoes = await getInstituicoes(serverSupabase);
-    const mockStatus = ((ctx.query.status as any) || "verificado") as "verificado" | "pendente" | "rejeitado";
-
-    const mockUsuario: Usuario = {
-      id: 1,
-      nome: "Lucas",
-      sobrenome: "Silva",
-      email: "lucas.silva@aluno.ufmg.br",
-      password: "",
-      telefone: "(31) 99999-0001",
-      cpf: "11122233344",
-      matricula: "2024019283",
-      matricula_validada: mockStatus === "verificado",
-      matricula_status: mockStatus,
-      instituicoes_id: 1,
-      status: "ativo",
-    };
-
-    return {
-      props: {
-        loja: mockLoja,
-        produtosIniciais,
-        favoritosIniciais,
-        userEmail: "lucas.silva@aluno.ufmg.br",
-        usuarioInicial: mockUsuario,
-        instituicoes,
-      },
-    };
-  }
-
-  if (!user) {
-    return {
-      redirect: {
-        destination: `/login?msg=${encodeURIComponent("Faça login para acessar seu painel.")}`,
-        permanent: false,
-      },
-    };
-  }
-
-  try {
-    const loja = await getOrCreatePerfilEstudante(user.id, serverSupabase, user.email);
-    const produtosIniciais = await getProdutosPrivados(loja.id, serverSupabase);
-    const favoritosIniciais = await getProdutosFavoritos(loja.usuario_id, serverSupabase);
-    const usuarioInicial = await getUsuarioByIdOrEmail(user.email || user.id, serverSupabase);
-    const instituicoes = await getInstituicoes(serverSupabase);
-
-    return {
-      props: {
-        loja,
-        produtosIniciais,
-        favoritosIniciais,
-        userEmail: user.email || "",
-        usuarioInicial,
-        instituicoes,
-      },
-    };
-  } catch (err) {
-    console.error("Erro ao carregar dados do painel:", err);
-    return {
-      redirect: {
-        destination: "/login",
-        permanent: false,
-      },
-    };
-  }
-};
-
-export default function PainelPage({
+export default function PainelEstudante({
   loja: lojaInicial,
   produtosIniciais,
   favoritosIniciais,
   userEmail,
   usuarioInicial,
   instituicoes,
-}: Props) {
+  abaAtiva,
+}: PainelProps & { abaAtiva: AbaPainel }) {
   const router = useRouter();
-  const abaAtiva = (router.query.aba as string) || "anuncios";
 
   const [loja, setLoja] = useState<Loja>(lojaInicial);
   const [produtos, setProdutos] = useState<Produto[]>(produtosIniciais);
@@ -159,7 +51,7 @@ export default function PainelPage({
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "ativos" | "pausados">("todos");
 
   // Estado do Usuário e Verificação Acadêmica
-  const [usuario, setUsuario] = useState<Usuario | null>(usuarioInicial);
+  const [usuario] = useState<Usuario | null>(usuarioInicial);
   const [matriculaStatus, setMatriculaStatus] = useState<"pendente" | "verificado" | "rejeitado">(
     usuarioInicial?.matricula_status || "pendente"
   );
@@ -194,7 +86,6 @@ export default function PainelPage({
     setMensagemVerificacao(null);
     try {
       const res = await verificarMatriculaInstantanea(
-        usuario.id,
         matriculaInput,
         instituicaoSelecionada ? Number(instituicaoSelecionada) : undefined
       );
@@ -204,8 +95,11 @@ export default function PainelPage({
       } else {
         setMensagemVerificacao({ tipo: "erro", texto: res.message });
       }
-    } catch (err: any) {
-      setMensagemVerificacao({ tipo: "erro", texto: err?.message || "Erro ao validar matrícula." });
+    } catch (err) {
+      setMensagemVerificacao({
+        tipo: "erro",
+        texto: err instanceof Error ? err.message : "Erro ao validar matrícula.",
+      });
     } finally {
       setVerificandoInstantaneo(false);
     }
@@ -230,8 +124,11 @@ export default function PainelPage({
         tipo: "sucesso",
         texto: "Matrícula enviada para análise da moderação! Em breve seu selo Aluno Verificado será ativado.",
       });
-    } catch (err: any) {
-      setMensagemVerificacao({ tipo: "erro", texto: err?.message || "Erro ao enviar matrícula." });
+    } catch (err) {
+      setMensagemVerificacao({
+        tipo: "erro",
+        texto: err instanceof Error ? err.message : "Erro ao enviar matrícula.",
+      });
     } finally {
       setEnviandoMatricula(false);
     }
@@ -239,7 +136,7 @@ export default function PainelPage({
 
   // Estatísticas do estudante
   const totalProdutos = produtos.length;
-  const isAtivo = (p: Produto) => p.status === "ativo" || (p.status as unknown) === true;
+  const isAtivo = (p: Produto) => p.status === "ativo";
   const produtosAtivos = useMemo(() => produtos.filter(isAtivo), [produtos]);
   const produtosPausados = useMemo(() => produtos.filter((p) => !isAtivo(p)), [produtos]);
 
@@ -249,20 +146,16 @@ export default function PainelPage({
     return produtos;
   }, [produtos, produtosAtivos, produtosPausados, filtroStatus]);
 
-  function mudarAba(aba: string) {
-    router.push(`/painel?aba=${aba}`, undefined, { shallow: true });
-  }
-
   // Alternar status do anúncio (Pausar / Reativar)
   async function handleToggleStatus(produto: Produto) {
     const ativo = isAtivo(produto);
-    const novoStatus = ativo ? "pausado" : "ativo";
+    const novoStatus: ProdutoStatus = ativo ? "pausado" : "ativo";
     try {
       await atualizarStatusProduto(produto.id, novoStatus);
       setProdutos((prev) =>
         prev.map((p) => (p.id === produto.id ? { ...p, status: novoStatus } : p))
       );
-    } catch (err) {
+    } catch {
       alert("Não foi possível atualizar o status do produto.");
     }
   }
@@ -274,7 +167,7 @@ export default function PainelPage({
     try {
       await deletarProduto(produtoId);
       setProdutos((prev) => prev.filter((p) => p.id !== produtoId));
-    } catch (err) {
+    } catch {
       alert("Não foi possível excluir o anúncio.");
     }
   }
@@ -284,7 +177,7 @@ export default function PainelPage({
     try {
       await toggleFavorito(loja.usuario_id, produtoId);
       setFavoritos((prev) => prev.filter((p) => p.id !== produtoId));
-    } catch (err) {
+    } catch {
       alert("Erro ao remover favorito.");
     }
   }
@@ -299,8 +192,11 @@ export default function PainelPage({
       const url = await uploadImagemLoja(loja.id, "avatar", file);
       setLoja((prev) => ({ ...prev, avatar_url: url }));
       setMensagemPerfil({ tipo: "sucesso", texto: "Foto de perfil atualizada com sucesso!" });
-    } catch (err: any) {
-      setMensagemPerfil({ tipo: "erro", texto: err?.message || "Erro ao enviar imagem." });
+    } catch (err) {
+      setMensagemPerfil({
+        tipo: "erro",
+        texto: err instanceof Error ? err.message : "Erro ao enviar imagem.",
+      });
     } finally {
       setAvatarUploading(false);
     }
@@ -340,8 +236,11 @@ export default function PainelPage({
       }));
 
       setMensagemPerfil({ tipo: "sucesso", texto: "Perfil universitário atualizado com sucesso!" });
-    } catch (err: any) {
-      setMensagemPerfil({ tipo: "erro", texto: err?.message || "Erro ao salvar alterações." });
+    } catch (err) {
+      setMensagemPerfil({
+        tipo: "erro",
+        texto: err instanceof Error ? err.message : "Erro ao salvar alterações.",
+      });
     } finally {
       setSalvandoPerfil(false);
     }
@@ -350,7 +249,7 @@ export default function PainelPage({
   return (
     <>
       <Head>
-        <title>Meu Painel • Mercadinho Universitário</title>
+        <title>{PAGINAS_PAINEL[abaAtiva].title} • Mercadinho Universitário</title>
       </Head>
 
       <div className="min-h-screen bg-[#F8F9FA] pb-16">
@@ -394,15 +293,14 @@ export default function PainelPage({
                         ⏳ Matrícula em Análise
                       </span>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => mudarAba("perfil")}
+                      <Link
+                        href={PAGINAS_PAINEL.perfil.href}
                         className="text-[10px] font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-2 py-0.5 rounded-full transition flex items-center gap-1"
                         title="Clique para verificar seu vínculo acadêmico"
                       >
                         <span>⚠️ Não Verificado</span>
                         <span className="text-xs text-[#FF385C]">Verificar →</span>
-                      </button>
+                      </Link>
                     )}
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5 font-medium">{userEmail}</p>
@@ -437,52 +335,45 @@ export default function PainelPage({
               </div>
             </div>
 
-            {/* Abas do Painel */}
-            <div className="mt-8 flex items-center gap-4 border-b border-gray-100 overflow-x-auto no-scrollbar">
-              <button
-                type="button"
-                onClick={() => mudarAba("anuncios")}
-                className={`pb-3 font-bold text-xs sm:text-sm transition flex items-center gap-2 border-b-2 shrink-0 ${
-                  abaAtiva === "anuncios"
-                    ? "border-[#FF385C] text-[#FF385C]"
-                    : "border-transparent text-gray-500 hover:text-gray-800"
-                }`}
-              >
-                <span>📦</span>
-                <span>Meus Anúncios ({totalProdutos})</span>
-              </button>
+            {/* Páginas do Painel */}
+            <nav
+              aria-label="Seções do painel"
+              className="mt-8 flex items-center gap-4 border-b border-gray-100 overflow-x-auto no-scrollbar"
+            >
+              {Object.values(PAGINAS_PAINEL).map((pagina) => {
+                const ativa = abaAtiva === pagina.id;
+                const quantidade =
+                  pagina.id === "anuncios"
+                    ? totalProdutos
+                    : pagina.id === "favoritos"
+                      ? favoritos.length
+                      : null;
 
-              <button
-                type="button"
-                onClick={() => mudarAba("favoritos")}
-                className={`pb-3 font-bold text-xs sm:text-sm transition flex items-center gap-2 border-b-2 shrink-0 ${
-                  abaAtiva === "favoritos"
-                    ? "border-[#FF385C] text-[#FF385C]"
-                    : "border-transparent text-gray-500 hover:text-gray-800"
-                }`}
-              >
-                <span>❤️</span>
-                <span>Meus Favoritos ({favoritos.length})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => mudarAba("perfil")}
-                className={`pb-3 font-bold text-xs sm:text-sm transition flex items-center gap-2 border-b-2 shrink-0 ${
-                  abaAtiva === "perfil"
-                    ? "border-[#FF385C] text-[#FF385C]"
-                    : "border-transparent text-gray-500 hover:text-gray-800"
-                }`}
-              >
-                <span>👤</span>
-                <span>Meu Perfil Universitário</span>
-              </button>
-            </div>
+                return (
+                  <Link
+                    key={pagina.id}
+                    href={pagina.href}
+                    aria-current={ativa ? "page" : undefined}
+                    className={`pb-3 font-bold text-xs sm:text-sm transition flex items-center gap-2 border-b-2 shrink-0 ${
+                      ativa
+                        ? "border-[#FF385C] text-[#FF385C]"
+                        : "border-transparent text-gray-500 hover:text-gray-800"
+                    }`}
+                  >
+                    <span>{pagina.icon}</span>
+                    <span>
+                      {pagina.label}
+                      {quantidade !== null ? ` (${quantidade})` : ""}
+                    </span>
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
         </div>
 
         {/* Notificação de sucesso ao cadastrar anúncio */}
-        {router.query.sucesso && (
+        {abaAtiva === "anuncios" && router.query.sucesso && (
           <div className="max-w-6xl mx-auto px-4 mt-6">
             <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center justify-between text-xs sm:text-sm font-medium">
               <div className="flex items-center gap-2">
@@ -491,7 +382,7 @@ export default function PainelPage({
               </div>
               <button
                 type="button"
-                onClick={() => router.replace("/painel?aba=anuncios", undefined, { shallow: true })}
+                onClick={() => router.replace(PAGINAS_PAINEL.anuncios.href, undefined, { shallow: true })}
                 className="text-emerald-700 hover:text-emerald-900 font-bold ml-4"
               >
                 ✕
@@ -502,7 +393,83 @@ export default function PainelPage({
 
         {/* Conteúdo Principal */}
         <div className="max-w-6xl mx-auto px-4 pt-6 sm:pt-8">
-          {/* ================= ABA 1: MEUS ANÚNCIOS ================= */}
+          {abaAtiva === "visao-geral" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-lg sm:text-xl font-black text-gray-900">Visão geral</h2>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                  Acompanhe sua conta e acesse rapidamente cada área do painel.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Link
+                  href={PAGINAS_PAINEL.anuncios.href}
+                  className="bg-white border border-gray-200/90 rounded-2xl p-5 shadow-2xs transition hover:border-gray-300 hover:shadow-xs"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-bold text-gray-700">Meus anúncios</span>
+                    <span className="text-xl">📦</span>
+                  </div>
+                  <strong className="block text-3xl font-black text-gray-900 mt-4">{totalProdutos}</strong>
+                  <span className="text-xs text-gray-500 mt-1 block">
+                    {produtosAtivos.length} ativo{produtosAtivos.length === 1 ? "" : "s"} · {produtosPausados.length} pausado{produtosPausados.length === 1 ? "" : "s"}
+                  </span>
+                </Link>
+
+                <Link
+                  href={PAGINAS_PAINEL.favoritos.href}
+                  className="bg-white border border-gray-200/90 rounded-2xl p-5 shadow-2xs transition hover:border-gray-300 hover:shadow-xs"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-bold text-gray-700">Meus favoritos</span>
+                    <span className="text-xl">❤️</span>
+                  </div>
+                  <strong className="block text-3xl font-black text-gray-900 mt-4">{favoritos.length}</strong>
+                  <span className="text-xs text-gray-500 mt-1 block">itens salvos para ver depois</span>
+                </Link>
+
+                <Link
+                  href={PAGINAS_PAINEL.perfil.href}
+                  className="bg-white border border-gray-200/90 rounded-2xl p-5 shadow-2xs transition hover:border-gray-300 hover:shadow-xs"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-bold text-gray-700">Meu perfil</span>
+                    <span className="text-xl">👤</span>
+                  </div>
+                  <strong className="block text-lg font-black text-gray-900 mt-4">
+                    {matriculaStatus === "verificado"
+                      ? "Perfil verificado"
+                      : matriculaStatus === "pendente"
+                        ? "Verificação em análise"
+                        : "Verificação pendente"}
+                  </strong>
+                  <span className="text-xs text-gray-500 mt-2 block">Atualize seus dados e seu perfil público</span>
+                </Link>
+              </div>
+
+              <div className="bg-white border border-gray-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
+                <h3 className="text-base font-black text-gray-900">Ações rápidas</h3>
+                <p className="text-xs text-gray-500 mt-1">Continue gerenciando sua atividade no Mercadinho Universitário.</p>
+                <div className="flex flex-col sm:flex-row gap-3 mt-5">
+                  <Link
+                    href="/anunciar"
+                    className="inline-flex items-center justify-center gap-2 bg-[#FF385C] hover:bg-[#e0314f] text-white text-xs sm:text-sm font-bold px-5 py-2.5 rounded-xl shadow-xs transition"
+                  >
+                    <span>+ Publicar anúncio</span>
+                  </Link>
+                  <Link
+                    href={PAGINAS_PAINEL.perfil.href}
+                    className="inline-flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-bold px-5 py-2.5 rounded-xl transition"
+                  >
+                    <span>Editar perfil</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= PÁGINA: MEUS ANÚNCIOS ================= */}
           {abaAtiva === "anuncios" && (
             <div>
               {/* Filtros de Status */}
@@ -666,7 +633,7 @@ export default function PainelPage({
             </div>
           )}
 
-          {/* ================= ABA 2: MEUS FAVORITOS ================= */}
+          {/* ================= PÁGINA: MEUS FAVORITOS ================= */}
           {abaAtiva === "favoritos" && (
             <div>
               <div className="mb-6 flex items-baseline justify-between">
@@ -721,9 +688,9 @@ export default function PainelPage({
             </div>
           )}
 
-          {/* ================= ABA 3: MEU PERFIL ================= */}
+          {/* ================= PÁGINA: MEU PERFIL ================= */}
           {abaAtiva === "perfil" && (
-            <div className="max-w-2xl bg-white border border-gray-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
+            <div className="w-full bg-white border border-gray-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
               <h2 className="text-lg sm:text-xl font-black text-gray-900 mb-1">
                 Editar Perfil Universitário
               </h2>

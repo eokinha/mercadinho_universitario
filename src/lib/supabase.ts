@@ -1,4 +1,4 @@
-import { createBrowserClient, createServerClient as createSupabaseServerClient, type CookieOptions } from "@supabase/ssr";
+import { createBrowserClient, createServerClient as createSupabaseServerClient, serializeCookieHeader } from "@supabase/ssr";
 import { type GetServerSidePropsContext } from "next";
 
 const getSupabaseEnv = () => {
@@ -36,16 +36,19 @@ export const createServerClient = (context: GetServerSidePropsContext) => {
   const { url, key } = getSupabaseEnv();
   return createSupabaseServerClient(url, key, {
     cookies: {
-      get(name: string) {
-        return context.req.cookies[name];
+      getAll() {
+        return Object.entries(context.req.cookies).map(([name, value]) => ({
+          name,
+          value: value ?? "",
+        }));
       },
-      set(name: string, value: string, _options: CookieOptions) {
-        context.res.setHeader("Set-Cookie", `${name}=${value}; Path=/; HttpOnly`);
-      },
-      remove(name: string, _options: CookieOptions) {
-        context.res.setHeader("Set-Cookie", `${name}=; Path=/; HttpOnly; Max-Age=0`);
+      setAll(cookiesToSet) {
+        // Acumula todos os cookies (a sessão pode vir dividida em chunks) e preserva as opções
+        context.res.setHeader(
+          "Set-Cookie",
+          cookiesToSet.map(({ name, value, options }) => serializeCookieHeader(name, value, options))
+        );
       },
     },
   });
 };
-

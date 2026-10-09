@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useState, useEffect, useRef, useMemo, type FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
 import { getInstituicoes } from "@/lib/queries";
+import { PAGINAS_PAINEL } from "@/lib/painel-routes";
 import type { User } from "@supabase/supabase-js";
 import type { Instituicao } from "@/types";
 
@@ -35,12 +36,12 @@ export default function Navbar() {
 
   // Carregar dados da sessão do usuário
   useEffect(() => {
-    async function fetchUserData(userEmail?: string) {
-      if (!userEmail) return;
+    async function fetchUserData(authId?: string) {
+      if (!authId) return;
       const { data } = await supabase
         .from("usuarios")
         .select("id, is_admin, nome, instituicoes_id")
-        .eq("email", userEmail)
+        .eq("auth_id", authId)
         .maybeSingle();
 
       if (data) {
@@ -74,7 +75,7 @@ export default function Navbar() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user?.email) fetchUserData(session.user.email);
+      if (session?.user?.id) fetchUserData(session.user.id);
     });
 
     const {
@@ -82,7 +83,7 @@ export default function Navbar() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user?.email) {
-        fetchUserData(session.user.email);
+        fetchUserData(session.user.id);
       } else {
         setIsAdmin(false);
         setNomeUsuario("");
@@ -396,41 +397,17 @@ export default function Navbar() {
                       )}
                     </div>
 
-                    <Link
-                      href="/painel"
-                      onClick={() => setMenuAberto(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                    >
-                      <span className="text-base">📊</span>
-                      <span className="font-medium">Meu Painel</span>
-                    </Link>
-
-                    <Link
-                      href="/painel?aba=anuncios"
-                      onClick={() => setMenuAberto(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                    >
-                      <span className="text-base">📦</span>
-                      <span>Meus Anúncios</span>
-                    </Link>
-
-                    <Link
-                      href="/painel?aba=favoritos"
-                      onClick={() => setMenuAberto(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                    >
-                      <span className="text-base">❤️</span>
-                      <span>Meus Favoritos</span>
-                    </Link>
-
-                    <Link
-                      href="/painel?aba=perfil"
-                      onClick={() => setMenuAberto(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                    >
-                      <span className="text-base">⚙️</span>
-                      <span>Meu Perfil</span>
-                    </Link>
+                    {Object.values(PAGINAS_PAINEL).map((pagina) => (
+                      <Link
+                        key={pagina.id}
+                        href={pagina.href}
+                        onClick={() => setMenuAberto(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                      >
+                        <span className="text-base">{pagina.icon}</span>
+                        <span className="font-medium">{pagina.label}</span>
+                      </Link>
+                    ))}
 
                     {lojaId && (
                       <Link
@@ -439,7 +416,7 @@ export default function Navbar() {
                         className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#FF385C] hover:bg-[#FFE7EB]/50 font-medium transition"
                       >
                         <span className="text-base">👤</span>
-                        <span>Ver Perfil Público</span>
+                        <span>Ver perfil público</span>
                       </Link>
                     )}
 
@@ -452,6 +429,14 @@ export default function Navbar() {
                         >
                           <span className="text-base">🛡️</span>
                           <span>Moderar Matrículas</span>
+                        </Link>
+                        <Link
+                          href="/admin/lojas"
+                          onClick={() => setMenuAberto(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#FF385C] hover:bg-red-50 font-medium transition"
+                        >
+                          <span className="text-base">🏪</span>
+                          <span>Lojas e Destaques</span>
                         </Link>
                         <Link
                           href="/admin/imagens"

@@ -28,28 +28,35 @@ no ambiente de build. Sem isso, páginas que consultam o Supabase falham ao aces
 
 ```
 src/
+├── middleware.ts         # Sessão Supabase + proteção de /minha-loja e /admin (admin exige is_admin)
 ├── pages/
 │   ├── _app.tsx          # Layout global (Navbar + Footer)
 │   ├── index.tsx         # Home (hero + impulsionados)
 │   ├── listagem.tsx      # Listagem completa de produtos com filtros
-│   ├── lojas/
-│   │   └── [id].tsx      # Detalhe da loja (rota dinâmica)
+│   ├── login.tsx, cadastro.tsx, esqueci-senha.tsx, onboarding.tsx
+│   ├── anunciar.tsx      # Criação de anúncio
+│   ├── lojas/[slug].tsx  # Perfil público da loja
+│   ├── perfil/[id].tsx   # Perfil público do estudante
+│   ├── painel/           # Painel do estudante (index, anuncios, favoritos, perfil)
+│   ├── minha-loja/       # Gestão da loja (index, produtos/novo)
 │   └── admin/
-│       └── imagens.tsx   # Upload provisório de avatar/capa/imagens (sem auth)
-├── components/
-│   ├── Navbar.tsx
-│   ├── Footer.tsx
-│   ├── HeroSection.tsx
-│   ├── CarrosselCategoria.tsx
-│   ├── CardProduto.tsx
-│   ├── ModalProduto.tsx
-│   └── FiltroBarProdutos.tsx
+│       ├── verificacoes.tsx  # Moderação de matrículas (somente admin)
+│       ├── lojas.tsx         # Status das lojas e produtos impulsionados (somente admin)
+│       └── imagens.tsx       # Upload de avatar/capa/imagens (somente admin)
+├── components/           # Navbar, Footer, HeroSection, CardProduto, ModalProduto, painel/…
 ├── lib/
-│   ├── supabase.ts       # Instância do cliente Supabase
-│   ├── queries.ts        # Funções de fetch
-│   └── storage.ts        # Helpers de upload para Supabase Storage
+│   ├── supabase.ts       # Clientes Supabase (browser e servidor via @supabase/ssr)
+│   ├── queries.ts        # Funções de fetch e RPCs
+│   ├── painel-data.ts    # getServerSideProps compartilhado do painel
+│   ├── painel-routes.ts  # Rotas/abas do painel
+│   ├── storage.ts        # Helpers de upload para Supabase Storage
+│   ├── contato.ts        # Link/formatação do WhatsApp
+│   └── validacoes.ts     # CPF, telefone, e-mail acadêmico
 └── types/
     └── index.ts          # Interfaces TypeScript
+db/
+├── setup_completo.sql    # Setup de referência (desatualizado — o banco real segue as migrações)
+└── migrations/           # Migrações numeradas
 ```
 
 ---
@@ -58,53 +65,92 @@ src/
 
 ```
 instituicoes   — id, nome, cnpj
-usuarios       — id, nome, sobrenome, email, password, telefone, cpf, matricula, matricula_validada (bool), instituicoes_id, status
-lojas          — id, usuario_id, nome, descricao, contato, status (varchar: pendente|ativo|pausado|reprovado), criado_em, avatar_url, capa_url
-produtos       — id, loja_id, nome, descricao, preco (numeric), imagem_url (varchar), status, criado_em, categoria_id, destaque (bool)
-categorias     — id, nome
+usuarios       — id, auth_id (uuid → auth.users), nome, sobrenome, email, password (legado, não usar), telefone, cpf, matricula,
+                 matricula_validada (bool), matricula_status (pendente|verificado|rejeitado), instituicoes_id, status, is_admin (bool), criado_em
+lojas          — id, usuario_id (UNIQUE), nome, descricao, contato, status (pendente|ativo|pausado|reprovado), criado_em, avatar_url, capa_url,
+                 slug, instagram_url, tiktok_url, whatsapp, locais_entrega (text[]), cor_tema (padrão #FF385C)
+produtos       — id, loja_id, nome, descricao, preco (numeric), imagem_url, status (ativo|pausado), criado_em, categoria_id,
+                 destaque (bool — impulsionado na home, só admin), aceita_troca (bool)
+categorias     — id, nome, parent_id (2 níveis), icone
+favoritos      — id (uuid), usuario_id, produto_id, criado_em
 ```
 
 Relações:
 - `usuarios.instituicoes_id → instituicoes.id`
-- `lojas.usuario_id → usuarios.id`
+- `lojas.usuario_id → usuarios.id` (1:1)
 - `produtos.loja_id → lojas.id`
 - `produtos.categoria_id → categorias.id`
 
-Storage (buckets públicos):
-- `lojas` — `lojas/{lojaId}/avatar.{ext}` e `lojas/{lojaId}/capa.{ext}`
-- `produtos` — `produtos/{produtoId}/imagem.{ext}`
+Storage (buckets públicos; caminho relativo ao bucket):
+- `lojas` — `{lojaId}/avatar.{ext}` e `{lojaId}/capa.{ext}`
+- `produtos` — `{produtoId}/imagem.{ext}`
+- Escrita: dono da loja/produto ou admin
 
-> **Aviso:** as policies de escrita do Storage estão liberadas para a chave
-> `anon` enquanto não há autenticação. A página `/admin/imagens` e essas
-> policies devem ser restringidas (`auth.uid() = lojas.usuario_id`) quando o
-> login for implementado. Em produção, esconda o link "Admin" do `Navbar`
-> (já condicionado a `process.env.NODE_ENV !== "production"`).
+### Migrações
+
+Aplicadas no projeto de dev, nesta ordem: `00` (alinha banco legado), `01`, `009`, `02`, `04`
+(substitui `03`), `05` … `12`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+
+### Segurança (RLS e triggers)
+
+- **Colunas pessoais** (`email`, `cpf`, `telefone`, `matricula`, `password`) não são
+  legíveis via `select` pela API. Leitura direta de `usuarios` só retorna colunas públicas
+  (`id, auth_id, nome, sobrenome, instituicoes_id, matricula_status, matricula_validada, status, is_admin, criado_em`),
+  e apenas da própria linha ou de donos de loja ativa.
+- Para filtrar o próprio usuário use `auth_id` (nunca `email`).
+- Políticas usam os helpers `meu_usuario_id()`, `usuario_tem_loja_ativa()` e `is_admin()`
+  (SECURITY DEFINER) — não referenciar `usuarios` ↔ `lojas` direto em políticas (causa recursão).
+- Triggers:
+  - `handle_new_user` (signup): cria `usuarios` + loja `ativo`; se já existe linha com o e-mail, só vincula `auth_id`
+  - `proteger_colunas_usuarios`: usuário não altera `is_admin`, `auth_id`, `email`,
+    nem se marca como verificado (só pode voltar `matricula_status` para `pendente`)
+  - `proteger_status_loja`: dono só alterna `ativo ↔ pausado`; o resto é do admin
+  - `exigir_vendedor_verificado`: publicar/reativar produto exige `matricula_validada`; vendedor não altera `destaque`
+- RPCs (SECURITY DEFINER), expostas em `queries.ts`:
+  - `meu_usuario()` → `getMeuUsuario` (dados completos do usuário logado)
+  - `verificar_matricula_por_email(p_matricula, p_instituicoes_id)` → `verificarMatriculaInstantanea`
+    (usa o e-mail confirmado do Auth; regra espelha `validarEmailUniversitario`)
+  - `admin_listar_usuarios()` / `admin_moderar_matricula(p_usuario_id, p_status)` — exigem `is_admin()`
+  - `admin_listar_lojas()` / `admin_moderar_loja(p_loja_id, p_status)` / `admin_definir_destaque(p_produto_id, p_destaque)`
+    → `getLojasParaModeracao`, `moderarLoja`, `definirDestaque` — exigem `is_admin()`
+- Mudanças de verificação/admin sempre via RPC no banco, nunca por `update` no cliente.
+- Admin é definido manualmente: `UPDATE usuarios SET is_admin = true WHERE email = '…';`
+- Modos `?preview=1` / `?demo=1` (dados de exemplo) só funcionam com `NODE_ENV=development`.
+- Cookies de sessão: clientes de servidor usam `getAll`/`setAll` do `@supabase/ssr`
+  (não reescrever com `get`/`set`/`remove`).
+
+### Ambiente de dev
+
+- Contas de tester: `*@example.com` (5 vendedores com loja), senha comum definida no seed — só dev.
+- Nunca reutilizar essas contas ou senha em produção.
 
 ---
 
 ## Regras de negócio
 
 ### Atores
-- **Visitante** — sem acesso; precisa se cadastrar
-- **Estudante** — usuário cadastrado; pode comprar e abrir lojas
-- **Vendedor** — estudante com matrícula validada e loja aprovada
-- **Administrador** — gerencia instituições, valida matrículas e aprova lojas
+- **Visitante** — navega pelo catálogo; precisa de login para contatar, favoritar ou anunciar
+- **Estudante** — usuário cadastrado; ganha uma loja (perfil vendedor) no cadastro
+- **Vendedor** — estudante com `matricula_validada = true`; pode publicar anúncios
+- **Administrador** — valida matrículas, modera lojas, define impulsionados e gerencia imagens
 
 ### Acesso
-- Lojas e produtos visíveis apenas para usuários com login ativo
-- Estudante só pode criar loja após `matricula_validada = true`
-- Um estudante pode ter várias lojas
+- Catálogo (`/listagem`, `/lojas/*`, `/perfil/*`) é público
+- `/minha-loja`, `/painel`, `/anunciar` exigem login; `/admin` exige `is_admin`
+- Anunciar exige matrícula validada (checado na página e no banco)
 
 ### Lojas
-- Criada com `status = 'pendente'` — só aparece na listagem com `status = 'ativo'`
-- Status possíveis: `pendente | ativo | pausado | reprovado`
-- Vendedor pode alternar entre `ativo` e `pausado`
-- Admin pode reprovar ou desativar qualquer loja
+- **Uma loja por estudante** (`lojas.usuario_id` UNIQUE) — funciona como perfil de vendedor
+- Criada automaticamente no cadastro com `status = 'ativo'`
+- Status possíveis: `pendente | ativo | pausado | reprovado`; só `ativo` aparece no catálogo
+- Vendedor alterna entre `ativo` e `pausado`; reprovar/reativar é do admin
 
 ### Produtos
-- Apenas o dono da loja gerencia seus produtos
-- Preço obrigatório; imagem via upload (Supabase Storage)
-- Produtos só aparecem se a loja estiver `ativo`
+- Apenas o dono da loja (ou admin) gerencia seus produtos
+- Status: `ativo | pausado`; aparece no catálogo só se produto **e** loja estiverem `ativo`
+- Preço obrigatório para venda; anúncio só de troca pode ter preço 0 (`aceita_troca = true`)
+- `destaque` = impulsionado na home, definido só pelo admin
+- Imagem via upload (Supabase Storage)
 
 ### Compra
 - Plataforma apenas conecta comprador e vendedor
@@ -114,7 +160,7 @@ Storage (buckets públicos):
 - Sem carrinho, pedido ou pagamento interno
 
 ### Fora do escopo desta versão
-- Pagamento interno, chat, notificações por email, painel de admin visual
+- Pagamento interno, chat, notificações por email
 
 ---
 
@@ -130,7 +176,8 @@ Storage (buckets públicos):
 
 ### Fetch de dados
 - Dados iniciais sempre via `getServerSideProps` nas pages — nunca `useEffect` para isso
-- Pages não chamam o Supabase diretamente — usar funções de `src/lib/queries.ts`
+- Pages não chamam o Supabase diretamente para dados — usar funções de `src/lib/queries.ts`
+  (exceção: `supabase.auth.*` em login, cadastro e recuperação de senha)
 - Sempre tratar erros com `if (error) throw error`
 
 ### Componentes

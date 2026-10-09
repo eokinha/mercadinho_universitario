@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.favoritos (
 -- 2. Habilitar RLS para Favoritos
 ALTER TABLE public.favoritos ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "favoritos_owner_manage" ON public.favoritos;
 CREATE POLICY "favoritos_owner_manage" ON public.favoritos FOR ALL
     USING (usuario_id IN (SELECT id FROM public.usuarios WHERE auth_id = auth.uid()));
 

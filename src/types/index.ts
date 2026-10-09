@@ -46,6 +46,8 @@ export interface Loja {
   cor_tema: string;
 }
 
+export type ProdutoStatus = "ativo" | "pausado";
+
 export interface Produto {
   id: number;
   loja_id: number;
@@ -53,10 +55,11 @@ export interface Produto {
   descricao: string;
   preco: number;
   imagem_url: string | null;
-  status: string;
+  status: ProdutoStatus;
   criado_em: string;
   categoria_id: number;
   destaque: boolean;
+  aceita_troca: boolean;
 }
 
 export interface Categoria {
@@ -99,6 +102,32 @@ export interface UsuarioModeracao {
   instituicoes_id: number | null;
   instituicao_nome?: string;
   loja_id?: number;
+}
+
+export interface LojaModeracao {
+  id: number;
+  nome: string;
+  slug: string | null;
+  status: LojaStatus;
+  criado_em: string;
+  avatar_url: string | null;
+  usuario_id: number;
+  dono_nome: string;
+  dono_email: string;
+  matricula_validada: boolean;
+  total_produtos: number;
+  produtos_ativos: number;
+}
+
+export interface ProdutoModeracao {
+  id: number;
+  nome: string;
+  preco: number;
+  imagem_url: string | null;
+  status: ProdutoStatus;
+  destaque: boolean;
+  loja_id: number;
+  loja_nome: string;
 }
 
 export interface GrupoCategoria {

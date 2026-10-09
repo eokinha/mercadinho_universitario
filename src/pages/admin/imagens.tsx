@@ -52,7 +52,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const { data: { user } } = await supabaseServer.auth.getUser();
 
   // Modo de pré-visualização para testes de UI
-  if (!user && (ctx.query.preview === "1" || process.env.NODE_ENV === "development" && ctx.query.demo === "1")) {
+  if (!user && (process.env.NODE_ENV === "development" && (ctx.query.preview === "1" || ctx.query.demo === "1"))) {
     // Permite visualização em modo teste
   } else if (!user) {
     return { redirect: { destination: "/login", permanent: false } };

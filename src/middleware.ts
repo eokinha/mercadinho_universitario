@@ -1,12 +1,8 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+  let response = NextResponse.next({ request });
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey =
@@ -22,42 +18,15 @@ export async function middleware(request: NextRequest) {
     supabaseKey,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
+        getAll() {
+          return request.cookies.getAll();
         },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: "",
-            ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({
-            name,
-            value: "",
-            ...options,
-          });
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
         },
       },
     }
@@ -73,13 +42,25 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/cadastro") ||
     request.nextUrl.pathname.startsWith("/esqueci-senha");
   
-  // Catálogo (/listagem, /lojas) público temporariamente — rever em produção se necessário.
+  // Catálogo (/listagem, /lojas, /perfil) é público; anunciar e gerir loja exigem login.
   const isProtectedRoute =
     request.nextUrl.pathname.startsWith("/minha-loja") ||
     request.nextUrl.pathname.startsWith("/admin");
 
   if (!user && isProtectedRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // /admin exige usuarios.is_admin (as RPCs de moderação também checam no banco)
+  if (user && request.nextUrl.pathname.startsWith("/admin")) {
+    const { data: perfil } = await supabase
+      .from("usuarios")
+      .select("is_admin")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+    if (!perfil?.is_admin) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   if (user && isAuthPage) {

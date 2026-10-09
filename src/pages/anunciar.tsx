@@ -4,7 +4,7 @@ import Link from "next/link";
 import Head from "next/head";
 import type { GetServerSideProps } from "next";
 import { createServerClient, supabase } from "@/lib/supabase";
-import { getOrCreatePerfilEstudante, getCategoriasArvore } from "@/lib/queries";
+import { getOrCreatePerfilEstudante, getCategoriasArvore, getMeuUsuario } from "@/lib/queries";
 import { uploadImagemProduto } from "@/lib/storage";
 import type { CategoriaComFilhos, Loja } from "@/types";
 
@@ -29,7 +29,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   } = await serverSupabase.auth.getUser();
 
   // Modo de pré-visualização para testes de UI
-  if (!user && (ctx.query.preview === "1" || process.env.NODE_ENV === "development" && ctx.query.demo === "1")) {
+  if (!user && (process.env.NODE_ENV === "development" && (ctx.query.preview === "1" || ctx.query.demo === "1"))) {
     const categorias = await getCategoriasArvore(serverSupabase);
     const mockLoja: Loja = {
       id: 1,
@@ -66,7 +66,12 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   }
 
   try {
-    const loja = await getOrCreatePerfilEstudante(user.id, serverSupabase, user.email);
+    const usuario = await getMeuUsuario(serverSupabase);
+    if (!usuario?.matricula_validada) {
+      return { redirect: { destination: "/onboarding", permanent: false } };
+    }
+
+    const loja = await getOrCreatePerfilEstudante(serverSupabase);
     const categorias = await getCategoriasArvore(serverSupabase);
 
     return {
@@ -173,7 +178,7 @@ export default function AnunciarPage({ loja, categorias }: Props) {
           preco: precoFinal,
           categoria_id: parseInt(categoriaId || categoriaPaiId),
           status: "ativo",
-          destaque: modalidade === "troca" || modalidade === "ambos",
+          aceita_troca: modalidade === "troca" || modalidade === "ambos",
         })
         .select()
         .single();
@@ -193,7 +198,7 @@ export default function AnunciarPage({ loja, categorias }: Props) {
           .eq("id", loja.id);
       }
 
-      router.push("/painel?aba=anuncios&sucesso=1");
+      router.push("/painel/anuncios?sucesso=1");
     } catch (err: any) {
       console.error("Erro ao cadastrar anúncio:", err);
       setError(err?.message || "Ocorreu um erro ao publicar seu anúncio. Tente novamente.");
@@ -216,7 +221,7 @@ export default function AnunciarPage({ loja, categorias }: Props) {
               className="text-xs sm:text-sm font-semibold text-gray-600 hover:text-gray-900 flex items-center gap-1.5 transition"
             >
               <span>←</span>
-              <span>Voltar ao Meu Painel</span>
+              <span>Voltar ao painel</span>
             </Link>
 
             <span className="text-xs text-gray-400 font-medium">

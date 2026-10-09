@@ -34,7 +34,7 @@ export default function MinhaLojaPage({ loja: initialLoja, produtos: initialProd
     const supabase = (await import("@/lib/supabase")).supabase;
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const updatedLoja = await getLojaByAuthId(user.id);
+      const updatedLoja = await getLojaByAuthId(supabase);
       if (updatedLoja) {
         setLoja(updatedLoja);
         const updatedProdutos = await getProdutosPrivados(updatedLoja.id);

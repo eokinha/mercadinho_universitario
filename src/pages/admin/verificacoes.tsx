@@ -15,7 +15,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const { data: { user } } = await serverSupabase.auth.getUser();
 
   // Modo de pré-visualização para testes de UI
-  if (!user && (ctx.query.preview === "1" || process.env.NODE_ENV === "development" && ctx.query.demo === "1")) {
+  if (!user && (process.env.NODE_ENV === "development" && (ctx.query.preview === "1" || ctx.query.demo === "1"))) {
     const mockUsuarios: UsuarioModeracao[] = [
       {
         id: 1,
@@ -186,6 +186,12 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
             </div>
 
             <div className="flex items-center gap-2">
+              <Link
+                href="/admin/lojas"
+                className="text-xs font-medium text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+              >
+                Lojas e Destaques
+              </Link>
               <Link
                 href="/admin/imagens"
                 className="text-xs font-medium text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition"

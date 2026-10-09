@@ -1,7 +1,39 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import { type AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+
+function mensagemErroLogin(erro: AuthError | Error): string {
+  const code = "code" in erro ? String(erro.code ?? "") : "";
+  const status = "status" in erro ? Number(erro.status) : undefined;
+  const message = (erro.message ?? "").toLowerCase();
+
+  if (
+    code === "invalid_credentials" ||
+    message.includes("invalid login credentials")
+  ) {
+    return "E-mail ou senha incorretos. Confira os dados ou cadastre-se se ainda não tiver conta.";
+  }
+
+  if (code === "email_not_confirmed" || message.includes("email not confirmed")) {
+    return "Confirme seu e-mail antes de entrar. Veja a caixa de entrada e o spam.";
+  }
+
+  if (code === "user_banned" || message.includes("banned")) {
+    return "Esta conta está desativada. Entre em contato com o suporte.";
+  }
+
+  if (code === "over_request_rate_limit" || status === 429) {
+    return "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.";
+  }
+
+  if (message.includes("failed to fetch") || message.includes("network")) {
+    return "Não foi possível conectar. Verifique sua internet e tente novamente.";
+  }
+
+  return "Não foi possível entrar. Tente novamente em instantes.";
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,34 +46,30 @@ export default function LoginPage() {
     password: "",
   });
 
+  const credenciaisInvalidas = Boolean(error?.includes("incorretos"));
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const { email, password } = formData;
+    try {
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: formData.email.trim(),
+        password: formData.password,
+      });
 
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (loginError) {
-      console.error("Erro de login:", loginError);
-      
-      // Tradução de erros comuns para o usuário
-      let errorMessage = "Ocorreu um erro ao entrar. Tente novamente.";
-      
-      if (loginError.message === "Invalid login credentials") {
-        errorMessage = "E-mail ou senha incorretos. Verifique seus dados.";
-      } else if (loginError.status === 429) {
-        errorMessage = "Muitas tentativas seguidas. Tente novamente em alguns minutos.";
+      if (loginError) {
+        setError(mensagemErroLogin(loginError));
+        return;
       }
 
-      setError(errorMessage);
+      await router.push("/");
+    } catch (err) {
+      const fallback = err instanceof Error ? err : new Error("Erro inesperado no login");
+      setError(mensagemErroLogin(fallback));
+    } finally {
       setLoading(false);
-    } else {
-      router.push("/");
     }
   }
 
@@ -59,16 +87,24 @@ export default function LoginPage() {
         )}
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 text-red-700 text-sm rounded-xl border border-red-100 flex flex-col gap-2">
+          <div
+            role="alert"
+            className="mb-4 p-4 bg-red-50 text-red-700 text-sm rounded-xl border border-red-100 flex flex-col gap-2"
+          >
             <div className="flex items-center gap-2 font-semibold">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-              Atenção
+              Não foi possível entrar
             </div>
             <p>{error}</p>
-            {error.includes("incorretos") && (
-              <Link href="/esqueci-senha" className="text-red-800 font-bold hover:underline">
-                Esqueci minha senha →
-              </Link>
+            {credenciaisInvalidas && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                <Link href="/esqueci-senha" className="text-red-800 font-semibold hover:underline">
+                  Esqueci minha senha
+                </Link>
+                <Link href="/cadastro" className="text-red-800 font-semibold hover:underline">
+                  Criar conta
+                </Link>
+              </div>
             )}
           </div>
         )}
@@ -79,6 +115,8 @@ export default function LoginPage() {
             <input
               type="email"
               required
+              autoComplete="email"
+              aria-invalid={credenciaisInvalidas}
               className={inputClass}
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -95,6 +133,8 @@ export default function LoginPage() {
             <input
               type="password"
               required
+              autoComplete="current-password"
+              aria-invalid={credenciaisInvalidas}
               className={inputClass}
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
