@@ -91,7 +91,7 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `13`, `15` (`14` pendente: aplicar após o deploy sem `cor_tema`). Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `15`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 
 ### Segurança (RLS e triggers)
 
