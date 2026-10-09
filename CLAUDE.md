@@ -91,7 +91,7 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `13` (`14` pendente: aplicar após o deploy sem `cor_tema`). Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `13`, `15` (`14` pendente: aplicar após o deploy sem `cor_tema`). Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 
 ### Segurança (RLS e triggers)
 
@@ -122,6 +122,8 @@ Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00
   (não reescrever com `get`/`set`/`remove`).
 
 ### Ambiente de dev
+
+- Carga fria: `db/seed/carga_fria.sql` (5 alunos de teste com anúncios realistas). Fotos dos anúncios são CC0/domínio público do Openverse, enviadas ao Storage; créditos em `db/seed/creditos_imagens.json`.
 
 - Contas de tester: `*@example.com` (5 vendedores com loja), senha comum definida no seed — só dev.
 - Nunca reutilizar essas contas ou senha em produção.
