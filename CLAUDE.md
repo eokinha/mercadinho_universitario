@@ -18,6 +18,10 @@ em que a build roda (Production, Preview, Development):
 - `NEXT_PUBLIC_SUPABASE_URL` — URL do projeto (ex.: `https://xxxxx.supabase.co`)
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — ou, na ausência, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
+E-mails do Supabase Auth (recuperação de senha, confirmação) saem pelo SMTP do Resend,
+configurado no painel do Supabase (Authentication → SMTP), não pelo código.
+Remetente `nao-responda@eokinha.com.br`; templates versionados em `db/emails/` (colar no painel ao alterar).
+
 O cliente em `src/lib/supabase.ts` só valida e cria o cliente no **primeiro uso**;
 assim a build não quebra na importação do módulo, mas a aplicação exige as variáveis
 acima em runtime e, se a build executar `getServerSideProps` com essas chaves, também
@@ -34,7 +38,7 @@ src/
 │   ├── _app.tsx          # Layout global (Navbar + Footer)
 │   ├── index.tsx         # Home (hero + impulsionados)
 │   ├── listagem.tsx      # Listagem completa de produtos com filtros
-│   ├── login.tsx, cadastro.tsx, esqueci-senha.tsx, onboarding.tsx
+│   ├── login.tsx, cadastro.tsx, esqueci-senha.tsx, redefinir-senha.tsx, onboarding.tsx
 │   ├── anunciar.tsx      # Criação de anúncio
 │   ├── lojas/[slug].tsx  # Perfil público da loja
 │   ├── perfil/[id].tsx   # Perfil público do estudante

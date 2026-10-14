@@ -1,0 +1,40 @@
+<!-- Supabase → Authentication → Emails → Templates → Confirm sign up
+     Assunto: Confirme seu e-mail no Circular
+     Cores = tokens de src/styles/globals.css (e-mail não lê CSS do site, por isso hex inline). -->
+<!doctype html>
+<html lang="pt-BR">
+  <body style="margin:0;padding:0;background:#f7f6f3;font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:#1c2b2f;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f6f3;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid #e3e1dc;border-radius:16px;">
+            <tr>
+              <td style="padding:32px 32px 0;">
+                <p style="margin:0;font-size:22px;font-weight:800;color:#0f4c5c;letter-spacing:-0.5px;">Circular</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 32px 8px;">
+                <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#0f4c5c;">Confirme seu e-mail</h1>
+                <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#1c2b2f;">
+                  Falta pouco para você comprar e trocar com colegas do seu campus. Confirme seu e-mail para ativar a conta.
+                </p>
+                <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#b9521a;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 24px;border-radius:10px;">
+                  Confirmar e-mail
+                </a>
+                <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#55656a;">
+                  Se você não criou uma conta no Circular, ignore este e-mail.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 32px 32px;border-top:1px solid #e3e1dc;">
+                <p style="margin:24px 0 0;font-size:12px;color:#5f6e73;">Circular · Deixa Circular.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
