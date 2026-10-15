@@ -14,6 +14,7 @@ interface Props {
   produtos: ProdutoListagem[];
   produtosTroca: ProdutoListagem[];
   categorias: Categoria[];
+  logado: boolean;
 }
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
@@ -24,7 +25,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       ? Number(instituicaoParam)
       : undefined;
 
-  const [produtos, produtosTroca, categorias] = await Promise.all([
+  const [produtos, produtosTroca, categorias, { data: { user } }] = await Promise.all([
     getProdutosFiltrados(
       {
         apenasDestaque: true,
@@ -41,6 +42,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       supabase
     ).catch(() => []),
     getCategorias(supabase).catch(() => []),
+    supabase.auth.getUser(),
   ]);
 
   return {
@@ -48,11 +50,12 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       produtos,
       produtosTroca,
       categorias,
+      logado: Boolean(user),
     },
   };
 };
 
-export default function Home({ produtos, produtosTroca, categorias }: Props) {
+export default function Home({ produtos, produtosTroca, categorias, logado }: Props) {
   const [produtoAtivo, setProdutoAtivo] = useState<ProdutoListagem | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +68,7 @@ export default function Home({ produtos, produtosTroca, categorias }: Props) {
 
   return (
     <>
-      <HeroSection categorias={categorias} />
+      <HeroSection categorias={categorias} logado={logado} />
 
       <section id="produtos" className="py-8 scroll-mt-32">
         <header className="max-w-6xl mx-auto px-4 mb-4">
@@ -99,7 +102,7 @@ export default function Home({ produtos, produtosTroca, categorias }: Props) {
               </p>
               <div className="mt-4 flex justify-center gap-3">
                 <Link
-                  href="/anunciar"
+                  href={logado ? "/anunciar" : "/cadastro"}
                   className="bg-acao text-white rounded-controle hover:bg-acao-hover transition px-4 py-2.5 min-h-[44px] inline-flex items-center text-sm font-semibold focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
                 >
                   Anunciar item
@@ -166,6 +169,7 @@ export default function Home({ produtos, produtosTroca, categorias }: Props) {
       <SecaoTrocas
         produtos={produtosTroca}
         onAbrirProduto={setProdutoAtivo}
+        logado={logado}
       />
 
       <ModalProduto

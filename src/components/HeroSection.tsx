@@ -6,6 +6,7 @@ import type { Categoria } from "@/types";
 
 interface Props {
   categorias?: Categoria[];
+  logado?: boolean;
 }
 
 // Categorias padrão caso ainda não haja categorias cadastradas no banco
@@ -46,7 +47,7 @@ const SLIDES = [
 
 const FOCO = "focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2";
 
-export default function HeroSection({ categorias = [] }: Props) {
+export default function HeroSection({ categorias = [], logado = false }: Props) {
   const [slideAtual, setSlideAtual] = useState(0);
   const [menuCategoriasAberto, setMenuCategoriasAberto] = useState(false);
   const scrollCategoriasRef = useRef<HTMLDivElement>(null);
@@ -82,6 +83,8 @@ export default function HeroSection({ categorias = [] }: Props) {
     .map((c) => ({ id: c.id, nome: c.nome, Icone: iconeParaCategoria(c.nome) }));
 
   const slide = SLIDES[slideAtual];
+  // Visitante que clica em "Anunciar" vai para o cadastro
+  const ctaHref = slide.cta.href === "/anunciar" && !logado ? "/cadastro" : slide.cta.href;
 
   return (
     <div className="w-full bg-pagina pb-4">
@@ -217,7 +220,7 @@ export default function HeroSection({ categorias = [] }: Props) {
                 <p className="text-base text-white/80 leading-relaxed max-w-xl mx-auto md:mx-0">{slide.texto}</p>
                 <div className="mt-2">
                   <Link
-                    href={slide.cta.href}
+                    href={ctaHref}
                     className="inline-flex items-center gap-2 bg-superficie text-petroleo font-semibold rounded-controle px-4 py-2.5 min-h-[44px] hover:bg-petroleo-50 transition focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
                   >
                     {slide.cta.texto}

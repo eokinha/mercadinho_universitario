@@ -7,6 +7,7 @@ import type { ProdutoListagem } from "@/types";
 interface Props {
   produtos?: ProdutoListagem[];
   onAbrirProduto: (produto: ProdutoListagem) => void;
+  logado?: boolean;
 }
 
 // Itens demonstrativos de troca para quando a base não tiver produtos suficientes
@@ -98,7 +99,7 @@ const ITENS_DEMO_TROCA: ProdutoListagem[] = [
   },
 ];
 
-export default function SecaoTrocas({ produtos = [], onAbrirProduto }: Props) {
+export default function SecaoTrocas({ produtos = [], onAbrirProduto, logado = false }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [filtroAtivo, setFiltroAtivo] = useState("todos");
 
@@ -261,7 +262,7 @@ export default function SecaoTrocas({ produtos = [], onAbrirProduto }: Props) {
                 Anuncie livros ou equipamentos parados e combine com alunos do campus.
               </p>
               <Link
-                href="/anunciar"
+                href={logado ? "/anunciar" : "/cadastro"}
                 className={`w-full mt-2 bg-troca text-white font-semibold text-sm min-h-[44px] inline-flex items-center justify-center rounded-controle transition ${FOCO}`}
               >
                 Anunciar para troca

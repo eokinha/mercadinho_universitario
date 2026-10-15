@@ -347,14 +347,16 @@ export default function Navbar() {
 
         {/* Ações e Menu do Usuário */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <Link
-            href="/anunciar"
-            aria-label="Anunciar"
-            className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-white text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-controle transition shrink-0 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
-          >
-            <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
-            <span className="hidden sm:inline">Anunciar</span>
-          </Link>
+          {user && (
+            <Link
+              href="/anunciar"
+              aria-label="Anunciar"
+              className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-white text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-controle transition shrink-0 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+            >
+              <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
+              <span className="hidden sm:inline">Anunciar</span>
+            </Link>
+          )}
 
           {/* Menu do Usuário */}
           <div className="relative shrink-0" ref={menuRef}>
