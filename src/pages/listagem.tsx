@@ -1,6 +1,8 @@
 import type { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import CardProduto from "@/components/CardProduto";
 import FiltroBarProdutos from "@/components/FiltroBarProdutos";
 import ModalProduto from "@/components/ModalProduto";
@@ -8,6 +10,7 @@ import { createServerClient } from "@/lib/supabase";
 import {
   getCategoriasArvore,
   getInstituicoes,
+  getMeuUsuario,
   getProdutosFiltrados,
 } from "@/lib/queries";
 import type {
@@ -25,7 +28,11 @@ interface Props {
   ordenacao: OrdenacaoProdutos;
   instituicaoSelecionada?: number;
   categoriaSelecionada?: number;
+  pagina: number;
+  temMais: boolean;
 }
+
+const POR_PAGINA = 40;
 
 const ORDENACOES_VALIDAS: ReadonlySet<OrdenacaoProdutos> = new Set([
   "recentes",
@@ -49,13 +56,20 @@ function parseOrdenacao(value: string | string[] | undefined): OrdenacaoProdutos
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const q =
     typeof ctx.query.q === "string" ? ctx.query.q.trim() : "";
-  const instituicaoSelecionada = parseId(ctx.query.instituicao);
   const categoriaSelecionada = parseId(ctx.query.categoria);
   const ordenacao = parseOrdenacao(ctx.query.ordenar);
+  const pagina = parseId(ctx.query.pagina) ?? 1;
 
   const supabase = createServerClient(ctx);
 
-  const [produtos, categorias, instituicoes] = await Promise.all([
+  // Sem filtro na URL, abre no campus do aluno logado; "todas" mostra todos os campi
+  let instituicaoSelecionada = parseId(ctx.query.instituicao);
+  if (ctx.query.instituicao === undefined) {
+    const usuario = await getMeuUsuario(supabase).catch(() => null);
+    instituicaoSelecionada = usuario?.instituicoes_id ? Number(usuario.instituicoes_id) : undefined;
+  }
+
+  const [resultado, categorias, instituicoes] = await Promise.all([
     getProdutosFiltrados({
       ...(q ? { q } : {}),
       ...(instituicaoSelecionada !== undefined && {
@@ -65,6 +79,8 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
         categoria_id: categoriaSelecionada,
       }),
       ordenar: ordenacao,
+      limite: POR_PAGINA + 1,
+      offset: (pagina - 1) * POR_PAGINA,
     }, supabase),
     getCategoriasArvore(supabase),
     getInstituicoes(supabase),
@@ -72,7 +88,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 
   return {
     props: {
-      produtos,
+      produtos: resultado.slice(0, POR_PAGINA),
+      temMais: resultado.length > POR_PAGINA,
+      pagina,
       categorias,
       instituicoes,
       q,
@@ -83,7 +101,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   };
 };
 
-type Chave = "q" | "instituicao" | "categoria" | "ordenar";
+type Chave = "q" | "instituicao" | "categoria" | "ordenar" | "pagina";
 
 export default function ListagemPage({
   produtos,
@@ -93,22 +111,25 @@ export default function ListagemPage({
   ordenacao,
   instituicaoSelecionada,
   categoriaSelecionada,
+  pagina,
+  temMais,
 }: Props) {
   const router = useRouter();
   const [produtoAtivo, setProdutoAtivo] = useState<ProdutoListagem | null>(
     null
   );
 
-  function aplicarFiltro(chave: Chave, valor: string | undefined) {
+  function urlComFiltro(chave: Chave, valor: string | undefined): string {
     const params = new URLSearchParams();
 
     const novoQ = chave === "q" ? valor : q;
+    // Instituição sempre explícita na URL, senão a página volta ao campus do aluno
     const novaInstituicao =
-      chave === "instituicao"
+      (chave === "instituicao"
         ? valor
         : instituicaoSelecionada !== undefined
           ? String(instituicaoSelecionada)
-          : undefined;
+          : undefined) ?? "todas";
     const novaCategoria =
       chave === "categoria"
         ? valor
@@ -122,9 +143,14 @@ export default function ListagemPage({
     if (novaInstituicao) params.set("instituicao", novaInstituicao);
     if (novaCategoria) params.set("categoria", novaCategoria);
     if (novaOrdenacao) params.set("ordenar", novaOrdenacao);
+    // Mudar qualquer filtro volta para a primeira página
+    if (chave === "pagina" && valor && valor !== "1") params.set("pagina", valor);
 
-    const query = params.toString();
-    router.push(query ? `/listagem?${query}` : "/listagem");
+    return `/listagem?${params.toString()}`;
+  }
+
+  function aplicarFiltro(chave: Chave, valor: string | undefined) {
+    router.push(urlComFiltro(chave, valor));
   }
 
   return (
@@ -176,6 +202,30 @@ export default function ListagemPage({
             />
           ))}
         </div>
+      )}
+
+      {(pagina > 1 || temMais) && (
+        <nav aria-label="Paginação" className="mt-8 flex items-center justify-center gap-3">
+          {pagina > 1 && (
+            <Link
+              href={urlComFiltro("pagina", String(pagina - 1))}
+              className="inline-flex items-center gap-1 min-h-[44px] px-4 rounded-controle border border-borda-controle bg-superficie text-petroleo text-sm font-semibold hover:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+            >
+              <ChevronLeft size={16} strokeWidth={1.75} aria-hidden="true" />
+              Anterior
+            </Link>
+          )}
+          <span className="text-sm text-tinta-suave">Página {pagina}</span>
+          {temMais && (
+            <Link
+              href={urlComFiltro("pagina", String(pagina + 1))}
+              className="inline-flex items-center gap-1 min-h-[44px] px-4 rounded-controle border border-borda-controle bg-superficie text-petroleo text-sm font-semibold hover:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+            >
+              Próxima
+              <ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" />
+            </Link>
+          )}
+        </nav>
       )}
 
       <ModalProduto

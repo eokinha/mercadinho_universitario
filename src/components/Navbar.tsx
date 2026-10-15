@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { getInstituicoes, getResumoUsuarioNavbar } from "@/lib/queries";
 import { PAGINAS_PAINEL } from "@/lib/painel-routes";
 import Logo from "@/components/Logo";
-import { Check, ChevronDown, Globe, GraduationCap, Image as ImageIcon, LogOut, Plus, Search, ShieldCheck, Store, UserRound, X } from "lucide-react";
+import { Check, ChevronDown, Flag, Globe, GraduationCap, Image as ImageIcon, LogOut, Plus, Search, ShieldCheck, Store, UserRound, X } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import type { Instituicao } from "@/types";
 
@@ -436,6 +436,14 @@ export default function Navbar() {
                         >
                           <ImageIcon size={18} strokeWidth={1.75} aria-hidden="true" />
                           <span>Painel Imagens</span>
+                        </Link>
+                        <Link
+                          href="/admin/denuncias"
+                          onClick={() => setMenuAberto(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-petroleo hover:bg-petroleo-50 font-semibold transition"
+                        >
+                          <Flag size={18} strokeWidth={1.75} aria-hidden="true" />
+                          <span>Denúncias</span>
                         </Link>
                       </>
                     )}

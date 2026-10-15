@@ -18,7 +18,7 @@ function extensaoPorMime(mime: string): string {
   }
 }
 
-function validarArquivo(file: File): void {
+export function validarArquivo(file: File): void {
   if (!TIPOS_PERMITIDOS.includes(file.type)) {
     throw new Error(
       "Formato não suportado. Envie uma imagem JPG, PNG ou WebP."
@@ -93,4 +93,27 @@ export async function uploadImagemProduto(
   if (dbError) throw dbError;
 
   return url;
+}
+
+async function removerPasta(bucket: "lojas" | "produtos", pasta: string): Promise<void> {
+  const { data, error } = await supabase.storage.from(bucket).list(pasta);
+  if (error) throw error;
+  if (!data || data.length === 0) return;
+
+  const { error: removeError } = await supabase.storage
+    .from(bucket)
+    .remove(data.map((arquivo) => `${pasta}/${arquivo.name}`));
+  if (removeError) throw removeError;
+}
+
+// Chamar antes de apagar o produto: a política do Storage exige que o produto exista
+export async function removerImagensProduto(produtoId: number): Promise<void> {
+  await removerPasta("produtos", String(produtoId));
+}
+
+export async function removerImagensDaConta(lojaId: number, produtoIds: number[]): Promise<void> {
+  await Promise.all([
+    removerPasta("lojas", String(lojaId)),
+    ...produtoIds.map((id) => removerPasta("produtos", String(id))),
+  ]);
 }

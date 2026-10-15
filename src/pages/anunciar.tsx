@@ -5,15 +5,19 @@ import Head from "next/head";
 import type { GetServerSideProps } from "next";
 import { createServerClient } from "@/lib/supabase";
 import {
+  atualizarProduto,
   criarProduto,
+  deletarProduto,
   getCategoriasArvore,
+  getMeuProduto,
   getMeuUsuario,
-  getOrCreatePerfilEstudante,
+  getMinhaLoja,
   updateLoja,
 } from "@/lib/queries";
-import { uploadImagemProduto } from "@/lib/storage";
+import { uploadImagemProduto, validarArquivo } from "@/lib/storage";
 import { iconeParaCategoria } from "@/lib/icones-categoria";
-import type { CategoriaComFilhos, Loja } from "@/types";
+import { modalidadeDoAnuncio, montarDescricao, separarDescricao } from "@/lib/anuncios";
+import type { CategoriaComFilhos, Loja, Produto } from "@/types";
 import {
   ArrowLeftRight,
   Camera,
@@ -32,6 +36,12 @@ import {
 interface Props {
   loja: Loja;
   categorias: CategoriaComFilhos[];
+  produto: Produto | null;
+}
+
+// lojas.contato guarda DDI + DDD + número
+function temWhatsapp(loja: Loja): boolean {
+  return (loja.contato ?? "").length >= 12;
 }
 
 const LOCAIS_SUGERIDOS = [
@@ -72,6 +82,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       props: {
         loja: mockLoja,
         categorias,
+        produto: null,
       },
     };
   }
@@ -85,19 +96,31 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     };
   }
 
+  const editarId = typeof ctx.query.editar === "string" ? Number(ctx.query.editar) : NaN;
+
   try {
-    const usuario = await getMeuUsuario(serverSupabase);
-    if (!usuario?.matricula_validada) {
-      return { redirect: { destination: "/onboarding", permanent: false } };
+    // Editar não exige verificação (o anúncio pode estar pausado); publicar exige, também no banco
+    let produto: Produto | null = null;
+    if (Number.isInteger(editarId) && editarId > 0) {
+      produto = await getMeuProduto(editarId, serverSupabase);
+      if (!produto) {
+        return { redirect: { destination: "/painel/anuncios", permanent: false } };
+      }
+    } else {
+      const usuario = await getMeuUsuario(serverSupabase);
+      if (!usuario?.matricula_validada) {
+        return { redirect: { destination: "/onboarding", permanent: false } };
+      }
     }
 
-    const loja = await getOrCreatePerfilEstudante(serverSupabase);
+    const loja = await getMinhaLoja(serverSupabase);
     const categorias = await getCategoriasArvore(serverSupabase);
 
     return {
       props: {
         loja,
         categorias,
+        produto,
       },
     };
   } catch (error) {
@@ -111,20 +134,31 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   }
 };
 
-export default function AnunciarPage({ loja, categorias }: Props) {
+export default function AnunciarPage({ loja, categorias, produto }: Props) {
   const router = useRouter();
+  const editando = produto !== null;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Modalidade: venda | troca | ambos
-  const [modalidade, setModalidade] = useState<"venda" | "troca" | "ambos">("venda");
+  // Valores iniciais: vazio ao anunciar; dados do anúncio ao editar
+  const inicial = separarDescricao(produto?.descricao ?? null);
+  const categoriaInicial = produto ? String(produto.categoria_id) : "";
+  const paiInicial = produto
+    ? String(
+        categorias.find((c) => String(c.id) === categoriaInicial || c.filhos.some((f) => String(f.id) === categoriaInicial))?.id ?? ""
+      )
+    : "";
 
-  const [nome, setNome] = useState("");
-  const [preco, setPreco] = useState("");
-  const [itemTrocaDesejado, setItemTrocaDesejado] = useState("");
-  const [categoriaPaiId, setCategoriaPaiId] = useState("");
-  const [categoriaId, setCategoriaId] = useState("");
-  const [descricao, setDescricao] = useState("");
+  const [modalidade, setModalidade] = useState<"venda" | "troca" | "ambos">(
+    produto ? modalidadeDoAnuncio(produto.preco, produto.aceita_troca) : "venda"
+  );
+
+  const [nome, setNome] = useState(produto?.nome ?? "");
+  const [preco, setPreco] = useState(produto && produto.preco > 0 ? String(produto.preco) : "");
+  const [itemTrocaDesejado, setItemTrocaDesejado] = useState(inicial.itemTroca);
+  const [categoriaPaiId, setCategoriaPaiId] = useState(paiInicial);
+  const [categoriaId, setCategoriaId] = useState(categoriaInicial !== paiInicial ? categoriaInicial : "");
+  const [descricao, setDescricao] = useState(inicial.descricao);
   const [locaisSelecionados, setLocaisSelecionados] = useState<string[]>(
     loja.locais_entrega && loja.locais_entrega.length > 0
       ? loja.locais_entrega
@@ -132,7 +166,7 @@ export default function AnunciarPage({ loja, categorias }: Props) {
   );
 
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(produto?.imagem_url ?? null);
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files[0]) {
@@ -173,42 +207,62 @@ export default function AnunciarPage({ loja, categorias }: Props) {
     let precoFinal = 0;
     if (modalidade === "venda" || modalidade === "ambos") {
       const parsed = parseFloat(preco.replace(",", "."));
-      if (isNaN(parsed) || parsed < 0) {
-        setError("Informe um preço válido para venda.");
+      if (isNaN(parsed) || parsed <= 0) {
+        setError("Informe um preço maior que zero. Para anunciar sem preço, escolha Trocar.");
         setLoading(false);
         return;
       }
       precoFinal = parsed;
     }
 
+    if (!editando && !temWhatsapp(loja)) {
+      setError("Cadastre seu WhatsApp no perfil antes de publicar. É por ele que os colegas falam com você.");
+      setLoading(false);
+      return;
+    }
+
+    // Valida a foto antes de gravar qualquer coisa
+    if (imageFile) {
+      try {
+        validarArquivo(imageFile);
+      } catch (err) {
+        setError((err as Error).message);
+        setLoading(false);
+        return;
+      }
+    }
+
+    const dados = {
+      nome: nome.trim(),
+      descricao: montarDescricao(descricao, modalidade === "venda" ? "" : itemTrocaDesejado),
+      preco: precoFinal,
+      categoria_id: parseInt(categoriaId || categoriaPaiId),
+      aceita_troca: modalidade === "troca" || modalidade === "ambos",
+    };
+
     try {
-      // Monta descrição enriquecida com notas de troca se aplicável
-      let descricaoCompleta = descricao.trim();
-      if ((modalidade === "troca" || modalidade === "ambos") && itemTrocaDesejado.trim()) {
-        descricaoCompleta = `${descricaoCompleta}\n\n[Aceita Troca]: Busca em troca por: ${itemTrocaDesejado.trim()}`;
+      if (editando) {
+        await atualizarProduto(produto.id, dados);
+        if (imageFile) await uploadImagemProduto(produto.id, imageFile);
+      } else {
+        const novo = await criarProduto({ loja_id: loja.id, ...dados });
+        if (imageFile) {
+          try {
+            await uploadImagemProduto(novo.id, imageFile);
+          } catch (uploadErr) {
+            // Sem a foto o anúncio não fica pela metade: desfaz e deixa tentar de novo
+            await deletarProduto(novo.id).catch(() => undefined);
+            throw uploadErr;
+          }
+        }
       }
 
-      // 1. Cadastrar produto
-      const produto = await criarProduto({
-        loja_id: loja.id,
-        nome: nome.trim(),
-        descricao: descricaoCompleta,
-        preco: precoFinal,
-        categoria_id: parseInt(categoriaId || categoriaPaiId),
-        aceita_troca: modalidade === "troca" || modalidade === "ambos",
-      });
-
-      // 2. Upload de imagem se houver
-      if (imageFile && produto) {
-        await uploadImagemProduto(produto.id, imageFile);
-      }
-
-      // 3. Atualizar locais habituais de entrega do perfil se mudou
+      // Atualiza os locais habituais de entrega do perfil
       if (locaisSelecionados.length > 0) {
         await updateLoja(loja.id, { locais_entrega: locaisSelecionados });
       }
 
-      router.push("/painel/anuncios?sucesso=1");
+      router.push(editando ? "/painel/anuncios" : "/painel/anuncios?sucesso=1");
     } catch (err) {
       console.error("Erro ao cadastrar anúncio:", err);
       setError((err as { message?: string })?.message || "Ocorreu um erro ao publicar seu anúncio. Tente novamente.");
@@ -225,7 +279,7 @@ export default function AnunciarPage({ loja, categorias }: Props) {
   return (
     <>
       <Head>
-        <title>Anunciar • Circular</title>
+        <title>{editando ? "Editar anúncio • Circular" : "Anunciar • Circular"}</title>
       </Head>
 
       <div className="min-h-screen bg-pagina py-8 sm:py-12">
@@ -248,11 +302,26 @@ export default function AnunciarPage({ loja, categorias }: Props) {
           <div className="bg-superficie border border-borda rounded-card p-6 sm:p-8">
             {/* Cabeçalho */}
             <div className="mb-8">
-              <h1 className="text-2xl sm:text-3xl font-bold text-petroleo tracking-tight">Anunciar item</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-petroleo tracking-tight">
+                {editando ? "Editar anúncio" : "Anunciar item"}
+              </h1>
               <p className="text-tinta-suave text-sm mt-1">
                 Livros, materiais de curso ou serviços para outros alunos do seu campus.
               </p>
             </div>
+
+            {!editando && !temWhatsapp(loja) && (
+              <div role="status" className="mb-6 p-4 bg-doacao-50 text-doacao text-sm rounded-card flex items-start gap-3">
+                <TriangleAlert size={20} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
+                <p>
+                  Para publicar, cadastre seu WhatsApp no{" "}
+                  <Link href="/painel/perfil" className="font-semibold underline">
+                    seu perfil
+                  </Link>
+                  . É por ele que os colegas falam com você.
+                </p>
+              </div>
+            )}
 
             {error && (
               <div role="alert" className="mb-6 p-4 bg-perigo-50 text-perigo text-sm rounded-card flex items-start gap-3">
@@ -309,8 +378,8 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                       </span>
                       <input
                         type="number"
-                        step="0.50"
-                        min="0"
+                        step="0.01"
+                        min="0.01"
                         required
                         value={preco}
                         onChange={(e) => setPreco(e.target.value)}
@@ -446,17 +515,19 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                         alt="Preview"
                         className="w-full h-full object-cover"
                       />
+                      {imageFile && (
                       <button
                         type="button"
                         onClick={() => {
                           setImageFile(null);
-                          setImagePreview(null);
+                          setImagePreview(produto?.imagem_url ?? null);
                         }}
                         aria-label="Remover foto"
                         className="absolute top-1 right-1 w-11 h-11 rounded-pill bg-superficie/90 border border-borda text-perigo flex items-center justify-center focus-visible:outline-2 focus-visible:outline-petroleo"
                       >
                         <X size={18} strokeWidth={1.75} aria-hidden="true" />
                       </button>
+                      )}
                     </div>
                   ) : (
                     <div className="w-32 h-32 rounded-card border-2 border-dashed border-borda-controle flex flex-col items-center justify-center text-tinta-sutil bg-pagina shrink-0">
@@ -535,11 +606,11 @@ export default function AnunciarPage({ loja, categorias }: Props) {
                   {loading ? (
                     <>
                       <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-pill animate-spin" />
-                      <span>Publicando…</span>
+                      <span>{editando ? "Salvando…" : "Publicando…"}</span>
                     </>
                   ) : (
                     <>
-                      <span>Publicar anúncio</span>
+                      <span>{editando ? "Salvar alterações" : "Publicar anúncio"}</span>
                       <Send size={16} strokeWidth={1.75} aria-hidden="true" />
                     </>
                   )}

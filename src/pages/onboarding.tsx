@@ -68,7 +68,7 @@ export default function OnboardingPage({ instituicoes, usuarioId, email, institu
 
       // Se o e-mail for universitário, a validação acontece no banco (RPC)
       if (validarEmailUniversitario(email)) {
-        await verificarMatriculaInstantanea(matricula, instituicoes_id);
+        await verificarMatriculaInstantanea(matricula);
       }
 
       router.push("/");

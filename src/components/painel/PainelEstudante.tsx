@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Head from "next/head";
-import { atualizarStatusProduto, deletarProduto, toggleFavorito } from "@/lib/queries";
+import { atualizarStatusProduto, deletarProduto, renovarProduto, toggleFavorito } from "@/lib/queries";
+import { removerImagensProduto } from "@/lib/storage";
 import type { PainelProps } from "@/lib/painel-data";
 import { PAGINAS_PAINEL, type AbaPainel } from "@/lib/painel-routes";
 import ModalProduto from "@/components/ModalProduto";
@@ -47,18 +48,29 @@ export default function PainelEstudante({
   // Estatísticas do estudante
   const totalProdutos = produtos.length;
   const produtosAtivos = produtos.filter((p) => p.status === "ativo");
-  const produtosPausados = produtos.filter((p) => p.status !== "ativo");
+  const produtosPausados = produtos.filter((p) => p.status === "pausado");
 
-  // Alternar status do anúncio (Pausar / Reativar)
-  async function handleToggleStatus(produto: Produto) {
-    const novoStatus: ProdutoStatus = produto.status === "ativo" ? "pausado" : "ativo";
+  async function handleStatus(produto: Produto, novoStatus: ProdutoStatus) {
     try {
       await atualizarStatusProduto(produto.id, novoStatus);
+      // Reativar conta como renovação (o banco grava a data)
+      const renovado_em = novoStatus === "ativo" ? new Date().toISOString() : produto.renovado_em;
       setProdutos((prev) =>
-        prev.map((p) => (p.id === produto.id ? { ...p, status: novoStatus } : p))
+        prev.map((p) => (p.id === produto.id ? { ...p, status: novoStatus, renovado_em } : p))
       );
     } catch (err) {
       alert((err as { message?: string })?.message || "Não foi possível atualizar o status do produto.");
+    }
+  }
+
+  async function handleRenovar(produto: Produto) {
+    try {
+      await renovarProduto(produto.id);
+      setProdutos((prev) =>
+        prev.map((p) => (p.id === produto.id ? { ...p, renovado_em: new Date().toISOString() } : p))
+      );
+    } catch (err) {
+      alert((err as { message?: string })?.message || "Não foi possível renovar o anúncio.");
     }
   }
 
@@ -67,6 +79,7 @@ export default function PainelEstudante({
     if (!confirm("Tem certeza que deseja excluir este anúncio permanentemente?")) return;
 
     try {
+      await removerImagensProduto(produtoId);
       await deletarProduto(produtoId);
       setProdutos((prev) => prev.filter((p) => p.id !== produtoId));
     } catch {
@@ -299,7 +312,8 @@ export default function PainelEstudante({
             <SecaoAnuncios
               produtos={produtos}
               lojaId={loja.id}
-              onToggleStatus={handleToggleStatus}
+              onStatus={handleStatus}
+              onRenovar={handleRenovar}
               onExcluir={handleExcluir}
             />
           )}
@@ -319,6 +333,7 @@ export default function PainelEstudante({
               userEmail={userEmail}
               instituicoes={instituicoes}
               matriculaStatus={matriculaStatus}
+              produtoIds={produtos.map((p) => p.id)}
               onLojaAtualizada={(alteracoes) => setLoja((prev) => ({ ...prev, ...alteracoes }))}
               onMatriculaStatus={setMatriculaStatus}
             />

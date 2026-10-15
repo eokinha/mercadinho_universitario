@@ -4,6 +4,8 @@ export interface Instituicao {
   cnpj: string;
 }
 
+export type UsuarioStatus = "ativo" | "bloqueado";
+
 export interface Usuario {
   id: number;
   nome: string;
@@ -16,7 +18,7 @@ export interface Usuario {
   matricula_validada: boolean;
   matricula_status: "pendente" | "verificado" | "rejeitado";
   instituicoes_id: number;
-  status: string;
+  status: UsuarioStatus;
   is_admin: boolean;
 }
 
@@ -46,7 +48,10 @@ export interface Loja {
   locais_entrega: string[];
 }
 
-export type ProdutoStatus = "ativo" | "pausado";
+// Loja como aparece para outros alunos: o telefone só sai pela RPC contato_vendedor
+export type LojaPublica = Omit<Loja, "contato" | "whatsapp">;
+
+export type ProdutoStatus = "ativo" | "pausado" | "vendido";
 
 export interface Produto {
   id: number;
@@ -60,6 +65,8 @@ export interface Produto {
   categoria_id: number;
   destaque: boolean;
   aceita_troca: boolean;
+  renovado_em: string;
+  vendido_em: string | null;
 }
 
 export interface Categoria {
@@ -84,7 +91,6 @@ export interface ProdutoListagem {
   categoria_nome: string;
   loja_nome: string;
   loja_descricao: string | null;
-  loja_contato: string;
   loja_avatar_url: string | null;
   destaque: boolean;
   aceita_troca: boolean;
@@ -103,6 +109,7 @@ export interface UsuarioModeracao {
   instituicoes_id: number | null;
   instituicao_nome?: string;
   loja_id?: number;
+  status: UsuarioStatus;
 }
 
 export interface LojaModeracao {
@@ -118,6 +125,24 @@ export interface LojaModeracao {
   matricula_validada: boolean;
   total_produtos: number;
   produtos_ativos: number;
+  produtos_vendidos: number;
+  total_interesses: number;
+}
+
+export type MotivoDenuncia = "proibido" | "golpe" | "ofensivo" | "falso" | "outro";
+export type DenunciaStatus = "aberta" | "resolvida" | "descartada";
+
+export interface DenunciaModeracao {
+  id: number;
+  motivo: MotivoDenuncia;
+  detalhes: string | null;
+  status: DenunciaStatus;
+  criado_em: string;
+  alvo_descricao: string;
+  loja_id: number | null;
+  produto_id: number | null;
+  denunciante_nome: string | null;
+  denunciante_email: string | null;
 }
 
 export interface ProdutoModeracao {
@@ -138,21 +163,7 @@ export interface GrupoCategoria {
 
 export type OrdenacaoProdutos = "recentes" | "preco_asc" | "preco_desc";
 
-export interface PerfilPublico {
-  id: number;
-  usuario_id: number;
-  nome: string;
-  descricao: string;
-  contato: string;
-  status: LojaStatus;
-  criado_em: string;
-  avatar_url: string | null;
-  capa_url: string | null;
-  slug: string | null;
-  instagram_url: string | null;
-  tiktok_url: string | null;
-  whatsapp: string | null;
-  locais_entrega: string[];
+export interface PerfilPublico extends LojaPublica {
   usuario_nome?: string;
   usuario_sobrenome?: string;
   usuario_criado_em?: string;

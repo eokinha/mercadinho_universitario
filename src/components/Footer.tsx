@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Logo from "@/components/Logo";
 
 export default function Footer() {
@@ -8,7 +9,15 @@ export default function Footer() {
           <Logo cor="branco" />
           <p className="text-white/80">Circular. Economia comunitária.</p>
         </div>
-        <p className="text-white/80">© 2026 Circular · Termos · Políticas · Privacidade</p>
+        <nav aria-label="Links legais" className="flex flex-wrap items-center justify-center gap-x-4 text-white/80">
+          <span>© 2026 Circular</span>
+          <Link href="/termos" className="hover:text-white hover:underline min-h-[44px] inline-flex items-center">
+            Termos de Uso
+          </Link>
+          <Link href="/privacidade" className="hover:text-white hover:underline min-h-[44px] inline-flex items-center">
+            Privacidade
+          </Link>
+        </nav>
       </div>
     </footer>
   );

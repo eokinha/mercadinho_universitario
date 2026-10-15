@@ -1,12 +1,14 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
+  excluirMinhaConta,
   solicitarVerificacaoMatricula,
   updateLoja,
   verificarMatriculaInstantanea,
 } from "@/lib/queries";
 import { normalizarTelefone } from "@/lib/contato";
-import { uploadImagemLoja } from "@/lib/storage";
+import { removerImagensDaConta, uploadImagemLoja } from "@/lib/storage";
+import { supabase } from "@/lib/supabase";
 import SeloVerificado from "@/components/SeloVerificado";
 import { validarEmailUniversitario } from "@/lib/validacoes";
 import type { Instituicao, Loja, Usuario } from "@/types";
@@ -16,6 +18,7 @@ import {
   Clock,
   Plus,
   ShieldCheck,
+  Trash2,
   TriangleAlert,
 } from "lucide-react";
 
@@ -27,6 +30,7 @@ interface Props {
   userEmail: string;
   instituicoes: Instituicao[];
   matriculaStatus: MatriculaStatus;
+  produtoIds: number[];
   onLojaAtualizada: (alteracoes: Partial<Loja>) => void;
   onMatriculaStatus: (status: MatriculaStatus) => void;
 }
@@ -46,9 +50,12 @@ export default function SecaoPerfil({
   userEmail,
   instituicoes,
   matriculaStatus,
+  produtoIds,
   onLojaAtualizada,
   onMatriculaStatus,
 }: Props) {
+  const [excluindoConta, setExcluindoConta] = useState(false);
+  const [erroExclusao, setErroExclusao] = useState<string | null>(null);
   const [matriculaInput, setMatriculaInput] = useState(usuario?.matricula || "");
   const [instituicaoSelecionada, setInstituicaoSelecionada] = useState<number | "">(
     usuario?.instituicoes_id || ""
@@ -76,10 +83,7 @@ export default function SecaoPerfil({
     setVerificandoInstantaneo(true);
     setMensagemVerificacao(null);
     try {
-      const res = await verificarMatriculaInstantanea(
-        matriculaInput,
-        instituicaoSelecionada ? Number(instituicaoSelecionada) : undefined
-      );
+      const res = await verificarMatriculaInstantanea(matriculaInput);
       if (res.success) {
         onMatriculaStatus("verificado");
         setMensagemVerificacao({ tipo: "sucesso", texto: res.message });
@@ -151,6 +155,22 @@ export default function SecaoPerfil({
       setLocais(locais.filter((l) => l !== local));
     } else {
       setLocais([...locais, local]);
+    }
+  }
+
+  async function handleExcluirConta() {
+    if (!confirm("Excluir sua conta apaga seu perfil, seus anúncios e seus favoritos. Não dá para desfazer. Continuar?")) return;
+    setExcluindoConta(true);
+    setErroExclusao(null);
+    try {
+      // Imagens primeiro: a política do Storage exige que loja e produtos ainda existam
+      await removerImagensDaConta(loja.id, produtoIds);
+      await excluirMinhaConta();
+      await supabase.auth.signOut().catch(() => undefined);
+      window.location.href = "/";
+    } catch (err) {
+      setErroExclusao((err as { message?: string })?.message || "Não foi possível excluir a conta. Tente de novo.");
+      setExcluindoConta(false);
     }
   }
 
@@ -494,6 +514,25 @@ export default function SecaoPerfil({
             </div>
           </div>
         )}
+      </div>
+
+      <div className="mt-8 pt-6 border-t border-borda">
+        <h3 className="text-base font-bold text-perigo">Excluir conta</h3>
+        <p className="text-sm text-tinta-suave mt-1">
+          Apaga seu perfil, seus anúncios, fotos e favoritos. Não dá para desfazer.
+        </p>
+        {erroExclusao && (
+          <p role="alert" className="mt-3 p-3 rounded-card bg-perigo-50 text-perigo text-sm">{erroExclusao}</p>
+        )}
+        <button
+          type="button"
+          onClick={handleExcluirConta}
+          disabled={excluindoConta}
+          className="mt-3 inline-flex items-center gap-1.5 bg-superficie text-perigo border border-borda-controle hover:border-perigo text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-controle transition disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+        >
+          <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />
+          {excluindoConta ? "Excluindo…" : "Excluir minha conta"}
+        </button>
       </div>
     </div>
   );

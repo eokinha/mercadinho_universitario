@@ -151,6 +151,12 @@ export default function AdminLojasPage({ lojasIniciais, produtosIniciais }: Prop
               >
                 Imagens
               </Link>
+              <Link
+                href="/admin/denuncias"
+                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition"
+              >
+                Denúncias
+              </Link>
             </div>
           </div>
         </div>
@@ -245,6 +251,7 @@ export default function AdminLojasPage({ lojasIniciais, produtosIniciais }: Prop
                       <th className="py-3.5 px-4">Loja</th>
                       <th className="py-3.5 px-4">Dono</th>
                       <th className="py-3.5 px-4">Produtos</th>
+                      <th className="py-3.5 px-4">Interesses</th>
                       <th className="py-3.5 px-4">Status</th>
                       <th className="py-3.5 px-4 text-right">Alterar status</th>
                     </tr>
@@ -268,7 +275,9 @@ export default function AdminLojasPage({ lojasIniciais, produtosIniciais }: Prop
                         </td>
                         <td className="py-3.5 px-4 text-tinta-suave">
                           {l.produtos_ativos} ativos / {l.total_produtos}
+                          {l.produtos_vendidos > 0 && <div>{l.produtos_vendidos} vendidos</div>}
                         </td>
+                        <td className="py-3.5 px-4 text-tinta-suave">{l.total_interesses}</td>
                         <td className="py-3.5 px-4">{badgeLoja(l.status)}</td>
                         <td className="py-3.5 px-4 text-right">
                           <select
@@ -308,7 +317,7 @@ export default function AdminLojasPage({ lojasIniciais, produtosIniciais }: Prop
                     <p className="text-xs text-tinta-suave truncate">{p.loja_nome}</p>
                     <p className="text-xs text-tinta mt-0.5">
                       {p.preco > 0 ? `R$ ${p.preco.toFixed(2).replace(".", ",")}` : "Troca"}
-                      {p.status === "pausado" && <span className="ml-2 text-xs text-tinta-suave">(pausado)</span>}
+                      {p.status !== "ativo" && <span className="ml-2 text-xs text-tinta-suave">({p.status})</span>}
                     </p>
                   </div>
                   <button

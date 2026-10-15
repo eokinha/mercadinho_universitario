@@ -43,8 +43,8 @@ test("validarEmailUniversitario reconhece domínios acadêmicos", () => {
   assert.equal(validarEmailUniversitario("ANA@USP.BR"), true);
 });
 
-test("validarEmailUniversitario aceita subdomínio aluno.", () => {
-  assert.equal(validarEmailUniversitario("ana@aluno.faculdade.com.br"), true);
+test("validarEmailUniversitario não aceita qualquer domínio só por começar com aluno.", () => {
+  assert.equal(validarEmailUniversitario("ana@aluno.faculdade.com.br"), false);
 });
 
 test("validarEmailUniversitario não aceita domínio que só termina parecido", () => {

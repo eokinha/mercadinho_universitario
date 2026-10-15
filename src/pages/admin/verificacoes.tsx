@@ -3,9 +3,10 @@ import Head from "next/head";
 import Link from "next/link";
 import type { GetServerSideProps } from "next";
 import { createServerClient } from "@/lib/supabase";
-import { getUsuariosParaModeracao, moderarMatricula } from "@/lib/queries";
-import type { UsuarioModeracao } from "@/types";
+import { definirStatusUsuario, getUsuariosParaModeracao, moderarMatricula } from "@/lib/queries";
+import type { UsuarioModeracao, UsuarioStatus } from "@/types";
 import {
+  Ban,
   Check,
   CircleCheck,
   Clock,
@@ -37,6 +38,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
         instituicoes_id: 1,
         instituicao_nome: "UFMG - Universidade Federal de Minas Gerais",
         loja_id: 1,
+        status: "ativo",
       },
       {
         id: 2,
@@ -50,6 +52,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
         instituicoes_id: 1,
         instituicao_nome: "UFMG - Universidade Federal de Minas Gerais",
         loja_id: 2,
+        status: "ativo",
       },
       {
         id: 3,
@@ -63,6 +66,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
         instituicoes_id: 2,
         instituicao_nome: "USP - Universidade de São Paulo",
         loja_id: 3,
+        status: "ativo",
       },
       {
         id: 4,
@@ -76,6 +80,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
         instituicoes_id: 3,
         instituicao_nome: "PUC Minas",
         loja_id: 4,
+        status: "ativo",
       },
       {
         id: 5,
@@ -89,6 +94,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
         instituicoes_id: 4,
         instituicao_nome: "UnB - Universidade de Brasília",
         loja_id: 5,
+        status: "ativo",
       },
     ];
 
@@ -144,6 +150,31 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
     }
     return lista;
   }, [usuarios, filtroStatus, busca]);
+
+  async function handleBloqueio(usuario: UsuarioModeracao) {
+    const novoStatus: UsuarioStatus = usuario.status === "bloqueado" ? "ativo" : "bloqueado";
+    if (
+      novoStatus === "bloqueado" &&
+      !confirm(`Bloquear ${usuario.nome}? A loja é reprovada e os anúncios saem do ar.`)
+    ) return;
+
+    setProcessandoId(usuario.id);
+    setNotificacao(null);
+    try {
+      await definirStatusUsuario(usuario.id, novoStatus);
+      setUsuarios((prev) => prev.map((u) => (u.id === usuario.id ? { ...u, status: novoStatus } : u)));
+      setNotificacao({
+        tipo: "sucesso",
+        texto: novoStatus === "bloqueado"
+          ? `${usuario.nome} foi bloqueado.`
+          : `${usuario.nome} foi desbloqueado. A loja fica pausada até o aluno reativar.`,
+      });
+    } catch (err) {
+      setNotificacao({ tipo: "erro", texto: (err as { message?: string })?.message || "Erro ao alterar o bloqueio." });
+    } finally {
+      setProcessandoId(null);
+    }
+  }
 
   async function handleAcao(usuarioId: number, novoStatus: "verificado" | "rejeitado") {
     setProcessandoId(usuarioId);
@@ -205,6 +236,12 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
                 className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition"
               >
                 Gerenciar Imagens
+              </Link>
+              <Link
+                href="/admin/denuncias"
+                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition"
+              >
+                Denúncias
               </Link>
             </div>
           </div>
@@ -348,6 +385,11 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
                           <td className="py-3.5 px-4">
                             <div className="font-bold text-tinta">
                               {u.nome} {u.sobrenome}
+                              {u.status === "bloqueado" && (
+                                <span className="ml-2 inline-flex text-xs font-bold px-2 py-0.5 rounded-pill bg-perigo-50 text-perigo">
+                                  Bloqueado
+                                </span>
+                              )}
                             </div>
                             <div className="text-tinta-sutil text-xs">{u.email}</div>
                             {u.telefone && (
@@ -421,6 +463,17 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
                                 title="Rejeitar solicitação"
                               >
                                 <X size={16} strokeWidth={1.75} aria-hidden="true" /> </button>
+
+                              <button
+                                type="button"
+                                disabled={isProcessing}
+                                onClick={() => handleBloqueio(u)}
+                                className="bg-superficie border border-borda-controle hover:border-perigo hover:text-perigo text-tinta font-semibold text-xs px-2.5 py-1.5 rounded-controle transition disabled:opacity-50 inline-flex items-center gap-1"
+                                title={u.status === "bloqueado" ? "Desbloquear aluno" : "Bloquear aluno"}
+                              >
+                                <Ban size={16} strokeWidth={1.75} aria-hidden="true" />
+                                <span>{u.status === "bloqueado" ? "Desbloquear" : "Bloquear"}</span>
+                              </button>
                             </div>
                           </td>
                         </tr>

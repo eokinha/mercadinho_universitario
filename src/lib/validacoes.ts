@@ -42,7 +42,8 @@ export function validarEmail(email: string): boolean {
   return re.test(email);
 }
 
-// Regra espelhada no banco: public.verificar_matricula_por_email (migração 13)
+// Só uma dica no cadastro. Quem decide a verificação é o banco: o domínio precisa estar em
+// instituicoes.dominios (instituicao_por_email, migração 16).
 const SUFIXOS_ACADEMICOS = [".edu.br", ".edu"];
 const DOMINIOS_ACADEMICOS = ["unb.br", "usp.br", "ufmg.br", "unijorge.com.br"];
 
@@ -53,7 +54,6 @@ export function validarEmailUniversitario(email: string): boolean {
   return (
     SUFIXOS_ACADEMICOS.some((sufixo) => dominio.endsWith(sufixo)) ||
     dominio.includes(".edu.") ||
-    dominio.startsWith("aluno.") ||
     DOMINIOS_ACADEMICOS.some((d) => dominio === d || dominio.endsWith(`.${d}`))
   );
 }

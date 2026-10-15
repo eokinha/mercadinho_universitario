@@ -9,6 +9,7 @@ export default function CadastroPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aceitouTermos, setAceitouTermos] = useState(false);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -44,6 +45,7 @@ export default function CadastroPage() {
         data: {
           nome,
           sobrenome,
+          termos_aceitos: aceitouTermos,
           // Outros campos serão preenchidos no onboarding
         },
       },
@@ -141,9 +143,30 @@ export default function CadastroPage() {
             />
           </div>
 
+          <label className="flex items-start gap-2 text-sm text-tinta-suave">
+            <input
+              type="checkbox"
+              required
+              checked={aceitouTermos}
+              onChange={(e) => setAceitouTermos(e.target.checked)}
+              className="mt-0.5 w-5 h-5 accent-petroleo shrink-0"
+            />
+            <span>
+              Li e aceito os{" "}
+              <Link href="/termos" target="_blank" className="text-petroleo font-semibold hover:underline">
+                Termos de Uso
+              </Link>{" "}
+              e a{" "}
+              <Link href="/privacidade" target="_blank" className="text-petroleo font-semibold hover:underline">
+                Política de Privacidade
+              </Link>
+              .
+            </span>
+          </label>
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !aceitouTermos}
             className="w-full bg-acao text-white font-semibold py-3 rounded-controle hover:bg-acao-hover transition disabled:opacity-50 mt-4"
           >
             {loading ? "Processando..." : "Finalizar Cadastro"}

@@ -2,7 +2,7 @@ import type { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
 import { createServerClient } from "@/lib/supabase";
 import {
   getInstituicoes,
-  getOrCreatePerfilEstudante,
+  getMinhaLoja,
   getProdutosFavoritos,
   getProdutosPrivados,
   getMeuUsuario,
@@ -122,7 +122,7 @@ export async function getPainelServerSideProps(
   }
 
   try {
-    const loja = await getOrCreatePerfilEstudante(serverSupabase);
+    const loja = await getMinhaLoja(serverSupabase);
     const produtosIniciais = await getProdutosPrivados(loja.id, serverSupabase);
     const favoritosIniciais = await getProdutosFavoritos(loja.usuario_id, serverSupabase);
     const usuarioInicial = await getMeuUsuario(serverSupabase);

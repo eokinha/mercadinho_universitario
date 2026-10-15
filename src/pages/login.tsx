@@ -38,7 +38,9 @@ function mensagemErroLogin(erro: AuthError | Error): string {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { msg } = router.query;
+  const { msg, next } = router.query;
+  // Só caminhos internos: evita redirecionar para outro site depois do login
+  const destino = typeof next === "string" && /^\/(?![/\\])/.test(next) ? next : "/";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,7 +67,7 @@ export default function LoginPage() {
         return;
       }
 
-      await router.push("/");
+      await router.push(destino);
     } catch (err) {
       const fallback = err instanceof Error ? err : new Error("Erro inesperado no login");
       setError(mensagemErroLogin(fallback));

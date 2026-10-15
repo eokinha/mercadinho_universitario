@@ -2,10 +2,13 @@ import { supabase as defaultClient } from "@/lib/supabase";
 import type {
   Categoria,
   CategoriaComFilhos,
-  GrupoCategoria,
+  DenunciaModeracao,
+  DenunciaStatus,
   Instituicao,
   Loja,
   LojaModeracao,
+  LojaPublica,
+  MotivoDenuncia,
   LojaStatus,
   OrdenacaoProdutos,
   Produto,
@@ -15,7 +18,9 @@ import type {
   PerfilPublico,
   Usuario,
   UsuarioModeracao,
+  UsuarioStatus,
 } from "@/types";
+import { inicioValidade } from "@/lib/anuncios";
 import { type SupabaseClient } from "@supabase/supabase-js";
 
 // ---------------------------------------------------------------------------
@@ -58,71 +63,20 @@ export async function getCategoriasArvore(
 }
 
 
-interface GetLojasFiltros {
-  instituicao_id?: number;
-  categoria_id?: number;
-}
+// Colunas de lojas legíveis por qualquer um (telefone fica de fora; ver contato_vendedor)
+const COLUNAS_LOJA_PUBLICA =
+  "id, usuario_id, nome, descricao, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, locais_entrega";
 
-
-export async function getLojas(filtros: GetLojasFiltros = {}, client: SupabaseClient = defaultClient): Promise<Loja[]> {
-  const { instituicao_id, categoria_id } = filtros;
-
-  const selectClause = categoria_id
-    ? "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, usuarios!inner(instituicoes_id), produtos!inner(categoria_id)"
-    : "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega, usuarios!inner(instituicoes_id)";
-
-  let query = client
-    .from("lojas")
-    .select(selectClause)
-    .eq("status", "ativo");
-
-  if (instituicao_id) {
-    query = query.eq("usuarios.instituicoes_id", instituicao_id);
-  }
-  if (categoria_id) {
-    query = query.eq("produtos.categoria_id", categoria_id);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const vistos = new Set<number>();
-  const lojas: Loja[] = [];
-  for (const item of (data ?? []) as unknown as Loja[]) {
-    if (vistos.has(item.id)) continue;
-    vistos.add(item.id);
-    lojas.push({
-      id: item.id,
-      usuario_id: item.usuario_id,
-      nome: item.nome,
-      descricao: item.descricao,
-      contato: item.contato,
-      status: item.status,
-      criado_em: item.criado_em,
-      avatar_url: item.avatar_url,
-      capa_url: item.capa_url,
-      slug: item.slug,
-      instagram_url: item.instagram_url,
-      tiktok_url: item.tiktok_url,
-      whatsapp: item.whatsapp,
-      locais_entrega: item.locais_entrega ?? [],
-    });
-  }
-  return lojas;
-}
-
-export async function getLojaById(id: number, client: SupabaseClient = defaultClient): Promise<Loja | null> {
+export async function getLojaById(id: number, client: SupabaseClient = defaultClient): Promise<LojaPublica | null> {
   const { data, error } = await client
     .from("lojas")
-    .select(
-      "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega"
-    )
+    .select(COLUNAS_LOJA_PUBLICA)
     .eq("id", id)
     .eq("status", "ativo")
     .maybeSingle();
 
   if (error) throw error;
-  return (data as Loja | null) ?? null;
+  return (data as LojaPublica | null) ?? null;
 }
 
 
@@ -137,22 +91,6 @@ export async function getInstituicoes(client: SupabaseClient = defaultClient): P
   return (data ?? []) as Instituicao[];
 }
 
-export async function getLojaByAuthId(
-  client: SupabaseClient = defaultClient
-): Promise<Loja | null> {
-  const usuario = await getMeuUsuario(client);
-  if (!usuario) return null;
-
-  const { data: loja, error: lojaError } = await client
-    .from("lojas")
-    .select("id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega")
-    .eq("usuario_id", usuario.id)
-    .maybeSingle();
-
-  if (lojaError) throw lojaError;
-  return (loja as Loja | null) ?? null;
-}
-
 export async function updateLoja(lojaId: number, updates: Partial<Loja>, client: SupabaseClient = defaultClient): Promise<void> {
   const { error } = await client
     .from("lojas")
@@ -162,52 +100,19 @@ export async function updateLoja(lojaId: number, updates: Partial<Loja>, client:
   if (error) throw error;
 }
 
-export async function getOrCreatePerfilEstudante(
+// Loja do aluno logado, com telefone (RPC: o telefone não é legível via select).
+// A loja nasce no trigger de signup (handle_new_user); o app não cria loja.
+export async function getMinhaLoja(
   client: SupabaseClient = defaultClient
 ): Promise<Loja> {
-  // A linha em 'usuarios' é criada pelo trigger de signup (handle_new_user)
-  const usuario = await getMeuUsuario(client);
-  if (!usuario) {
-    throw new Error("Cadastro do estudante não encontrado.");
-  }
-
-  // Verifica se já tem registro de loja/perfil
-  const { data: lojaExistente, error: lojaError } = await client
-    .from("lojas")
-    .select(
-      "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega"
-    )
-    .eq("usuario_id", usuario.id)
-    .maybeSingle();
-
-  if (lojaError) throw lojaError;
-
-  if (lojaExistente) {
-    return lojaExistente as Loja;
-  }
-
-  // Cria perfil de estudante ativo automaticamente sem fricção
-  const nomeCompleto = `${usuario.nome || "Estudante"} ${usuario.sobrenome || ""}`.trim();
-  const slugGerado = `${(usuario.nome || "estudante").toLowerCase().replace(/[^a-z0-9]/g, "-")}-${usuario.id}`;
-
-  const { data: novaLoja, error: insertError } = await client
-    .from("lojas")
-    .insert({
-      usuario_id: usuario.id,
-      nome: nomeCompleto,
-      descricao: "Estudante desapegando e trocando materiais no campus",
-      contato: usuario.telefone || "",
-      whatsapp: usuario.telefone || "",
-      status: "ativo",
-      slug: slugGerado,
-      locais_entrega: ["RU Central", "Biblioteca"],
-    })
-    .select()
-    .single();
-
-  if (insertError) throw insertError;
-  return novaLoja as Loja;
+  const { data, error } = await client.rpc("minha_loja").maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Perfil de aluno não encontrado.");
+  return data as Loja;
 }
+
+const COLUNAS_PRODUTO =
+  "id, loja_id, nome, descricao, preco, imagem_url, status, criado_em, categoria_id, destaque, aceita_troca, renovado_em, vendido_em";
 
 export async function criarProduto(
   dados: Pick<Produto, "loja_id" | "nome" | "descricao" | "preco" | "categoria_id" | "aceita_troca">,
@@ -216,11 +121,53 @@ export async function criarProduto(
   const { data, error } = await client
     .from("produtos")
     .insert({ ...dados, status: "ativo" })
-    .select("id, loja_id, nome, descricao, preco, imagem_url, status, criado_em, categoria_id, destaque, aceita_troca")
+    .select(COLUNAS_PRODUTO)
     .single();
 
   if (error) throw error;
   return data as Produto;
+}
+
+export async function atualizarProduto(
+  produtoId: number,
+  dados: Pick<Produto, "nome" | "descricao" | "preco" | "categoria_id" | "aceita_troca">,
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const { error } = await client
+    .from("produtos")
+    .update(dados)
+    .eq("id", produtoId);
+
+  if (error) throw error;
+}
+
+// O banco grava a data atual em renovado_em (trigger exigir_vendedor_verificado)
+export async function renovarProduto(
+  produtoId: number,
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const { error } = await client
+    .from("produtos")
+    .update({ renovado_em: new Date().toISOString() })
+    .eq("id", produtoId);
+
+  if (error) throw error;
+}
+
+export async function getMeuProduto(
+  produtoId: number,
+  client: SupabaseClient = defaultClient
+): Promise<Produto | null> {
+  const loja = await getMinhaLoja(client);
+  const { data, error } = await client
+    .from("produtos")
+    .select(COLUNAS_PRODUTO)
+    .eq("id", produtoId)
+    .eq("loja_id", loja.id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as Produto | null) ?? null;
 }
 
 export async function atualizarStatusProduto(
@@ -251,7 +198,7 @@ export async function deletarProduto(
 export async function getProdutosPrivados(lojaId: number, client: SupabaseClient = defaultClient): Promise<Produto[]> {
   const { data, error } = await client
     .from("produtos")
-    .select("id, loja_id, nome, descricao, preco, imagem_url, status, criado_em, categoria_id, destaque, aceita_troca")
+    .select(COLUNAS_PRODUTO)
     .eq("loja_id", lojaId)
     .order("criado_em", { ascending: false });
 
@@ -259,18 +206,16 @@ export async function getProdutosPrivados(lojaId: number, client: SupabaseClient
   return (data ?? []) as Produto[];
 }
 
-export async function getLojaBySlug(slug: string, client: SupabaseClient = defaultClient): Promise<Loja | null> {
+export async function getLojaBySlug(slug: string, client: SupabaseClient = defaultClient): Promise<LojaPublica | null> {
   const { data, error } = await client
     .from("lojas")
-    .select(
-      "id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega"
-    )
+    .select(COLUNAS_LOJA_PUBLICA)
     .eq("slug", slug)
     .eq("status", "ativo")
     .maybeSingle();
 
   if (error) throw error;
-  return (data as Loja | null) ?? null;
+  return (data as LojaPublica | null) ?? null;
 }
 
 export async function getPerfilPublico(
@@ -284,7 +229,7 @@ export async function getPerfilPublico(
     let query = client
       .from("lojas")
       .select(`
-        id, usuario_id, nome, descricao, contato, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, whatsapp, locais_entrega,
+        id, usuario_id, nome, descricao, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, locais_entrega,
         usuarios (
           id, nome, sobrenome, matricula_status, criado_em,
           instituicoes ( id, nome )
@@ -301,7 +246,7 @@ export async function getPerfilPublico(
     const { data, error } = await query.maybeSingle();
 
     if (!error && data) {
-      const raw = data as unknown as Loja & {
+      const raw = data as unknown as LojaPublica & {
         usuarios: {
           nome: string;
           sobrenome: string;
@@ -318,7 +263,6 @@ export async function getPerfilPublico(
         usuario_id: raw.usuario_id,
         nome: raw.nome,
         descricao: raw.descricao || "",
-        contato: raw.contato || "",
         status: raw.status,
         criado_em: raw.criado_em,
         avatar_url: raw.avatar_url,
@@ -326,7 +270,6 @@ export async function getPerfilPublico(
         slug: raw.slug,
         instagram_url: raw.instagram_url,
         tiktok_url: raw.tiktok_url,
-        whatsapp: raw.whatsapp,
         locais_entrega: raw.locais_entrega ?? [],
         usuario_nome: usuario?.nome,
         usuario_sobrenome: usuario?.sobrenome,
@@ -340,7 +283,7 @@ export async function getPerfilPublico(
   }
 
   // Fallback seguro caso o join de usuarios falhe
-  let fallbackLoja: Loja | null = null;
+  let fallbackLoja: LojaPublica | null = null;
   if (isNumeric) {
     fallbackLoja = await getLojaById(Number(idOuSlug), client);
   } else {
@@ -391,31 +334,17 @@ export async function getFavoritos(usuarioId: number, client: SupabaseClient = d
   }
 }
 
-export async function getProdutosByLoja(lojaId: number, client: SupabaseClient = defaultClient): Promise<Produto[]> {
-  const loja = await getLojaById(lojaId, client);
-  if (!loja) return [];
-
-  const { data, error } = await client
-    .from("produtos")
-    .select(
-      "id, loja_id, nome, descricao, preco, imagem_url, status, criado_em, categoria_id, destaque, aceita_troca"
-    )
-    .eq("loja_id", lojaId)
-    .order("criado_em", { ascending: false });
-
-  if (error) throw error;
-  return (data ?? []) as Produto[];
-}
-
 export async function getProdutosListagemByLoja(lojaId: number, client: SupabaseClient = defaultClient): Promise<ProdutoListagem[]> {
   const { data, error } = await client
     .from("produtos")
     .select(
       `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque, aceita_troca,
        categorias!inner(id, nome),
-       lojas!inner(id, nome, descricao, contato, status, avatar_url, capa_url, usuarios(matricula_status))`
+       lojas!inner(id, nome, descricao, status, avatar_url, capa_url, usuarios(matricula_status))`
     )
     .eq("loja_id", lojaId)
+    .eq("status", "ativo")
+    .gt("renovado_em", inicioValidade())
     .eq("lojas.status", "ativo")
     .order("criado_em", { ascending: false });
 
@@ -438,7 +367,6 @@ interface LojaJoinRaw {
   id: number;
   nome: string;
   descricao: string | null;
-  contato: string;
   status: string;
   avatar_url: string | null;
   capa_url: string | null;
@@ -484,7 +412,6 @@ function mapearProdutoListagem(
     categoria_nome: categoriaRaw.nome,
     loja_nome: lojaRaw.nome,
     loja_descricao: lojaRaw.descricao,
-    loja_contato: lojaRaw.contato,
     loja_avatar_url: lojaRaw.avatar_url,
     destaque: item.destaque,
     aceita_troca: item.aceita_troca,
@@ -505,9 +432,12 @@ export async function getProdutosFavoritos(
       .select(
         `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque, aceita_troca,
          categorias!inner(id, nome),
-         lojas!inner(id, nome, descricao, contato, status, avatar_url, capa_url, usuarios(matricula_status))`
+         lojas!inner(id, nome, descricao, status, avatar_url, capa_url, usuarios(matricula_status))`
       )
-      .in("id", idsFavoritos);
+      .in("id", idsFavoritos)
+      .eq("status", "ativo")
+      .gt("renovado_em", inicioValidade())
+      .eq("lojas.status", "ativo");
 
     if (error) return [];
 
@@ -522,57 +452,6 @@ export async function getProdutosFavoritos(
   }
 }
 
-interface GetProdutosAgrupadosOpts {
-  q?: string;
-  apenasDestaque?: boolean;
-}
-
-export async function getProdutosAgrupadosPorCategoria(
-  opts: GetProdutosAgrupadosOpts = {},
-  client: SupabaseClient = defaultClient
-): Promise<GrupoCategoria[]> {
-  let query = client
-    .from("produtos")
-    .select(
-      `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque, aceita_troca,
-       categorias!inner(id, nome),
-       lojas!inner(id, nome, descricao, contato, status, avatar_url, capa_url, usuarios(matricula_status))`
-    )
-    .eq("lojas.status", "ativo")
-    .order("nome", { ascending: true });
-
-  if (opts.q) {
-    query = query.ilike("nome", `%${opts.q}%`);
-  }
-  if (opts.apenasDestaque) {
-    query = query.eq("destaque", true);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const grupos = new Map<number, GrupoCategoria>();
-
-  for (const item of (data ?? []) as unknown as ProdutoComJoinsRaw[]) {
-    const produto = mapearProdutoListagem(item);
-    if (!produto) continue;
-
-    const grupoExistente = grupos.get(produto.categoria_id);
-    if (grupoExistente) {
-      grupoExistente.produtos.push(produto);
-    } else {
-      grupos.set(produto.categoria_id, {
-        categoria: { id: produto.categoria_id, nome: produto.categoria_nome },
-        produtos: [produto],
-      });
-    }
-  }
-
-  return Array.from(grupos.values()).sort((a, b) =>
-    a.categoria.nome.localeCompare(b.categoria.nome, "pt-BR")
-  );
-}
-
 interface GetProdutosFiltradosOpts {
   q?: string;
   categoria_id?: number;
@@ -580,21 +459,25 @@ interface GetProdutosFiltradosOpts {
   ordenar?: OrdenacaoProdutos;
   apenasDestaque?: boolean;
   apenasTroca?: boolean;
+  limite?: number;
+  offset?: number;
 }
 
 export async function getProdutosFiltrados(
   opts: GetProdutosFiltradosOpts = {},
   client: SupabaseClient = defaultClient
 ): Promise<ProdutoListagem[]> {
-  const { q, categoria_id, instituicao_id, ordenar = "recentes", apenasDestaque, apenasTroca } = opts;
+  const { q, categoria_id, instituicao_id, ordenar = "recentes", apenasDestaque, apenasTroca, limite = 60, offset = 0 } = opts;
 
   let query = client
     .from("produtos")
     .select(
       `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque, aceita_troca, criado_em,
        categorias!inner(id, nome),
-       lojas!inner(id, nome, descricao, contato, status, avatar_url, capa_url, usuarios!inner(instituicoes_id, matricula_status))`
+       lojas!inner(id, nome, descricao, status, avatar_url, capa_url, usuarios!inner(instituicoes_id, matricula_status))`
     )
+    .eq("status", "ativo")
+    .gt("renovado_em", inicioValidade())
     .eq("lojas.status", "ativo");
 
   if (q) query = query.ilike("nome", `%${q}%`);
@@ -618,7 +501,7 @@ export async function getProdutosFiltrados(
       break;
   }
 
-  const { data, error } = await query;
+  const { data, error } = await query.order("id", { ascending: false }).range(offset, offset + limite - 1);
   if (error) throw error;
 
   const produtos: ProdutoListagem[] = [];
@@ -708,13 +591,11 @@ export async function salvarOnboarding(
 
 export async function verificarMatriculaInstantanea(
   matriculaOpcional?: string,
-  instituicoes_id?: number,
   client: SupabaseClient = defaultClient
 ): Promise<{ success: boolean; message: string }> {
-  // A checagem do domínio do e-mail acontece no banco, com o e-mail confirmado do Auth
+  // O banco confere o e-mail confirmado do Auth e define a instituição pelo domínio
   const { data: verificado, error } = await client.rpc("verificar_matricula_por_email", {
     p_matricula: matriculaOpcional?.trim() || null,
-    p_instituicoes_id: instituicoes_id ?? null,
   });
 
   if (error) throw error;
@@ -722,7 +603,7 @@ export async function verificarMatriculaInstantanea(
   if (!verificado) {
     return {
       success: false,
-      message: "Seu e-mail cadastrado não possui um domínio acadêmico reconhecido (.edu.br, .edu, ufmg.br, usp.br, etc.) ou ainda não foi confirmado. Use a verificação manual por matrícula.",
+      message: "Seu e-mail não é de uma instituição parceira ou ainda não foi confirmado. Envie sua matrícula para verificação manual.",
     };
   }
 
@@ -758,6 +639,7 @@ export async function getUsuariosParaModeracao(
     matricula_status: u.matricula_status || "pendente",
     instituicao_nome: u.instituicao_nome ?? undefined,
     loja_id: u.loja_id ?? undefined,
+    status: u.status || "ativo",
   }));
 }
 
@@ -771,6 +653,8 @@ export async function getLojasParaModeracao(
     ...l,
     total_produtos: Number(l.total_produtos),
     produtos_ativos: Number(l.produtos_ativos),
+    produtos_vendidos: Number(l.produtos_vendidos),
+    total_interesses: Number(l.total_interesses),
   }));
 }
 
@@ -826,4 +710,67 @@ export async function getLojasComImagens(
 
   if (error) throw error;
   return data ?? [];
+}
+
+/* =========================================================================
+   CONTATO, DENÚNCIAS, CONTA E BLOQUEIO
+   ========================================================================= */
+
+// Telefone do vendedor (exige login; o banco registra o interesse). null = vendedor sem WhatsApp.
+export async function getContatoVendedor(
+  lojaId: number,
+  produtoId?: number,
+  client: SupabaseClient = defaultClient
+): Promise<string | null> {
+  const { data, error } = await client.rpc("contato_vendedor", {
+    p_loja_id: lojaId,
+    p_produto_id: produtoId ?? null,
+  });
+  if (error) throw error;
+  return (data as string | null) ?? null;
+}
+
+export async function denunciar(
+  dados: { lojaId: number; produtoId?: number; motivo: MotivoDenuncia; detalhes?: string },
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const { error } = await client.rpc("denunciar", {
+    p_loja_id: dados.lojaId,
+    p_produto_id: dados.produtoId ?? null,
+    p_motivo: dados.motivo,
+    p_detalhes: dados.detalhes?.trim() || null,
+  });
+  if (error) throw error;
+}
+
+// Apaga produtos, loja, usuário e login. Imagens são removidas antes (removerImagensDaConta).
+export async function excluirMinhaConta(client: SupabaseClient = defaultClient): Promise<void> {
+  const { error } = await client.rpc("excluir_minha_conta");
+  if (error) throw error;
+}
+
+export async function definirStatusUsuario(
+  usuarioId: number,
+  status: UsuarioStatus,
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const { error } = await client.rpc("admin_definir_status_usuario", { p_usuario_id: usuarioId, p_status: status });
+  if (error) throw error;
+}
+
+export async function getDenunciasParaModeracao(
+  client: SupabaseClient = defaultClient
+): Promise<DenunciaModeracao[]> {
+  const { data, error } = await client.rpc("admin_listar_denuncias");
+  if (error) throw error;
+  return ((data ?? []) as DenunciaModeracao[]).map((d) => ({ ...d, id: Number(d.id) }));
+}
+
+export async function resolverDenuncia(
+  denunciaId: number,
+  status: DenunciaStatus,
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const { error } = await client.rpc("admin_resolver_denuncia", { p_denuncia_id: denunciaId, p_status: status });
+  if (error) throw error;
 }
