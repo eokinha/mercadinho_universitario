@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import { supabase } from "@/lib/supabase";
-import { validarEmail, validarEmailUniversitario } from "@/lib/validacoes";
+import { DICA_SENHA, problemaSenha, SENHA_TAMANHO_MINIMO, validarEmail, validarEmailUniversitario } from "@/lib/validacoes";
 
 export default function CadastroPage() {
   const router = useRouter();
@@ -36,12 +36,21 @@ export default function CadastroPage() {
       return;
     }
 
+    const erroSenha = problemaSenha(formData.password);
+    if (erroSenha) {
+      setError(erroSenha);
+      setLoading(false);
+      return;
+    }
+
     const { email, password, nome, sobrenome } = formData;
 
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        // Link do e-mail de confirmação ({{ .RedirectTo }} no template)
+        emailRedirectTo: `${window.location.origin}/confirmar-email`,
         data: {
           nome,
           sobrenome,
@@ -58,8 +67,8 @@ export default function CadastroPage() {
       
       if (signUpError.message.includes("already registered")) {
         errorMessage = "Este e-mail já está cadastrado. Tente entrar na sua conta.";
-      } else if (signUpError.message.includes("weak")) {
-        errorMessage = "A senha escolhida é muito fraca.";
+      } else if (signUpError.code === "weak_password" || signUpError.message.includes("weak")) {
+        errorMessage = `A senha escolhida é muito fraca ou já apareceu em vazamentos. ${DICA_SENHA}`;
       } else if (signUpError.message.toLowerCase().includes("email address") && signUpError.message.toLowerCase().includes("invalid")) {
         errorMessage = "O e-mail informado parece ser inválido ou não é aceito pelo sistema.";
       }
@@ -67,7 +76,7 @@ export default function CadastroPage() {
       setError(errorMessage);
       setLoading(false);
     } else {
-      router.push("/login?msg=Cadastro realizado com sucesso! Você já pode entrar agora mesmo.");
+      router.push("/login?msg=Cadastro realizado! Enviamos um link de confirmação para o seu e-mail; confirme antes de entrar (veja também o spam).");
     }
   }
 
@@ -135,12 +144,14 @@ export default function CadastroPage() {
             <input
               type="password"
               required
-              minLength={6}
-              placeholder="Mínimo 6 caracteres"
+              minLength={SENHA_TAMANHO_MINIMO}
+              autoComplete="new-password"
+              aria-describedby="dica-senha"
               className={inputClass}
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             />
+            <p id="dica-senha" className="text-xs text-tinta-suave mt-1">{DICA_SENHA}</p>
           </div>
 
           <label className="flex items-start gap-2 text-sm text-tinta-suave">

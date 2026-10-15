@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import { supabase } from "@/lib/supabase";
+import { DICA_SENHA, problemaSenha, SENHA_TAMANHO_MINIMO } from "@/lib/validacoes";
 
 // Destino do link de recuperação (template em db/emails/recuperar-senha.html):
 // /redefinir-senha?token_hash=...&type=recovery
@@ -27,6 +28,12 @@ export default function RedefinirSenhaPage() {
       return;
     }
 
+    const erroSenha = problemaSenha(senha);
+    if (erroSenha) {
+      setError(erroSenha);
+      return;
+    }
+
     setLoading(true);
     try {
       const { error: verifyError } = await supabase.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
@@ -40,6 +47,8 @@ export default function RedefinirSenhaPage() {
         setError(
           updateError.code === "same_password"
             ? "A nova senha precisa ser diferente da atual."
+            : updateError.code === "weak_password"
+            ? `A senha é muito fraca ou já apareceu em vazamentos. ${DICA_SENHA}`
             : "Não foi possível alterar a senha. Tente novamente."
         );
         return;
@@ -86,12 +95,14 @@ export default function RedefinirSenhaPage() {
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  minLength={SENHA_TAMANHO_MINIMO}
                   autoComplete="new-password"
                   className={inputClass}
+                  aria-describedby="dica-senha"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                 />
+                <p id="dica-senha" className="text-xs text-tinta-suave mt-1">{DICA_SENHA}</p>
               </div>
 
               <div>
@@ -99,7 +110,7 @@ export default function RedefinirSenhaPage() {
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  minLength={SENHA_TAMANHO_MINIMO}
                   autoComplete="new-password"
                   className={inputClass}
                   value={confirmacao}

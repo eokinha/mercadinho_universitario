@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   formatarCPF,
   formatarTelefone,
+  problemaSenha,
   validarCPF,
   validarEmail,
   validarEmailUniversitario,
@@ -56,4 +57,15 @@ test("validarEmailUniversitario não aceita domínio que só termina parecido", 
 test("validarEmailUniversitario rejeita e-mails comuns", () => {
   assert.equal(validarEmailUniversitario("ana@gmail.com"), false);
   assert.equal(validarEmailUniversitario("ana@outlook.com"), false);
+});
+
+test("problemaSenha aceita senha com 8+ caracteres, maiúscula, minúscula e número", () => {
+  assert.equal(problemaSenha("Circular2026"), null);
+});
+
+test("problemaSenha aponta o que falta", () => {
+  assert.match(problemaSenha("Ab1") ?? "", /8 caracteres/);
+  assert.match(problemaSenha("CIRCULAR2026") ?? "", /minúscula/);
+  assert.match(problemaSenha("circular2026") ?? "", /maiúscula/);
+  assert.match(problemaSenha("CircularUfmg") ?? "", /número/);
 });

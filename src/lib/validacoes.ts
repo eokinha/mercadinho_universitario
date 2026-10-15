@@ -57,3 +57,17 @@ export function validarEmailUniversitario(email: string): boolean {
     DOMINIOS_ACADEMICOS.some((d) => dominio === d || dominio.endsWith(`.${d}`))
   );
 }
+
+// Espelho da política de senha do Supabase Auth (Authentication → Providers → Email):
+// mínimo de 8 caracteres, com minúscula, maiúscula e número. Mudar os dois juntos.
+export const SENHA_TAMANHO_MINIMO = 8;
+export const DICA_SENHA = "Mínimo de 8 caracteres, com letra maiúscula, minúscula e número.";
+
+// Devolve o que falta na senha, ou null se ela atende à regra
+export function problemaSenha(senha: string): string | null {
+  if (senha.length < SENHA_TAMANHO_MINIMO) return `A senha precisa ter pelo menos ${SENHA_TAMANHO_MINIMO} caracteres.`;
+  if (!/[a-z]/.test(senha)) return "A senha precisa ter pelo menos uma letra minúscula.";
+  if (!/[A-Z]/.test(senha)) return "A senha precisa ter pelo menos uma letra maiúscula.";
+  if (!/[0-9]/.test(senha)) return "A senha precisa ter pelo menos um número.";
+  return null;
+}
