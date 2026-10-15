@@ -38,7 +38,7 @@ src/
 │   ├── _app.tsx          # Layout global (Navbar + Footer)
 │   ├── index.tsx         # Home (hero + impulsionados)
 │   ├── listagem.tsx      # Listagem completa de produtos com filtros
-│   ├── login.tsx, cadastro.tsx, esqueci-senha.tsx, redefinir-senha.tsx, onboarding.tsx
+│   ├── login.tsx, cadastro.tsx, esqueci-senha.tsx, redefinir-senha.tsx, confirmar-email.tsx, onboarding.tsx
 │   ├── anunciar.tsx      # Criação de anúncio; ?editar=<id> edita um anúncio próprio
 │   ├── termos.tsx, privacidade.tsx  # Termos de Uso (itens proibidos) e Política de Privacidade
 │   ├── lojas/[slug].tsx  # Perfil público da loja

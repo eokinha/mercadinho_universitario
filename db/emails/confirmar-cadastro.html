@@ -1,5 +1,7 @@
 <!-- Supabase → Authentication → Emails → Templates → Confirm sign up
      Assunto: Confirme seu e-mail no Circular
+     Link aponta para /confirmar-email (RedirectTo = emailRedirectTo do signUp) com token_hash:
+     o token só é validado quando o aluno clica em confirmar, à prova de scanners de link.
      Cores = tokens de src/styles/globals.css (e-mail não lê CSS do site, por isso hex inline). -->
 <!doctype html>
 <html lang="pt-BR">
@@ -19,7 +21,7 @@
                 <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#1c2b2f;">
                   Falta pouco para você comprar e trocar com colegas do seu campus. Confirme seu e-mail para ativar a conta.
                 </p>
-                <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#b9521a;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 24px;border-radius:10px;">
+                <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email" style="display:inline-block;background:#b9521a;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 24px;border-radius:10px;">
                   Confirmar e-mail
                 </a>
                 <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#55656a;">
