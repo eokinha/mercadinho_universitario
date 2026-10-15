@@ -1,34 +1,25 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import { supabase } from "@/lib/supabase";
 
-// Destino do link de recuperação (resetPasswordForEmail em esqueci-senha.tsx).
-// O cliente do browser troca o ?code= da URL por uma sessão de recuperação automaticamente.
+// Destino do link de recuperação (template em db/emails/recuperar-senha.html):
+// /redefinir-senha?token_hash=...&type=recovery
+// O token só é validado no envio do formulário: scanners de link (ex.: Microsoft Safe Links)
+// abrem a página mas não submetem, então não consomem o token.
 export default function RedefinirSenhaPage() {
   const router = useRouter();
-  const [sessaoPronta, setSessaoPronta] = useState<boolean | null>(null);
+  const tokenHash = typeof router.query.token_hash === "string" ? router.query.token_hash : null;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [linkInvalido, setLinkInvalido] = useState(false);
   const [senha, setSenha] = useState("");
   const [confirmacao, setConfirmacao] = useState("");
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || session) setSessaoPronta(true);
-    });
-
-    // Se a troca do código já aconteceu (ou falhou), resolve pelo estado atual
-    supabase.auth.getSession().then(({ data }) => {
-      setSessaoPronta((atual) => atual ?? Boolean(data.session));
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!tokenHash) return;
     setError(null);
 
     if (senha !== confirmacao) {
@@ -37,23 +28,34 @@ export default function RedefinirSenhaPage() {
     }
 
     setLoading(true);
-    const { error: updateError } = await supabase.auth.updateUser({ password: senha });
-    setLoading(false);
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
+      if (verifyError) {
+        setLinkInvalido(true);
+        return;
+      }
 
-    if (updateError) {
-      setError(
-        updateError.code === "same_password"
-          ? "A nova senha precisa ser diferente da atual."
-          : "Não foi possível alterar a senha. Tente novamente."
-      );
-      return;
+      const { error: updateError } = await supabase.auth.updateUser({ password: senha });
+      if (updateError) {
+        setError(
+          updateError.code === "same_password"
+            ? "A nova senha precisa ser diferente da atual."
+            : "Não foi possível alterar a senha. Tente novamente."
+        );
+        return;
+      }
+
+      await supabase.auth.signOut();
+      await router.push({ pathname: "/login", query: { msg: "Senha alterada. Entre com a nova senha." } });
+    } catch {
+      setError("Não foi possível conectar. Verifique sua internet e tente novamente.");
+    } finally {
+      setLoading(false);
     }
-
-    await supabase.auth.signOut();
-    await router.push({ pathname: "/login", query: { msg: "Senha alterada. Entre com a nova senha." } });
   }
 
   const inputClass = "w-full px-4 py-2 border border-borda-controle rounded-controle focus:ring-2 focus:ring-petroleo focus:border-transparent outline-none transition";
+  const semToken = router.isReady && !tokenHash;
 
   return (
     <div className="max-w-md mx-auto px-4 py-12">
@@ -61,11 +63,7 @@ export default function RedefinirSenhaPage() {
         <div className="flex justify-center mb-4"><Logo variante="simbolo" /></div>
         <h1 className="text-2xl font-bold text-petroleo mb-6 text-center">Nova senha</h1>
 
-        {sessaoPronta === null && (
-          <p className="text-center text-sm text-tinta-suave">Validando link...</p>
-        )}
-
-        {sessaoPronta === false && (
+        {semToken || linkInvalido ? (
           <div className="text-center">
             <div className="mb-4 p-3 bg-perigo-50 text-perigo text-sm rounded-controle border border-perigo">
               Link inválido ou expirado. Peça um novo e-mail de recuperação.
@@ -74,9 +72,7 @@ export default function RedefinirSenhaPage() {
               Recuperar senha
             </Link>
           </div>
-        )}
-
-        {sessaoPronta && (
+        ) : (
           <>
             {error && (
               <div role="alert" className="mb-4 p-3 bg-perigo-50 text-perigo text-sm rounded-controle border border-perigo">
@@ -113,7 +109,7 @@ export default function RedefinirSenhaPage() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !tokenHash}
                 className="w-full bg-acao text-white font-semibold py-3 rounded-controle hover:bg-acao-hover transition disabled:opacity-50 mt-4"
               >
                 {loading ? "Salvando..." : "Salvar nova senha"}
