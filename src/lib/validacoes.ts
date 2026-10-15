@@ -45,7 +45,18 @@ export function validarEmail(email: string): boolean {
 // Só uma dica no cadastro. Quem decide a verificação é o banco: o domínio precisa estar em
 // instituicoes.dominios (instituicao_por_email, migração 16).
 const SUFIXOS_ACADEMICOS = [".edu.br", ".edu"];
-const DOMINIOS_ACADEMICOS = ["unb.br", "usp.br", "ufmg.br", "unijorge.com.br"];
+// Domínios de instituições cadastradas que não terminam em .edu/.edu.br (ver instituicoes.dominios)
+const DOMINIOS_ACADEMICOS = [
+  "unb.br",
+  "usp.br",
+  "ufmg.br",
+  "pucminas.br",
+  "unijorge.com.br",
+  "unifacs.br",
+  "ucsal.br",
+  "estacio.br",
+  "senaicimatec.com.br",
+];
 
 export function validarEmailUniversitario(email: string): boolean {
   const dominio = email.toLowerCase().trim().split("@")[1] ?? "";

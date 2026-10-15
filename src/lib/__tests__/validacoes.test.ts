@@ -69,3 +69,17 @@ test("problemaSenha aponta o que falta", () => {
   assert.match(problemaSenha("circular2026") ?? "", /maiúscula/);
   assert.match(problemaSenha("CircularUfmg") ?? "", /número/);
 });
+
+test("validarEmailUniversitario aceita as instituições cadastradas sem .edu.br", () => {
+  for (const email of [
+    "ana@unifacs.br",
+    "ana@ucsal.br",
+    "ana@alunos.estacio.br",
+    "ana@senaicimatec.com.br",
+    "ana@sga.pucminas.br",
+    "ana@uniftc.edu.br",
+    "ana@bahiana.edu.br",
+  ]) {
+    assert.equal(validarEmailUniversitario(email), true, email);
+  }
+});

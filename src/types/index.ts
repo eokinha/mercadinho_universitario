@@ -1,7 +1,7 @@
 export interface Instituicao {
   id: number;
   nome: string;
-  cnpj: string;
+  cnpj: string | null;
 }
 
 export type UsuarioStatus = "ativo" | "bloqueado";

@@ -110,18 +110,17 @@ A parte de banco está em `db/migrations/16_regras_mvp.sql`.
       acadêmica não vale (bastaria cadastrar um e-mail `.edu.br` alheio).
 - [ ] **Authentication → Policies/Passwords:** ligar "Leaked password protection" (exige plano Pro do Supabase).
 - [x] **Authentication → URL Configuration:** Site URL e redirects apontando para o domínio de produção.
-- [ ] **Projeto de produção separado:** `setup_completo.sql` + migrações `00 … 16` na ordem do `CLAUDE.md`.
+- [ ] **Projeto de produção separado:** `setup_completo.sql` + migrações `00 … 17` na ordem do `CLAUDE.md`.
       Não rodar `db/seed/carga_fria.sql` em produção.
-- [ ] **Instituições:** cadastrar cada instituição atendida com seus domínios
+- [x] **Instituições:** cadastrar cada instituição atendida com seus domínios
       (`UPDATE instituicoes SET dominios = '{ufmg.br}' WHERE id = 1;`). Domínios de subdomínio
       (`aluno.ufmg.br`) já são cobertos pelo domínio raiz.
 - [ ] **Revisão jurídica** dos textos de `/termos` e `/privacidade` (são um rascunho funcional).
 - [x] **Dev:** a migração adicionou `lojas_slug_key` (UNIQUE) antes de descobrir que o índice
       `idx_lojas_slug_unique` já existia. O arquivo da migração já não cria a constraint; no banco de dev
       ela foi removida em 2026-10-14.
-- [ ] **Unijorge:** o domínio `unijorge.com.br` estava na regra antiga, mas não há instituição cadastrada
-      para ele (`cnpj` é obrigatório). Quem já foi verificado continua verificado; novos alunos de lá caem
-      na verificação manual até a instituição ser cadastrada com o domínio.
+- [x] **Unijorge e instituições de Salvador:** cadastradas com seus domínios na migração `17` (CNPJ virou opcional).
+      Conferir o nome da instituição de `fgn.edu.br`, cadastrada provisoriamente como "FGN".
 
 ---
 

@@ -74,7 +74,7 @@ db/
 ## Banco de dados (Supabase)
 
 ```
-instituicoes   — id, nome, cnpj, dominios (text[] — domínios de e-mail da instituição, ex.: {ufmg.br})
+instituicoes   — id, nome, cnpj (opcional), dominios (text[] — domínios de e-mail da instituição, ex.: {ufmg.br})
 usuarios       — id, auth_id (uuid → auth.users), nome, sobrenome, email, password (legado, não usar), telefone, cpf, matricula,
                  matricula_validada (bool), matricula_status (pendente|verificado|rejeitado), instituicoes_id,
                  status (ativo|bloqueado), is_admin (bool), criado_em, termos_aceitos_em
@@ -104,7 +104,7 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `16`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `17`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`.
 
 ### Segurança (RLS e triggers)
@@ -135,7 +135,8 @@ A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`.
   - `meu_usuario()` → `getMeuUsuario` (dados completos do usuário logado); `minha_loja()` → `getMinhaLoja`
   - `verificar_matricula_por_email(p_matricula)` → `verificarMatriculaInstantanea`
     (usa o e-mail confirmado do Auth; a instituição vem de `instituicao_por_email()`, que casa o domínio com `instituicoes.dominios`.
-    `validarEmailUniversitario` no cliente é só dica de UX no cadastro)
+    `validarEmailUniversitario` no cliente filtra o cadastro: ao cadastrar instituição com domínio fora de `.edu`/`.edu.br`,
+    incluir o domínio em `DOMINIOS_ACADEMICOS`, senão o aluno não consegue nem criar a conta)
   - `contato_vendedor(p_loja_id, p_produto_id)` → `getContatoVendedor` (exige login; registra em `interesses`)
   - `denunciar(...)` → `denunciar` (exige login; máx. 10 por dia) · `excluir_minha_conta()` → `excluirMinhaConta`
   - `admin_listar_usuarios()` / `admin_moderar_matricula(p_usuario_id, p_status)` / `admin_definir_status_usuario(p_usuario_id, p_status)`
