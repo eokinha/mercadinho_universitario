@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Link from "next/link";
+import ConfiraEmail from "@/components/ConfiraEmail";
 import Logo from "@/components/Logo";
 import { supabase } from "@/lib/supabase";
 
@@ -9,14 +10,23 @@ export default function EsqueciSenhaPage() {
   const [success, setSuccess] = useState(false);
   const [email, setEmail] = useState("");
 
+  function enviarLink() {
+    return supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/redefinir-senha`,
+    });
+  }
+
+  async function handleReenviar() {
+    const { error: resendError } = await enviarLink();
+    if (resendError) throw resendError;
+  }
+
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/redefinir-senha`,
-    });
+    const { error: resetError } = await enviarLink();
 
     if (resetError) {
       setError(resetError.message);
@@ -36,14 +46,19 @@ export default function EsqueciSenhaPage() {
         <h1 className="text-2xl font-bold text-petroleo mb-6 text-center">Recuperar senha</h1>
 
         {success ? (
-          <div className="text-center">
-            <div className="mb-4 p-3 bg-petroleo-50 text-petroleo text-sm rounded-controle border border-petroleo">
-              E-mail enviado! Verifique sua caixa de entrada.
-            </div>
-            <Link href="/login" className="text-petroleo font-semibold hover:underline text-sm">
-              Voltar para o Login
-            </Link>
-          </div>
+          <>
+            <ConfiraEmail
+              email={email.trim()}
+              motivo="senha"
+              onReenviar={handleReenviar}
+              onCorrigirEmail={() => setSuccess(false)}
+            />
+            <p className="mt-2 text-center text-sm">
+              <Link href="/login" className="text-tinta-sutil hover:text-petroleo hover:underline">
+                Voltar para o Login
+              </Link>
+            </p>
+          </>
         ) : (
           <>
             {error && (
@@ -55,6 +70,7 @@ export default function EsqueciSenhaPage() {
             <form onSubmit={handleReset} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-tinta mb-1">Seu e-mail de cadastro</label>
+                <p className="text-xs text-tinta-suave mb-2">O link chega no e-mail da faculdade que você usou no cadastro.</p>
                 <input
                   type="email"
                   required

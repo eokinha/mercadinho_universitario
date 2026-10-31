@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useRouter } from "next/router";
 import Link from "next/link";
 import type { GetServerSideProps } from "next";
 import { GraduationCap } from "lucide-react";
+import AjudaEmailFaculdade from "@/components/AjudaEmailFaculdade";
+import ConfiraEmail from "@/components/ConfiraEmail";
 import Logo from "@/components/Logo";
 import { createServerClient, supabase } from "@/lib/supabase";
 import { getInstituicoes } from "@/lib/queries";
-import { urlLogin } from "@/lib/avisos-login";
 import { MENSAGEM_SENHA_VAZADA, senhaVazada } from "@/lib/senha-vazada";
 import { DICA_SENHA, instituicaoDoEmail, problemaSenha, SENHA_TAMANHO_MINIMO, validarEmail } from "@/lib/validacoes";
 import type { Instituicao } from "@/types";
@@ -25,10 +25,12 @@ const MENSAGEM_FACULDADE_FORA =
   "Sua faculdade ainda não está no Circular. Use o e-mail institucional de uma das faculdades participantes.";
 
 export default function CadastroPage({ instituicoes }: Props) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aceitouTermos, setAceitouTermos] = useState(false);
+  const [mostrarAjudaEmail, setMostrarAjudaEmail] = useState(false);
+  // E-mail para o qual o link de confirmação foi enviado; troca o formulário pela tela "Confira seu e-mail"
+  const [enviadoPara, setEnviadoPara] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -68,9 +70,10 @@ export default function CadastroPage({ instituicoes }: Props) {
       return;
     }
 
-    const { email, password, nome, sobrenome } = formData;
+    const { password, nome, sobrenome } = formData;
+    const email = formData.email.trim();
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -103,14 +106,48 @@ export default function CadastroPage({ instituicoes }: Props) {
 
       setError(errorMessage);
       setLoading(false);
+    } else if (data.user && (data.user.identities ?? []).length === 0) {
+      // Com confirmação de e-mail ligada, o Supabase responde "sucesso" sem enviar nada para e-mail já confirmado
+      setError("Este e-mail já está cadastrado. Tente entrar na sua conta.");
+      setLoading(false);
     } else {
-      router.push(urlLogin("cadastro"));
+      setEnviadoPara(email);
+      setLoading(false);
     }
+  }
+
+  async function handleReenviar() {
+    if (!enviadoPara) return;
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email: enviadoPara,
+      options: { emailRedirectTo: `${window.location.origin}/confirmar-email` },
+    });
+    if (resendError) throw resendError;
   }
 
   const campusDoEmail = instituicaoDoEmail(formData.email, instituicoes);
 
   const inputClass = "w-full px-4 py-2 border border-borda-controle rounded-controle focus:ring-2 focus:ring-petroleo focus:border-transparent outline-none transition";
+
+  if (enviadoPara) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-12">
+        <div className="bg-superficie p-8 rounded-card border border-borda">
+          <h1 className="sr-only">Cadastro enviado</h1>
+          <ConfiraEmail
+            email={enviadoPara}
+            motivo="cadastro"
+            onReenviar={handleReenviar}
+            onCorrigirEmail={() => {
+              setEnviadoPara(null);
+              setError(null);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto px-4 py-12">
@@ -125,6 +162,16 @@ export default function CadastroPage({ instituicoes }: Props) {
               Atenção
             </div>
             <p>{error}</p>
+            {error === MENSAGEM_FACULDADE_FORA && instituicoes.length > 0 && (
+              <ul className="text-tinta-suave space-y-0.5">
+                {instituicoes.map((i) => (
+                  <li key={i.id}>
+                    <strong className="text-tinta">{i.nome}</strong>{" "}
+                    <span className="break-all">{(i.dominios ?? []).map((d) => `@${d}`).join(", ")}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             {error.includes("cadastrado") && (
               <Link href="/login" className="text-perigo font-bold hover:underline">
                 Ir para o Login
@@ -181,6 +228,20 @@ export default function CadastroPage({ instituicoes }: Props) {
                 "O domínio do seu e-mail define o seu campus no Circular."
               )}
             </p>
+            <button
+              type="button"
+              onClick={() => setMostrarAjudaEmail((v) => !v)}
+              aria-expanded={mostrarAjudaEmail}
+              aria-controls="ajuda-email-faculdade"
+              className="text-xs text-petroleo font-semibold hover:underline min-h-[44px]"
+            >
+              {mostrarAjudaEmail ? "Esconder ajuda" : "Não sabe qual é o seu e-mail da faculdade?"}
+            </button>
+            {mostrarAjudaEmail && (
+              <div id="ajuda-email-faculdade" className="p-4 bg-pagina rounded-controle border border-borda">
+                <AjudaEmailFaculdade instituicoes={instituicoes} />
+              </div>
+            )}
           </div>
 
           <div>

@@ -19,7 +19,7 @@ function mensagemErroLogin(erro: AuthError | Error): string {
   }
 
   if (code === "email_not_confirmed" || message.includes("email not confirmed")) {
-    return "Confirme seu e-mail antes de entrar. Veja a caixa de entrada e o spam.";
+    return "Confirme seu e-mail antes de entrar. Procure o link no e-mail da faculdade, inclusive no spam.";
   }
 
   if (code === "user_banned" || message.includes("banned")) {
@@ -52,11 +52,24 @@ export default function LoginPage() {
   });
 
   const credenciaisInvalidas = Boolean(error?.includes("incorretos"));
+  const emailNaoConfirmado = Boolean(error?.startsWith("Confirme seu e-mail"));
+  const [reenvio, setReenvio] = useState<"enviando" | "enviado" | "erro" | null>(null);
+
+  async function handleReenviarConfirmacao() {
+    setReenvio("enviando");
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email: formData.email.trim(),
+      options: { emailRedirectTo: `${window.location.origin}/confirmar-email` },
+    });
+    setReenvio(resendError ? "erro" : "enviado");
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setReenvio(null);
 
     try {
       const { error: loginError } = await supabase.auth.signInWithPassword({
@@ -112,6 +125,28 @@ export default function LoginPage() {
                 </Link>
               </div>
             )}
+            {emailNaoConfirmado && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                {reenvio === "enviado" ? (
+                  <span role="status" className="text-tinta">Link reenviado. Confira o e-mail da faculdade.</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleReenviarConfirmacao}
+                    disabled={reenvio === "enviando"}
+                    className="text-perigo font-semibold hover:underline disabled:opacity-50"
+                  >
+                    {reenvio === "enviando" ? "Reenviando..." : "Reenviar link de confirmação"}
+                  </button>
+                )}
+                <Link href="/ajuda#nao-chegou" className="text-perigo font-semibold hover:underline">
+                  O e-mail não chegou
+                </Link>
+                {reenvio === "erro" && (
+                  <span className="w-full">Não foi possível reenviar agora. Aguarde um minuto e tente de novo.</span>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -160,6 +195,11 @@ export default function LoginPage() {
           Ainda não tem conta?{" "}
           <Link href="/cadastro" className="text-petroleo font-semibold hover:underline">
             Cadastre-se
+          </Link>
+        </p>
+        <p className="mt-2 text-center text-sm">
+          <Link href="/ajuda" className="text-tinta-sutil hover:text-petroleo hover:underline">
+            Dúvidas? Veja a ajuda
           </Link>
         </p>
       </div>
