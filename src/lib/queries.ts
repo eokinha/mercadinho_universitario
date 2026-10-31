@@ -1,5 +1,7 @@
 import { supabase as defaultClient } from "@/lib/supabase";
 import type {
+  AnuncioDetalhe,
+  AnuncioLeitura,
   Categoria,
   CategoriaComFilhos,
   DenunciaModeracao,
@@ -16,6 +18,8 @@ import type {
   ProdutoStatus,
   PerfilLeitura,
   PerfilPublico,
+  LojaDoAnuncio,
+  ResumoAnuncioCompartilhado,
   ResumoLojaCompartilhada,
   Usuario,
   UsuarioModeracao,
@@ -226,6 +230,59 @@ export async function getResumoLojaCompartilhada(
     .maybeSingle();
   if (error) throw error;
   return (data as ResumoLojaCompartilhada | null) ?? null;
+}
+
+// Página do anúncio (RPC; exige login). null = anúncio não existe.
+export async function getAnuncioLeitura(
+  id: number,
+  client: SupabaseClient = defaultClient
+): Promise<AnuncioLeitura | null> {
+  const { data, error } = await client.rpc("anuncio_leitura", { p_id: id });
+  if (error) throw error;
+  if (!data) return null;
+
+  const raw = data as {
+    disponivel: boolean;
+    eh_dono: boolean;
+    mesmo_campus?: boolean;
+    codigo_compartilhamento?: string | null;
+    favoritado?: boolean;
+    anuncio: AnuncioDetalhe;
+    loja: (LojaDoAnuncio & { locais_entrega?: string[] }) | { slug: string | null; nome: string } | null;
+    outros?: ProdutoListagem[];
+  };
+
+  if (!raw.disponivel && !raw.eh_dono) {
+    return { estado: "indisponivel", nome: raw.anuncio.nome, loja: raw.loja ? { slug: raw.loja.slug, nome: raw.loja.nome } : null };
+  }
+
+  const loja = raw.loja as LojaDoAnuncio;
+  return {
+    estado: "ok",
+    disponivel: raw.disponivel,
+    ehDono: raw.eh_dono,
+    mesmoCampus: raw.mesmo_campus ?? false,
+    codigoCompartilhamento: raw.codigo_compartilhamento ?? null,
+    favoritado: raw.favoritado ?? false,
+    anuncio: { ...raw.anuncio, preco: Number(raw.anuncio.preco) },
+    loja: { ...loja, locais_entrega: loja.locais_entrega ?? [] },
+    outros: (raw.outros ?? []).map((p) => ({ ...p, preco: Number(p.preco) })),
+  };
+}
+
+// Visitante com link compartilhado de anúncio: nome, preço e foto, só com o código da loja (RPC, migração 22)
+export async function getResumoAnuncioCompartilhado(
+  id: number,
+  codigo: string,
+  client: SupabaseClient = defaultClient
+): Promise<ResumoAnuncioCompartilhado | null> {
+  const { data, error } = await client
+    .rpc("resumo_anuncio_compartilhado", { p_id: id, p_codigo: codigo })
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const resumo = data as ResumoAnuncioCompartilhado;
+  return { ...resumo, preco: Number(resumo.preco) };
 }
 
 export async function toggleFavorito(usuarioId: number, produtoId: number, client: SupabaseClient = defaultClient): Promise<boolean> {

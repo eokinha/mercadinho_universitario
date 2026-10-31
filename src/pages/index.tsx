@@ -1,9 +1,8 @@
 import type { GetServerSideProps } from "next";
 import Link from "next/link";
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import CardProduto from "@/components/CardProduto";
 import HeroSection from "@/components/HeroSection";
-import ModalProduto from "@/components/ModalProduto";
 import SecaoTrocas from "@/components/SecaoTrocas";
 import { createServerClient } from "@/lib/supabase";
 import { getCategorias, getInstituicoes, getProdutosFiltrados, getResumoUsuarioNavbar } from "@/lib/queries";
@@ -135,7 +134,6 @@ function ApresentacaoVisitante({ faculdades }: { faculdades: string[] }) {
 }
 
 export default function Home({ produtos, produtosTroca, categorias, logado, campusNome, faculdades }: Props) {
-  const [produtoAtivo, setProdutoAtivo] = useState<ProdutoListagem | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const rolarProdutos = (direcao: "esq" | "dir") => {
@@ -234,7 +232,6 @@ export default function Home({ produtos, produtosTroca, categorias, logado, camp
                   <CardProduto
                     key={produto.id}
                     produto={produto}
-                    onAbrir={setProdutoAtivo}
                     largura="fixa"
                   />
                 ))}
@@ -256,13 +253,7 @@ export default function Home({ produtos, produtosTroca, categorias, logado, camp
       {/* Seção dedicada: Feira de Trocas Universitária */}
       <SecaoTrocas
         produtos={produtosTroca}
-        onAbrirProduto={setProdutoAtivo}
         logado={logado}
-      />
-
-      <ModalProduto
-        produto={produtoAtivo}
-        onFechar={() => setProdutoAtivo(null)}
       />
     </>
   );

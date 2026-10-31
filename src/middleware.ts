@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { urlLogin } from "@/lib/avisos-login";
-import { lojaDoDestino } from "@/lib/compartilhar";
+import { destinoCompartilhado } from "@/lib/compartilhar";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -53,6 +53,7 @@ export async function middleware(request: NextRequest) {
   const isCatalogo =
     request.nextUrl.pathname.startsWith("/listagem") ||
     request.nextUrl.pathname.startsWith("/perfil") ||
+    request.nextUrl.pathname.startsWith("/anuncio") ||
     request.nextUrl.pathname.startsWith("/lojas");
 
   if (!user && isProtectedRoute) {
@@ -61,7 +62,7 @@ export async function middleware(request: NextRequest) {
 
   if (!user && isCatalogo) {
     const destino = request.nextUrl.pathname + request.nextUrl.search;
-    const aviso = lojaDoDestino(destino) ? "loja" : "catalogo";
+    const aviso = destinoCompartilhado(destino)?.tipo ?? "catalogo";
     return NextResponse.redirect(new URL(urlLogin(aviso, destino), request.url));
   }
 

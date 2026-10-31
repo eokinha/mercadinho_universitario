@@ -198,6 +198,14 @@ export const FAQ: SecaoFaq[] = [
         links: [{ href: "/painel", texto: "Ir para o painel" }],
       },
       {
+        id: "compartilhar-anuncio",
+        pergunta: "Como mando um anúncio para alguém?",
+        resposta: [
+          "Cada anúncio tem uma página própria. Abra o anúncio e toque em \"Compartilhar anúncio\": dá para copiar o link, mandar pelo WhatsApp ou baixar o QR code com a foto do item.",
+          "No WhatsApp, o link aparece com a foto, o nome e o preço. Quem abrir precisa entrar com o e-mail da faculdade para ver o anúncio.",
+        ],
+      },
+      {
         id: "itens-proibidos",
         pergunta: "O que não pode ser anunciado?",
         resposta: ["A lista de itens proibidos está nos Termos de Uso."],

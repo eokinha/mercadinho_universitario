@@ -187,3 +187,56 @@ export interface ResumoLojaCompartilhada {
   loja_nome: string;
   instituicao_nome: string | null;
 }
+
+// Página do anúncio (RPC anuncio_leitura, migração 22)
+export interface AnuncioDetalhe {
+  id: number;
+  nome: string;
+  descricao: string | null;
+  preco: number;
+  imagem_url: string | null;
+  categoria_id: number;
+  categoria_nome: string | null;
+  aceita_troca: boolean;
+  destaque: boolean;
+  status: ProdutoStatus;
+  criado_em: string;
+  renovado_em: string;
+}
+
+export interface LojaDoAnuncio {
+  id: number;
+  slug: string | null;
+  nome: string;
+  descricao: string | null;
+  avatar_url: string | null;
+  locais_entrega: string[];
+  verificada: boolean;
+  instituicao_nome: string | null;
+}
+
+// "ok": página completa (de outro campus, só leitura; o dono vê o próprio anúncio em qualquer estado).
+// "indisponivel": vendido, pausado ou vencido, visto por quem não é dono.
+export type AnuncioLeitura =
+  | {
+      estado: "ok";
+      disponivel: boolean;
+      ehDono: boolean;
+      mesmoCampus: boolean;
+      codigoCompartilhamento: string | null;
+      favoritado: boolean;
+      anuncio: AnuncioDetalhe;
+      loja: LojaDoAnuncio;
+      outros: ProdutoListagem[];
+    }
+  | { estado: "indisponivel"; nome: string; loja: { slug: string | null; nome: string } | null };
+
+// Prévia de anúncio para o login e o WhatsApp (link compartilhado com código)
+export interface ResumoAnuncioCompartilhado {
+  anuncio_nome: string;
+  preco: number;
+  aceita_troca: boolean;
+  imagem_url: string | null;
+  loja_nome: string;
+  instituicao_nome: string | null;
+}

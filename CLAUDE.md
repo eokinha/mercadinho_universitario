@@ -44,6 +44,7 @@ src/
 │   ├── ajuda.tsx         # FAQ público (conteúdo em lib/faq.ts; âncora por pergunta, ex.: /ajuda#nao-chegou)
 │   ├── lojas/[slug].tsx  # Perfil público da loja
 │   ├── perfil/[id].tsx   # Perfil público do estudante
+│   ├── anuncio/[id].tsx  # Página do anúncio (/anuncio/{id}-{nome}; nome errado redireciona para o certo)
 │   ├── painel/           # Painel do estudante (index, anuncios, favoritos, perfil)
 │   ├── minha-loja/       # Rotas antigas: só redirecionam para /painel e /anunciar
 │   └── admin/
@@ -51,10 +52,10 @@ src/
 │       ├── lojas.tsx         # Status das lojas e produtos impulsionados (somente admin)
 │       ├── imagens.tsx       # Upload de avatar/capa/imagens (somente admin)
 │       └── denuncias.tsx     # Fila de denúncias (somente admin)
-├── components/           # Navbar, Footer, HeroSection, CardProduto, ModalProduto,
+├── components/           # Navbar, Footer, HeroSection, CardProduto (link para a página do anúncio),
 │                         # BotaoContato (WhatsApp via RPC), BotaoDenunciar,
 │                         # ConfiraEmail (pós-cadastro/senha), GuiaEmail + AjudaEmailFaculdade (tutorial do e-mail),
-│                         # BotaoCompartilharLoja (QR code e link da loja, para quem abre o perfil público)
+│                         # BotaoCompartilhar (QR code e link de loja ou anúncio, para qualquer aluno logado)
 │   └── painel/           # PainelEstudante (cabeçalho/visão geral) + SecaoAnuncios, SecaoFavoritos, SecaoPerfil
 ├── lib/
 │   ├── supabase.ts       # Clientes Supabase (browser e servidor via @supabase/ssr)
@@ -112,10 +113,11 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `21`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `22`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`; a `18` é o endurecimento
 pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limites e URLs de imagem);
-a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20` cria o código do QR code da loja e a `21` libera esse código a qualquer aluno logado.
+a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20` cria o código do QR code da loja, a `21` libera esse código a qualquer aluno logado e a `22`
+cria as RPCs da página do anúncio.
 
 ### Segurança (RLS e triggers)
 
@@ -165,6 +167,10 @@ a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20
     `mesmo_campus = false` deixa `/perfil/[id]` só leitura; `eh_dono` e `codigo_compartilhamento`)
   - `resumo_loja_compartilhada(p_slug, p_codigo)` → `getResumoLojaCompartilhada` (liberada para `anon`;
     nome da loja e da faculdade só com o código certo, para o `/login?aviso=loja` do QR sem permitir listar alunos)
+  - `anuncio_leitura(p_id)` → `getAnuncioLeitura` (exige login; anúncio, loja, campus, `eh_dono`, código e até 8 outros
+    da loja; vendido/pausado/vencido volta só com `disponivel = false`, exceto para o dono)
+  - `resumo_anuncio_compartilhado(p_id, p_codigo)` → `getResumoAnuncioCompartilhado` (liberada para `anon`; nome, preço e
+    foto só com o código da loja dona, para o `/login?aviso=anuncio` e a prévia do WhatsApp)
   - `is_admin()` → usado pelo middleware para liberar `/admin`
   - `denunciar(...)` → `denunciar` (exige login; máx. 10 por dia) · `excluir_minha_conta()` → `excluirMinhaConta`
   - `admin_listar_usuarios()` / `admin_moderar_matricula(p_usuario_id, p_status)` / `admin_definir_status_usuario(p_usuario_id, p_status)`
@@ -221,7 +227,10 @@ a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20
 - Perfil de outro campus (link compartilhado) abre só leitura: sem WhatsApp nem favoritar; denunciar continua liberado
 - QR code da loja: qualquer aluno que abre um perfil público compartilha a loja (PNG, copiar link, compartilhar);
   o dono vê "Compartilhar minha loja", os demais "Compartilhar loja" ao lado do WhatsApp. Visitante que escaneia
-  vai para o login com "Entre para ver a loja de X na Y" (middleware usa `aviso=loja` quando o `next` tem código válido)
+  vai para o login com "Entre para ver a loja de X, do campus Y" (middleware usa `aviso=loja` quando o `next` tem código válido)
+- Cada anúncio tem página própria: `/anuncio/{id}-{nome}` (`caminhoAnuncio` em `src/lib/compartilhar.ts`); os cards levam a ela.
+  De outro campus, só leitura. O link compartilhado leva o código da loja: o login mostra o item e põe `og:*` com foto,
+  nome e preço para a prévia do WhatsApp (o WhatsApp segue o redirecionamento do middleware até o login)
 - Trocar de campus = trocar o e-mail no painel (Perfil → E-mail e campus); confirmado o novo e-mail
   (template `db/emails/trocar-email.html`), o campus muda e os anúncios ativos são pausados
 - Conta antiga com domínio desconhecido mantém o campus que tinha; sem campus, o onboarding pede a troca de e-mail

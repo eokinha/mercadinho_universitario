@@ -2,11 +2,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChevronRight, Heart, ImageOff, Repeat, ShoppingBag } from "lucide-react";
 import SeloVerificado from "@/components/SeloVerificado";
+import { caminhoAnuncio } from "@/lib/compartilhar";
 import type { ProdutoListagem } from "@/types";
 
 interface Props {
   produto: ProdutoListagem;
-  onAbrir: (produto: ProdutoListagem) => void;
   largura?: "fixa" | "fluida";
 }
 
@@ -18,8 +18,10 @@ function formatarPreco(valor: number): string {
   }).format(valor);
 }
 
-export default function CardProduto({ produto, onAbrir, largura = "fixa" }: Props) {
+// O card leva à página do anúncio (/anuncio/{id}-{nome})
+export default function CardProduto({ produto, largura = "fixa" }: Props) {
   const [favorito, setFavorito] = useState(false);
+  const href = caminhoAnuncio(produto.id, produto.nome);
 
   const soTroca = produto.preco === 0;
   const aceitaTroca = produto.aceita_troca || soTroca;
@@ -27,6 +29,7 @@ export default function CardProduto({ produto, onAbrir, largura = "fixa" }: Prop
   const larguraClasses = largura === "fluida" ? "w-full" : "w-48 sm:w-52 shrink-0 snap-start";
 
   const handleFavoritar = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     setFavorito(!favorito);
   };
@@ -36,9 +39,9 @@ export default function CardProduto({ produto, onAbrir, largura = "fixa" }: Prop
       className={`${larguraClasses} group bg-superficie border border-borda rounded-card overflow-hidden hover:shadow-hover transition duration-200 flex flex-col`}
     >
       <div className="relative">
-        <button
-          type="button"
-          onClick={() => onAbrir(produto)}
+        <Link
+          href={href}
+          aria-label={produto.nome}
           className="w-full text-left flex flex-col focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
         >
           <div className="aspect-[4/3] sm:aspect-square bg-pagina overflow-hidden relative">
@@ -55,7 +58,7 @@ export default function CardProduto({ produto, onAbrir, largura = "fixa" }: Prop
               </div>
             )}
           </div>
-        </button>
+        </Link>
 
         <button
           type="button"
@@ -73,7 +76,7 @@ export default function CardProduto({ produto, onAbrir, largura = "fixa" }: Prop
         </button>
       </div>
 
-      <div className="px-3.5 pt-3 pb-3 flex-1 flex flex-col gap-1.5 cursor-pointer" onClick={() => onAbrir(produto)}>
+      <Link href={href} tabIndex={-1} className="px-3.5 pt-3 pb-3 flex-1 flex flex-col gap-1.5">
         <div className="flex flex-wrap gap-1.5">
           {!soTroca && (
             <span className="rounded-pill text-xs font-semibold px-2.5 py-1 bg-petroleo-50 text-petroleo inline-flex items-center gap-1">
@@ -99,7 +102,7 @@ export default function CardProduto({ produto, onAbrir, largura = "fixa" }: Prop
         <p className="text-tinta font-bold text-base tracking-tight">
           {soTroca ? "Só troca" : formatarPreco(produto.preco)}
         </p>
-      </div>
+      </Link>
 
       <Link
         href={`/perfil/${produto.loja_id}`}

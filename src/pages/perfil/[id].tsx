@@ -19,9 +19,8 @@ import { createServerClient } from "@/lib/supabase";
 import { getPerfilLeitura } from "@/lib/queries";
 import { handleRedeSocial } from "@/lib/validacoes";
 import CardProduto from "@/components/CardProduto";
-import ModalProduto from "@/components/ModalProduto";
 import BotaoContato from "@/components/BotaoContato";
-import BotaoCompartilharLoja from "@/components/BotaoCompartilharLoja";
+import BotaoCompartilhar from "@/components/BotaoCompartilhar";
 import BotaoDenunciar from "@/components/BotaoDenunciar";
 import type { PerfilPublico, ProdutoListagem } from "@/types";
 
@@ -75,7 +74,6 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 };
 
 export default function PerfilPublicoPage({ perfil, produtos, mesmoCampus, ehDono, codigoCompartilhamento }: Props) {
-  const [produtoAtivo, setProdutoAtivo] = useState<ProdutoListagem | null>(null);
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "venda" | "troca">("todos");
   const [busca, setBusca] = useState("");
   const instagram = handleRedeSocial(perfil?.instagram_url);
@@ -199,7 +197,8 @@ export default function PerfilPublicoPage({ perfil, produtos, mesmoCampus, ehDon
                     </Link>
                   )}
                   {perfil.slug && codigoCompartilhamento && (
-                    <BotaoCompartilharLoja
+                    <BotaoCompartilhar
+                      tipo="loja"
                       slug={perfil.slug}
                       codigo={codigoCompartilhamento}
                       nomeLoja={perfil.nome}
@@ -294,7 +293,7 @@ export default function PerfilPublicoPage({ perfil, produtos, mesmoCampus, ehDon
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
                 {produtosFiltrados.map((produto) => (
-                  <CardProduto key={produto.id} produto={produto} onAbrir={setProdutoAtivo} largura="fluida" />
+                  <CardProduto key={produto.id} produto={produto} largura="fluida" />
                 ))}
               </div>
             )}
@@ -317,7 +316,6 @@ export default function PerfilPublicoPage({ perfil, produtos, mesmoCampus, ehDon
         </div>
       </div>
 
-      <ModalProduto produto={produtoAtivo} onFechar={() => setProdutoAtivo(null)} somenteLeitura={!mesmoCampus} />
     </>
   );
 }

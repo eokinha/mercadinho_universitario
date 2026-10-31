@@ -1,11 +1,9 @@
 import type { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import { useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import CardProduto from "@/components/CardProduto";
 import FiltroBarProdutos from "@/components/FiltroBarProdutos";
-import ModalProduto from "@/components/ModalProduto";
 import { createServerClient } from "@/lib/supabase";
 import {
   getCategoriasArvore,
@@ -106,9 +104,6 @@ export default function ListagemPage({
   temMais,
 }: Props) {
   const router = useRouter();
-  const [produtoAtivo, setProdutoAtivo] = useState<ProdutoListagem | null>(
-    null
-  );
 
   function urlComFiltro(chave: Chave, valor: string | undefined): string {
     const params = new URLSearchParams();
@@ -173,7 +168,6 @@ export default function ListagemPage({
             <CardProduto
               key={produto.id}
               produto={produto}
-              onAbrir={setProdutoAtivo}
               largura="fluida"
             />
           ))}
@@ -203,11 +197,6 @@ export default function ListagemPage({
           )}
         </nav>
       )}
-
-      <ModalProduto
-        produto={produtoAtivo}
-        onFechar={() => setProdutoAtivo(null)}
-      />
     </div>
   );
 }

@@ -6,22 +6,63 @@ import type { GetServerSideProps } from "next";
 import { type AuthError } from "@supabase/supabase-js";
 import { createServerClient, supabase } from "@/lib/supabase";
 import { mensagemAvisoLogin } from "@/lib/avisos-login";
-import { lojaDoDestino } from "@/lib/compartilhar";
-import { getResumoLojaCompartilhada } from "@/lib/queries";
-import type { ResumoLojaCompartilhada } from "@/types";
+import Head from "next/head";
+import { destinoCompartilhado } from "@/lib/compartilhar";
+import { getResumoAnuncioCompartilhado, getResumoLojaCompartilhada } from "@/lib/queries";
 
-interface Props {
-  lojaCompartilhada: ResumoLojaCompartilhada | null;
+// Prévia do link no WhatsApp (og:*): o WhatsApp segue o redirecionamento do middleware até aqui
+interface Previa {
+  titulo: string;
+  descricao: string;
+  imagem: string | null;
 }
 
-// Chegou pelo QR code de uma loja (?aviso=loja&next=/perfil/{slug}?c={código}): mostra de quem é a loja.
-// O nome vem do banco e só com o código certo; nada de texto livre da URL.
+interface Props {
+  avisoCompartilhado: string | null;
+  previa: Previa | null;
+}
+
+function formatarPreco(valor: number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
+}
+
+// Chegou por um link compartilhado (?aviso=loja|anuncio&next=...?c={código}): mostra de quem é a loja
+// ou qual é o anúncio. O texto vem do banco e só com o código certo; nada de texto livre da URL.
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
-  const alvo = ctx.query.aviso === "loja" ? lojaDoDestino(ctx.query.next) : null;
-  const lojaCompartilhada = alvo
-    ? await getResumoLojaCompartilhada(alvo.slug, alvo.codigo, createServerClient(ctx)).catch(() => null)
-    : null;
-  return { props: { lojaCompartilhada } };
+  const alvo = destinoCompartilhado(ctx.query.next);
+  const vazio = { props: { avisoCompartilhado: null, previa: null } };
+  if (!alvo || ctx.query.aviso !== alvo.tipo) return vazio;
+  const client = createServerClient(ctx);
+
+  if (alvo.tipo === "loja") {
+    const loja = await getResumoLojaCompartilhada(alvo.slug, alvo.codigo, client).catch(() => null);
+    if (!loja) return vazio;
+    const campus = loja.instituicao_nome ? `, do campus ${loja.instituicao_nome}` : "";
+    return {
+      props: {
+        avisoCompartilhado: `Entre com o e-mail da sua faculdade para ver a loja de ${loja.loja_nome}${campus}.`,
+        previa: {
+          titulo: `Loja de ${loja.loja_nome} no Circular`,
+          descricao: `Anúncios de alunos${campus ? ` do campus ${loja.instituicao_nome}` : " do campus"}. Deixa Circular.`,
+          imagem: null,
+        },
+      },
+    };
+  }
+
+  const anuncio = await getResumoAnuncioCompartilhado(alvo.id, alvo.codigo, client).catch(() => null);
+  if (!anuncio) return vazio;
+  const preco = anuncio.preco === 0 ? "Só troca" : formatarPreco(anuncio.preco) + (anuncio.aceita_troca ? " · aceita troca" : "");
+  return {
+    props: {
+      avisoCompartilhado: `Entre com o e-mail da sua faculdade para ver "${anuncio.anuncio_nome}", de ${anuncio.loja_nome}.`,
+      previa: {
+        titulo: anuncio.anuncio_nome,
+        descricao: `${preco} · ${anuncio.loja_nome}${anuncio.instituicao_nome ? `, ${anuncio.instituicao_nome}` : ""} · Circular`,
+        imagem: anuncio.imagem_url,
+      },
+    },
+  };
 };
 
 function mensagemErroLogin(erro: AuthError | Error): string {
@@ -55,13 +96,10 @@ function mensagemErroLogin(erro: AuthError | Error): string {
   return "Não foi possível entrar. Tente novamente em instantes.";
 }
 
-export default function LoginPage({ lojaCompartilhada }: Props) {
+export default function LoginPage({ avisoCompartilhado, previa }: Props) {
   const router = useRouter();
   const { aviso, next } = router.query;
-  const msg = lojaCompartilhada
-    ? `Entre com o e-mail da sua faculdade para ver a loja de ${lojaCompartilhada.loja_nome}` +
-      (lojaCompartilhada.instituicao_nome ? `, do campus ${lojaCompartilhada.instituicao_nome}.` : ".")
-    : mensagemAvisoLogin(aviso);
+  const msg = avisoCompartilhado ?? mensagemAvisoLogin(aviso);
   // Só caminhos internos: evita redirecionar para outro site depois do login
   const destino = typeof next === "string" && /^\/(?![/\\])/.test(next) ? next : "/";
   const [loading, setLoading] = useState(false);
@@ -116,6 +154,16 @@ export default function LoginPage({ lojaCompartilhada }: Props) {
 
   return (
     <div className="max-w-md mx-auto px-4 py-12">
+      {previa && (
+        <Head>
+          <meta property="og:type" content="website" />
+          <meta property="og:site_name" content="Circular" />
+          <meta property="og:title" content={previa.titulo} />
+          <meta property="og:description" content={previa.descricao} />
+          {previa.imagem && <meta property="og:image" content={previa.imagem} />}
+          <meta name="twitter:card" content={previa.imagem ? "summary_large_image" : "summary"} />
+        </Head>
+      )}
       <div className="bg-superficie p-8 rounded-card border border-borda">
         <div className="flex justify-center mb-4"><Logo variante="simbolo" /></div>
         <h1 className="text-2xl font-bold text-petroleo mb-6 text-center">Entrar</h1>

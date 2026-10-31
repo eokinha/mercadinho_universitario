@@ -6,7 +6,6 @@ import { atualizarStatusProduto, deletarProduto, renovarProduto, toggleFavorito 
 import { removerImagensProduto } from "@/lib/storage";
 import type { PainelProps } from "@/lib/painel-data";
 import { PAGINAS_PAINEL, type AbaPainel } from "@/lib/painel-routes";
-import ModalProduto from "@/components/ModalProduto";
 import SeloVerificado from "@/components/SeloVerificado";
 import SecaoAnuncios from "@/components/painel/SecaoAnuncios";
 import SecaoFavoritos from "@/components/painel/SecaoFavoritos";
@@ -43,7 +42,6 @@ export default function PainelEstudante({
   );
 
   // Estado para Modal de detalhes de favorito
-  const [produtoAtivoModal, setProdutoAtivoModal] = useState<ProdutoListagem | null>(null);
 
   // Estatísticas do estudante
   const totalProdutos = produtos.length;
@@ -321,7 +319,6 @@ export default function PainelEstudante({
           {abaAtiva === "favoritos" && (
             <SecaoFavoritos
               favoritos={favoritos}
-              onAbrir={setProdutoAtivoModal}
               onRemover={handleRemoverFavorito}
             />
           )}
@@ -340,12 +337,6 @@ export default function PainelEstudante({
           )}
         </div>
       </div>
-
-      {/* Modal de Detalhes de Produto (para favoritos) */}
-      <ModalProduto
-        produto={produtoAtivoModal}
-        onFechar={() => setProdutoAtivoModal(null)}
-      />
     </>
   );
 }

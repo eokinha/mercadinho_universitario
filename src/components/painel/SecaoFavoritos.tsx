@@ -8,11 +8,10 @@ import {
 
 interface Props {
   favoritos: ProdutoListagem[];
-  onAbrir: (produto: ProdutoListagem) => void;
   onRemover: (produtoId: number) => void;
 }
 
-export default function SecaoFavoritos({ favoritos, onAbrir, onRemover }: Props) {
+export default function SecaoFavoritos({ favoritos, onRemover }: Props) {
   return (
     <div>
       <div className="mb-6 flex items-baseline justify-between">
@@ -48,7 +47,6 @@ export default function SecaoFavoritos({ favoritos, onAbrir, onRemover }: Props)
             <div key={produto.id} className="relative group">
               <CardProduto
                 produto={produto}
-                onAbrir={onAbrir}
                 largura="fluida"
               />
               <button

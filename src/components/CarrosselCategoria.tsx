@@ -5,7 +5,6 @@ import type { Categoria, ProdutoListagem } from "@/types";
 interface Props {
   categoria: Categoria;
   produtos: ProdutoListagem[];
-  onProdutoClick: (produto: ProdutoListagem) => void;
   verMaisHref?: string;
   onVerMaisClick?: () => void;
 }
@@ -13,7 +12,6 @@ interface Props {
 export default function CarrosselCategoria({
   categoria,
   produtos,
-  onProdutoClick,
   verMaisHref,
   onVerMaisClick,
 }: Props) {
@@ -48,7 +46,6 @@ export default function CarrosselCategoria({
             <CardProduto
               key={produto.id}
               produto={produto}
-              onAbrir={onProdutoClick}
             />
           ))}
         </div>
