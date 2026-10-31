@@ -163,7 +163,7 @@ export default function Home({ produtos, produtosTroca, categorias, logado, camp
           <div className="flex items-baseline justify-between">
             <div>
               <h2 className="text-petroleo text-xl sm:text-2xl font-bold tracking-tight">
-                {campusNome ? `Impulsionados na ${campusNome}` : "Impulsionados no seu campus"}
+                {campusNome ? `Impulsionados no campus ${campusNome}` : "Impulsionados no seu campus"}
               </h2>
               <p className="text-tinta-suave text-sm mt-0.5">
                 Anúncios em destaque de alunos verificados.

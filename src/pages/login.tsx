@@ -60,7 +60,7 @@ export default function LoginPage({ lojaCompartilhada }: Props) {
   const { aviso, next } = router.query;
   const msg = lojaCompartilhada
     ? `Entre com o e-mail da sua faculdade para ver a loja de ${lojaCompartilhada.loja_nome}` +
-      (lojaCompartilhada.instituicao_nome ? ` na ${lojaCompartilhada.instituicao_nome}.` : ".")
+      (lojaCompartilhada.instituicao_nome ? `, do campus ${lojaCompartilhada.instituicao_nome}.` : ".")
     : mensagemAvisoLogin(aviso);
   // Só caminhos internos: evita redirecionar para outro site depois do login
   const destino = typeof next === "string" && /^\/(?![/\\])/.test(next) ? next : "/";

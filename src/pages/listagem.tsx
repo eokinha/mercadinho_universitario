@@ -140,7 +140,7 @@ export default function ListagemPage({
     <div className="max-w-6xl mx-auto px-4 py-8">
       <header className="mb-6">
         <h1 className="text-petroleo text-2xl font-bold">
-          {campusNome ? `Anúncios na ${campusNome}` : "Anúncios do seu campus"}
+          {campusNome ? `Anúncios do campus ${campusNome}` : "Anúncios do seu campus"}
         </h1>
         <p className="text-tinta-suave mt-1">
           Só alunos da sua faculdade. Filtre por categoria ou ordene como preferir.

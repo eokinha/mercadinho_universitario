@@ -124,7 +124,7 @@ export default function Navbar() {
                 type="search"
                 value={termo}
                 onChange={(e) => setTermo(e.target.value)}
-                placeholder={campusNome ? `Buscar na ${campusNome}` : "Buscar"}
+                placeholder={campusNome ? "Buscar no seu campus" : "Buscar"}
                 aria-label="Buscar anúncios do seu campus"
                 className="w-full rounded-pill border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 px-4 py-2 min-h-[44px] text-sm text-tinta placeholder:text-tinta-sutil transition bg-superficie"
               />
