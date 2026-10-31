@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import type { GetServerSideProps } from "next";
@@ -14,6 +14,7 @@ import {
   Repeat,
   ShieldCheck,
 } from "lucide-react";
+import AvisoFavorito, { type TipoAvisoFavorito } from "@/components/AvisoFavorito";
 import BotaoCompartilhar from "@/components/BotaoCompartilhar";
 import BotaoContato from "@/components/BotaoContato";
 import BotaoDenunciar from "@/components/BotaoDenunciar";
@@ -105,6 +106,9 @@ function AnuncioIndisponivel({ nome, loja }: { nome: string; loja: { slug: strin
 export default function AnuncioPage({ leitura, favoritos }: Props) {
   const [favoritado, setFavoritado] = useState(leitura.estado === "ok" && leitura.favoritado);
   const [salvandoFavorito, setSalvandoFavorito] = useState(false);
+  const [aviso, setAviso] = useState<TipoAvisoFavorito | null>(null);
+  const [chaveAviso, setChaveAviso] = useState(0);
+  const limparAviso = useCallback(() => setAviso(null), []);
 
   if (leitura.estado === "indisponivel") {
     return <AnuncioIndisponivel nome={leitura.nome} loja={leitura.loja} />;
@@ -123,10 +127,13 @@ export default function AnuncioPage({ leitura, favoritos }: Props) {
     setSalvandoFavorito(true);
     try {
       await definirFavorito(anuncio.id, novo);
+      setAviso(novo ? "salvo" : "removido");
     } catch {
       setFavoritado(!novo);
+      setAviso("erro");
     } finally {
       setSalvandoFavorito(false);
+      setChaveAviso((c) => c + 1);
     }
   }
 
@@ -193,6 +200,7 @@ export default function AnuncioPage({ leitura, favoritos }: Props) {
                 />
               </button>
             )}
+            <AvisoFavorito aviso={aviso} chave={chaveAviso} onSumir={limparAviso} />
           </div>
 
           <div className="p-6 sm:p-8 flex flex-col gap-5">

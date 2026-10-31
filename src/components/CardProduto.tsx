@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ChevronRight, Heart, ImageOff, Repeat, ShoppingBag } from "lucide-react";
+import AvisoFavorito, { type TipoAvisoFavorito } from "@/components/AvisoFavorito";
 import SeloVerificado from "@/components/SeloVerificado";
 import { caminhoAnuncio } from "@/lib/compartilhar";
 import { definirFavorito } from "@/lib/queries";
@@ -32,6 +33,9 @@ export default function CardProduto({
 }: Props) {
   const [favorito, setFavorito] = useState(favoritado);
   const [salvando, setSalvando] = useState(false);
+  const [aviso, setAviso] = useState<TipoAvisoFavorito | null>(null);
+  const [chaveAviso, setChaveAviso] = useState(0);
+  const limparAviso = useCallback(() => setAviso(null), []);
   const href = caminhoAnuncio(produto.id, produto.nome);
 
   const soTroca = produto.preco === 0;
@@ -49,11 +53,14 @@ export default function CardProduto({
     setSalvando(true);
     try {
       await definirFavorito(produto.id, novo);
+      setAviso(novo ? "salvo" : "removido");
       onFavoritoAlterado?.(produto.id, novo);
     } catch {
       setFavorito(!novo);
+      setAviso("erro");
     } finally {
       setSalvando(false);
+      setChaveAviso((c) => c + 1);
     }
   }
 
@@ -100,6 +107,7 @@ export default function CardProduto({
             />
           </button>
         )}
+        <AvisoFavorito aviso={aviso} chave={chaveAviso} onSumir={limparAviso} />
       </div>
 
       <Link href={href} tabIndex={-1} className="px-3.5 pt-3 pb-3 flex-1 flex flex-col gap-1.5">
