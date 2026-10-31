@@ -21,12 +21,12 @@ import CardProduto from "@/components/CardProduto";
 import SeloVerificado from "@/components/SeloVerificado";
 import { caminhoAnuncio, idDoAnuncio } from "@/lib/compartilhar";
 import { createServerClient } from "@/lib/supabase";
-import { getAnuncioLeitura, getMeuUsuario, toggleFavorito } from "@/lib/queries";
+import { definirFavorito, getAnuncioLeitura, getMeusFavoritosIds } from "@/lib/queries";
 import type { AnuncioLeitura } from "@/types";
 
 interface Props {
   leitura: AnuncioLeitura;
-  usuarioId: number | null;
+  favoritos: number[]; // ids favoritados, para os cards de "Mais da loja"
 }
 
 const FOCO = "focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2";
@@ -53,9 +53,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   if (!id) return { notFound: true };
 
   const supabase = createServerClient(ctx);
-  const [leitura, usuario] = await Promise.all([
+  const [leitura, favoritos] = await Promise.all([
     getAnuncioLeitura(id, supabase),
-    getMeuUsuario(supabase).catch(() => null),
+    getMeusFavoritosIds(supabase).catch(() => []),
   ]);
   if (!leitura) return { notFound: true };
 
@@ -66,7 +66,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     return { redirect: { destination: canonico + busca, permanent: false } };
   }
 
-  return { props: { leitura, usuarioId: usuario?.id ?? null } };
+  return { props: { leitura, favoritos } };
 };
 
 function AnuncioIndisponivel({ nome, loja }: { nome: string; loja: { slug: string | null; nome: string } | null }) {
@@ -102,7 +102,7 @@ function AnuncioIndisponivel({ nome, loja }: { nome: string; loja: { slug: strin
   );
 }
 
-export default function AnuncioPage({ leitura, usuarioId }: Props) {
+export default function AnuncioPage({ leitura, favoritos }: Props) {
   const [favoritado, setFavoritado] = useState(leitura.estado === "ok" && leitura.favoritado);
   const [salvandoFavorito, setSalvandoFavorito] = useState(false);
 
@@ -116,11 +116,15 @@ export default function AnuncioPage({ leitura, usuarioId }: Props) {
   const precoTexto = soTroca ? "Só troca" : formatarPreco(anuncio.preco);
   const podeInteragir = !ehDono && mesmoCampus && disponivel;
 
+  // Muda na hora e grava no banco; se o banco recusar, volta ao estado anterior
   async function handleFavoritar() {
-    if (!usuarioId) return;
+    const novo = !favoritado;
+    setFavoritado(novo);
     setSalvandoFavorito(true);
     try {
-      setFavoritado(await toggleFavorito(usuarioId, anuncio.id));
+      await definirFavorito(anuncio.id, novo);
+    } catch {
+      setFavoritado(!novo);
     } finally {
       setSalvandoFavorito(false);
     }
@@ -172,7 +176,7 @@ export default function AnuncioPage({ leitura, usuarioId }: Props) {
                 <ImageOff size={48} strokeWidth={1.75} aria-hidden="true" />
               </div>
             )}
-            {podeInteragir && usuarioId && (
+            {podeInteragir && (
               <button
                 type="button"
                 onClick={handleFavoritar}
@@ -311,7 +315,13 @@ export default function AnuncioPage({ leitura, usuarioId }: Props) {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {outros.slice(0, 8).map((produto) => (
-                <CardProduto key={produto.id} produto={produto} largura="fluida" />
+                <CardProduto
+                  key={produto.id}
+                  produto={produto}
+                  largura="fluida"
+                  favoritado={favoritos.includes(produto.id)}
+                  podeFavoritar={mesmoCampus}
+                />
               ))}
             </div>
           </section>

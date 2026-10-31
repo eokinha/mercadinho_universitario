@@ -1,17 +1,14 @@
 import Link from "next/link";
 import CardProduto from "@/components/CardProduto";
 import type { ProdutoListagem } from "@/types";
-import {
-  Heart,
-  X,
-} from "lucide-react";
+import { Heart } from "lucide-react";
 
 interface Props {
   favoritos: ProdutoListagem[];
-  onRemover: (produtoId: number) => void;
+  onRemovido: (produtoId: number) => void; // o card já gravou no banco; só tira da lista
 }
 
-export default function SecaoFavoritos({ favoritos, onRemover }: Props) {
+export default function SecaoFavoritos({ favoritos, onRemovido }: Props) {
   return (
     <div>
       <div className="mb-6 flex items-baseline justify-between">
@@ -32,7 +29,7 @@ export default function SecaoFavoritos({ favoritos, onRemover }: Props) {
             Você ainda não salvou nenhum item.
           </p>
           <p className="text-tinta-suave text-sm mt-1 mb-5">
-            Toque no coração de um anúncio para salvá-lo aqui.
+            Toque no coração de um anúncio para salvá-lo aqui. Para tirar da lista, toque de novo.
           </p>
           <Link
             href="/listagem"
@@ -44,21 +41,15 @@ export default function SecaoFavoritos({ favoritos, onRemover }: Props) {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {favoritos.map((produto) => (
-            <div key={produto.id} className="relative group">
-              <CardProduto
-                produto={produto}
-                largura="fluida"
-              />
-              <button
-                type="button"
-                onClick={() => onRemover(produto.id)}
-                aria-label={`Remover ${produto.nome} dos favoritos`}
-                className="absolute top-2 left-2 min-h-[44px] inline-flex items-center gap-1 bg-superficie/90 border border-borda-controle text-perigo text-xs font-semibold px-3 rounded-pill transition z-20 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
-              >
-                <X size={14} strokeWidth={1.75} aria-hidden="true" />
-                Remover
-              </button>
-            </div>
+            <CardProduto
+              key={produto.id}
+              produto={produto}
+              largura="fluida"
+              favoritado
+              onFavoritoAlterado={(id, favoritado) => {
+                if (!favoritado) onRemovido(id);
+              }}
+            />
           ))}
         </div>
       )}

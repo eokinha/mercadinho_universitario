@@ -7,6 +7,7 @@ import FiltroBarProdutos from "@/components/FiltroBarProdutos";
 import { createServerClient } from "@/lib/supabase";
 import {
   getCategoriasArvore,
+  getMeusFavoritosIds,
   getProdutosFiltrados,
   getResumoUsuarioNavbar,
 } from "@/lib/queries";
@@ -20,6 +21,7 @@ interface Props {
   produtos: ProdutoListagem[];
   categorias: CategoriaComFilhos[];
   campusNome: string | null;
+  favoritos: number[];
   q: string;
   ordenacao: OrdenacaoProdutos;
   categoriaSelecionada?: number;
@@ -63,7 +65,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     return { redirect: { destination: "/onboarding", permanent: false } };
   }
 
-  const [resultado, categorias] = await Promise.all([
+  const [resultado, categorias, favoritos] = await Promise.all([
     getProdutosFiltrados({
       ...(q ? { q } : {}),
       campus_id: resumo.instituicoes_id,
@@ -75,6 +77,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       offset: (pagina - 1) * POR_PAGINA,
     }, supabase),
     getCategoriasArvore(supabase),
+    getMeusFavoritosIds(supabase).catch(() => []),
   ]);
 
   return {
@@ -84,6 +87,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       pagina,
       categorias,
       campusNome: resumo.instituicao_nome,
+      favoritos,
       q,
       ordenacao,
       ...(categoriaSelecionada !== undefined && { categoriaSelecionada }),
@@ -97,6 +101,7 @@ export default function ListagemPage({
   produtos,
   categorias,
   campusNome,
+  favoritos,
   q,
   ordenacao,
   categoriaSelecionada,
@@ -169,6 +174,7 @@ export default function ListagemPage({
               key={produto.id}
               produto={produto}
               largura="fluida"
+              favoritado={favoritos.includes(produto.id)}
             />
           ))}
         </div>

@@ -3,11 +3,15 @@ import { useState } from "react";
 import { ChevronRight, Heart, ImageOff, Repeat, ShoppingBag } from "lucide-react";
 import SeloVerificado from "@/components/SeloVerificado";
 import { caminhoAnuncio } from "@/lib/compartilhar";
+import { definirFavorito } from "@/lib/queries";
 import type { ProdutoListagem } from "@/types";
 
 interface Props {
   produto: ProdutoListagem;
   largura?: "fixa" | "fluida";
+  favoritado?: boolean; // estado inicial (ids vindos de getMeusFavoritosIds na página)
+  podeFavoritar?: boolean; // false em anúncio de outro campus: o banco não aceita
+  onFavoritoAlterado?: (produtoId: number, favoritado: boolean) => void;
 }
 
 function formatarPreco(valor: number): string {
@@ -19,8 +23,15 @@ function formatarPreco(valor: number): string {
 }
 
 // O card leva à página do anúncio (/anuncio/{id}-{nome})
-export default function CardProduto({ produto, largura = "fixa" }: Props) {
-  const [favorito, setFavorito] = useState(false);
+export default function CardProduto({
+  produto,
+  largura = "fixa",
+  favoritado = false,
+  podeFavoritar = true,
+  onFavoritoAlterado,
+}: Props) {
+  const [favorito, setFavorito] = useState(favoritado);
+  const [salvando, setSalvando] = useState(false);
   const href = caminhoAnuncio(produto.id, produto.nome);
 
   const soTroca = produto.preco === 0;
@@ -28,11 +39,23 @@ export default function CardProduto({ produto, largura = "fixa" }: Props) {
 
   const larguraClasses = largura === "fluida" ? "w-full" : "w-48 sm:w-52 shrink-0 snap-start";
 
-  const handleFavoritar = (e: React.MouseEvent) => {
+  // Muda na hora e grava no banco; se o banco recusar, volta ao estado anterior
+  async function handleFavoritar(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    setFavorito(!favorito);
-  };
+    if (salvando) return;
+    const novo = !favorito;
+    setFavorito(novo);
+    setSalvando(true);
+    try {
+      await definirFavorito(produto.id, novo);
+      onFavoritoAlterado?.(produto.id, novo);
+    } catch {
+      setFavorito(!novo);
+    } finally {
+      setSalvando(false);
+    }
+  }
 
   return (
     <article
@@ -60,20 +83,23 @@ export default function CardProduto({ produto, largura = "fixa" }: Props) {
           </div>
         </Link>
 
-        <button
-          type="button"
-          onClick={handleFavoritar}
-          aria-label={favorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-          aria-pressed={favorito}
-          className="absolute top-2 right-2 w-11 h-11 rounded-pill bg-superficie/90 flex items-center justify-center text-tinta-suave hover:text-perigo transition z-10 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
-        >
-          <Heart
-            size={18}
-            strokeWidth={1.75}
-            aria-hidden="true"
-            className={favorito ? "fill-perigo text-perigo" : ""}
-          />
-        </button>
+        {podeFavoritar && (
+          <button
+            type="button"
+            onClick={handleFavoritar}
+            disabled={salvando}
+            aria-label={favorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+            aria-pressed={favorito}
+            className="absolute top-2 right-2 w-11 h-11 rounded-pill bg-superficie/90 flex items-center justify-center text-tinta-suave hover:text-perigo transition z-10 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+          >
+            <Heart
+              size={18}
+              strokeWidth={1.75}
+              aria-hidden="true"
+              className={favorito ? "fill-perigo text-perigo" : ""}
+            />
+          </button>
+        )}
       </div>
 
       <Link href={href} tabIndex={-1} className="px-3.5 pt-3 pb-3 flex-1 flex flex-col gap-1.5">

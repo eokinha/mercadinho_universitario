@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Head from "next/head";
-import { atualizarStatusProduto, deletarProduto, renovarProduto, toggleFavorito } from "@/lib/queries";
+import { atualizarStatusProduto, deletarProduto, renovarProduto } from "@/lib/queries";
 import { removerImagensProduto } from "@/lib/storage";
 import type { PainelProps } from "@/lib/painel-data";
 import { PAGINAS_PAINEL, type AbaPainel } from "@/lib/painel-routes";
@@ -85,14 +85,9 @@ export default function PainelEstudante({
     }
   }
 
-  // Remover de favoritos
-  async function handleRemoverFavorito(produtoId: number) {
-    try {
-      await toggleFavorito(loja.usuario_id, produtoId);
-      setFavoritos((prev) => prev.filter((p) => p.id !== produtoId));
-    } catch {
-      alert("Erro ao remover favorito.");
-    }
+  // O card já desmarcou no banco: só tira da lista
+  function handleFavoritoRemovido(produtoId: number) {
+    setFavoritos((prev) => prev.filter((p) => p.id !== produtoId));
   }
 
   return (
@@ -319,7 +314,7 @@ export default function PainelEstudante({
           {abaAtiva === "favoritos" && (
             <SecaoFavoritos
               favoritos={favoritos}
-              onRemover={handleRemoverFavorito}
+              onRemovido={handleFavoritoRemovido}
             />
           )}
 

@@ -16,7 +16,7 @@ import SeloVerificado from "@/components/SeloVerificado";
 import Head from "next/head";
 import type { GetServerSideProps } from "next";
 import { createServerClient } from "@/lib/supabase";
-import { getPerfilLeitura } from "@/lib/queries";
+import { getMeusFavoritosIds, getPerfilLeitura } from "@/lib/queries";
 import { handleRedeSocial } from "@/lib/validacoes";
 import CardProduto from "@/components/CardProduto";
 import BotaoContato from "@/components/BotaoContato";
@@ -30,6 +30,7 @@ interface Props {
   mesmoCampus: boolean;
   ehDono: boolean;
   codigoCompartilhamento: string | null;
+  favoritos: number[];
 }
 
 function formatarTempoPlataforma(dataString?: string): string {
@@ -62,18 +63,28 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const supabase = createServerClient(ctx);
 
   // Qualquer campus abre (link compartilhado); de outro campus a página fica só leitura
-  const resultado = await getPerfilLeitura(idOuSlug, supabase);
+  const [resultado, favoritos] = await Promise.all([
+    getPerfilLeitura(idOuSlug, supabase),
+    getMeusFavoritosIds(supabase).catch(() => []),
+  ]);
 
   if (!resultado) {
     return { notFound: true };
   }
 
   return {
-    props: resultado,
+    props: { ...resultado, favoritos },
   };
 };
 
-export default function PerfilPublicoPage({ perfil, produtos, mesmoCampus, ehDono, codigoCompartilhamento }: Props) {
+export default function PerfilPublicoPage({
+  perfil,
+  produtos,
+  mesmoCampus,
+  ehDono,
+  codigoCompartilhamento,
+  favoritos,
+}: Props) {
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "venda" | "troca">("todos");
   const [busca, setBusca] = useState("");
   const instagram = handleRedeSocial(perfil?.instagram_url);
@@ -293,7 +304,13 @@ export default function PerfilPublicoPage({ perfil, produtos, mesmoCampus, ehDon
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
                 {produtosFiltrados.map((produto) => (
-                  <CardProduto key={produto.id} produto={produto} largura="fluida" />
+                  <CardProduto
+                    key={produto.id}
+                    produto={produto}
+                    largura="fluida"
+                    favoritado={favoritos.includes(produto.id)}
+                    podeFavoritar={mesmoCampus}
+                  />
                 ))}
               </div>
             )}

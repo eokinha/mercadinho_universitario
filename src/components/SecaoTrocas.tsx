@@ -6,6 +6,7 @@ import type { ProdutoListagem } from "@/types";
 
 interface Props {
   produtos?: ProdutoListagem[];
+  favoritos?: number[];
   logado?: boolean;
 }
 
@@ -98,7 +99,7 @@ const ITENS_DEMO_TROCA: ProdutoListagem[] = [
   },
 ];
 
-export default function SecaoTrocas({ produtos = [], logado = false }: Props) {
+export default function SecaoTrocas({ produtos = [], favoritos = [], logado = false }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [filtroAtivo, setFiltroAtivo] = useState("todos");
 
@@ -251,7 +252,13 @@ export default function SecaoTrocas({ produtos = [], logado = false }: Props) {
 
           <div ref={scrollRef} className="flex gap-4 overflow-x-auto no-scrollbar scroll-smooth py-2 px-1 snap-x snap-mandatory">
             {itensFiltrados.map((produto) => (
-              <CardProduto key={produto.id} produto={produto} largura="fixa" />
+              <CardProduto
+                key={produto.id}
+                produto={produto}
+                largura="fixa"
+                favoritado={favoritos.includes(produto.id)}
+                podeFavoritar={produtos.some((p) => p.id === produto.id)}
+              />
             ))}
 
             <div className="w-48 sm:w-52 shrink-0 snap-start bg-troca-50 border-2 border-dashed border-troca rounded-card p-5 flex flex-col justify-center items-center text-center gap-2">

@@ -5,7 +5,7 @@ import CardProduto from "@/components/CardProduto";
 import HeroSection from "@/components/HeroSection";
 import SecaoTrocas from "@/components/SecaoTrocas";
 import { createServerClient } from "@/lib/supabase";
-import { getCategorias, getInstituicoes, getProdutosFiltrados, getResumoUsuarioNavbar } from "@/lib/queries";
+import { getCategorias, getInstituicoes, getMeusFavoritosIds, getProdutosFiltrados, getResumoUsuarioNavbar } from "@/lib/queries";
 import type { Categoria, ProdutoListagem } from "@/types";
 import { ChevronLeft, ChevronRight, GraduationCap, MailCheck, ShieldCheck, ShoppingBag } from "lucide-react";
 
@@ -16,6 +16,7 @@ interface Props {
   logado: boolean;
   campusNome: string | null;
   faculdades: string[];
+  favoritos: number[];
 }
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
@@ -37,6 +38,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
         logado: false,
         campusNome: null,
         faculdades: instituicoes.filter((i) => (i.dominios ?? []).length > 0).map((i) => i.nome),
+        favoritos: [],
       },
     };
   }
@@ -44,11 +46,12 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const resumo = await getResumoUsuarioNavbar(supabase).catch(() => null);
   const campus_id = resumo?.instituicoes_id ?? undefined;
 
-  const [produtos, produtosTroca] = await Promise.all([
+  const [produtos, produtosTroca, favoritos] = await Promise.all([
     getProdutosFiltrados({ apenasDestaque: true, ...(campus_id && { campus_id }) }, supabase).catch(() => []),
     getProdutosFiltrados({ ordenar: "recentes", apenasTroca: true, ...(campus_id && { campus_id }) }, supabase).catch(
       () => []
     ),
+    getMeusFavoritosIds(supabase).catch(() => []),
   ]);
 
   return {
@@ -59,6 +62,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       logado: true,
       campusNome: resumo?.instituicao_nome ?? null,
       faculdades: [],
+      favoritos,
     },
   };
 };
@@ -133,7 +137,7 @@ function ApresentacaoVisitante({ faculdades }: { faculdades: string[] }) {
   );
 }
 
-export default function Home({ produtos, produtosTroca, categorias, logado, campusNome, faculdades }: Props) {
+export default function Home({ produtos, produtosTroca, categorias, logado, campusNome, faculdades, favoritos }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const rolarProdutos = (direcao: "esq" | "dir") => {
@@ -233,6 +237,7 @@ export default function Home({ produtos, produtosTroca, categorias, logado, camp
                     key={produto.id}
                     produto={produto}
                     largura="fixa"
+                    favoritado={favoritos.includes(produto.id)}
                   />
                 ))}
               </div>
@@ -253,6 +258,7 @@ export default function Home({ produtos, produtosTroca, categorias, logado, camp
       {/* Seção dedicada: Feira de Trocas Universitária */}
       <SecaoTrocas
         produtos={produtosTroca}
+        favoritos={favoritos}
         logado={logado}
       />
     </>

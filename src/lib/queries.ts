@@ -285,27 +285,29 @@ export async function getResumoAnuncioCompartilhado(
   return { ...resumo, preco: Number(resumo.preco) };
 }
 
-export async function toggleFavorito(usuarioId: number, produtoId: number, client: SupabaseClient = defaultClient): Promise<boolean> {
-  try {
-    const { data, error } = await client
-      .from("favoritos")
-      .select("id")
-      .eq("usuario_id", usuarioId)
-      .eq("produto_id", produtoId)
-      .maybeSingle();
+// Ids dos anúncios favoritados pelo aluno logado (a RLS de favoritos só devolve as linhas dele)
+export async function getMeusFavoritosIds(client: SupabaseClient = defaultClient): Promise<number[]> {
+  const { data, error } = await client.from("favoritos").select("produto_id");
+  if (error) throw error;
+  return (data ?? []).map((f) => f.produto_id as number);
+}
 
-    if (error) return false;
-
-    if (data) {
-      await client.from("favoritos").delete().eq("id", data.id);
-      return false;
-    } else {
-      await client.from("favoritos").insert({ usuario_id: usuarioId, produto_id: produtoId });
-      return true;
-    }
-  } catch {
-    return false;
+// Marca ou desmarca um favorito. O banco só aceita anúncio do mesmo campus (política de favoritos).
+export async function definirFavorito(
+  produtoId: number,
+  favoritar: boolean,
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  if (!favoritar) {
+    const { error } = await client.from("favoritos").delete().eq("produto_id", produtoId);
+    if (error) throw error;
+    return;
   }
+  const usuario = await getMeuUsuario(client);
+  if (!usuario) throw new Error("Faça login para favoritar.");
+  const { error } = await client.from("favoritos").insert({ usuario_id: usuario.id, produto_id: produtoId });
+  // 23505: já estava nos favoritos (outra aba, duplo clique)
+  if (error && error.code !== "23505") throw error;
 }
 
 export async function getFavoritos(usuarioId: number, client: SupabaseClient = defaultClient): Promise<number[]> {
