@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   excluirMinhaConta,
+  solicitarTrocaEmail,
   solicitarVerificacaoMatricula,
   updateLoja,
   verificarMatriculaInstantanea,
@@ -10,12 +11,14 @@ import { normalizarTelefone } from "@/lib/contato";
 import { removerImagensDaConta, uploadImagemLoja } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import SeloVerificado from "@/components/SeloVerificado";
-import { LIMITES_TEXTO, validarEmailUniversitario } from "@/lib/validacoes";
+import { instituicaoDoEmail, LIMITES_TEXTO, validarEmail } from "@/lib/validacoes";
 import type { Instituicao, Loja, Usuario } from "@/types";
 import {
   Check,
   CircleCheck,
   Clock,
+  GraduationCap,
+  Mail,
   Plus,
   ShieldCheck,
   Trash2,
@@ -57,16 +60,72 @@ export default function SecaoPerfil({
   const [excluindoConta, setExcluindoConta] = useState(false);
   const [erroExclusao, setErroExclusao] = useState<string | null>(null);
   const [matriculaInput, setMatriculaInput] = useState(usuario?.matricula || "");
-  const [instituicaoSelecionada, setInstituicaoSelecionada] = useState<number | "">(
-    usuario?.instituicoes_id || ""
-  );
   const [verificandoInstantaneo, setVerificandoInstantaneo] = useState(false);
   const [enviandoMatricula, setEnviandoMatricula] = useState(false);
   const [mensagemVerificacao, setMensagemVerificacao] = useState<{ tipo: "sucesso" | "erro"; texto: string } | null>(null);
 
-  const emailEhUniversitario = useMemo(() => {
-    return validarEmailUniversitario(userEmail || usuario?.email || "");
-  }, [userEmail, usuario?.email]);
+  const emailAtual = userEmail || usuario?.email || "";
+  const emailEhUniversitario = useMemo(
+    () => instituicaoDoEmail(emailAtual, instituicoes) !== null,
+    [emailAtual, instituicoes]
+  );
+  const campusAtual = instituicoes.find((i) => i.id === usuario?.instituicoes_id) ?? null;
+
+  // Troca de e-mail = troca de campus (o banco recalcula na confirmação e pausa os anúncios)
+  const [novoEmail, setNovoEmail] = useState("");
+  const [trocandoEmail, setTrocandoEmail] = useState(false);
+  const [mensagemEmail, setMensagemEmail] = useState<{ tipo: "sucesso" | "erro"; texto: string } | null>(null);
+  const campusNovoEmail = instituicaoDoEmail(novoEmail, instituicoes);
+
+  async function handleTrocarEmail(e: React.FormEvent) {
+    e.preventDefault();
+    setMensagemEmail(null);
+    const email = novoEmail.trim().toLowerCase();
+    if (!validarEmail(email)) {
+      setMensagemEmail({ tipo: "erro", texto: "Informe um e-mail válido." });
+      return;
+    }
+    if (email === emailAtual.toLowerCase()) {
+      setMensagemEmail({ tipo: "erro", texto: "Esse já é o seu e-mail." });
+      return;
+    }
+    if (!campusNovoEmail) {
+      setMensagemEmail({ tipo: "erro", texto: "Esse e-mail não é de uma faculdade participante do Circular." });
+      return;
+    }
+    const mudaCampus = campusNovoEmail.id !== usuario?.instituicoes_id;
+    if (
+      mudaCampus &&
+      !window.confirm(
+        `Seu campus vai mudar para ${campusNovoEmail.nome} depois que você confirmar o novo e-mail. ` +
+          "Seus anúncios ativos serão pausados para você revisar. Continuar?"
+      )
+    ) {
+      return;
+    }
+
+    setTrocandoEmail(true);
+    try {
+      await solicitarTrocaEmail(email);
+      setNovoEmail("");
+      setMensagemEmail({
+        tipo: "sucesso",
+        texto: `Enviamos um link de confirmação para ${email}. A troca só vale depois que você clicar nele.`,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message.toLowerCase() : "";
+      setMensagemEmail({
+        tipo: "erro",
+        texto: msg.includes("already")
+          ? "Esse e-mail já está em uso por outra conta."
+          : msg.includes("database error")
+            ? "Esse e-mail não é de uma faculdade participante do Circular."
+            : "Não foi possível pedir a troca agora. Tente de novo em alguns minutos.",
+      });
+    } finally {
+      setTrocandoEmail(false);
+    }
+  }
 
   // Estados de edição de perfil
   const [nome, setNome] = useState(loja.nome);
@@ -110,10 +169,7 @@ export default function SecaoPerfil({
     setEnviandoMatricula(true);
     setMensagemVerificacao(null);
     try {
-      await solicitarVerificacaoMatricula(usuario.id, {
-        matricula: matriculaInput,
-        instituicoes_id: instituicaoSelecionada ? Number(instituicaoSelecionada) : undefined,
-      });
+      await solicitarVerificacaoMatricula(usuario.id, matriculaInput);
       onMatriculaStatus("pendente");
       setMensagemVerificacao({
         tipo: "sucesso",
@@ -473,24 +529,6 @@ export default function SecaoPerfil({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-semibold text-tinta mb-1">
-                      Sua faculdade ou campus
-                    </label>
-                    <select
-                      value={instituicaoSelecionada}
-                      onChange={(e) => setInstituicaoSelecionada(e.target.value ? Number(e.target.value) : "")}
-                      className="w-full text-sm px-3 py-2 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 bg-superficie"
-                    >
-                      <option value="">Selecione sua instituição...</option>
-                      {instituicoes.map((inst) => (
-                        <option key={inst.id} value={inst.id}>
-                          {inst.nome}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-tinta mb-1">
                       Número da matrícula *
                     </label>
                     <input
@@ -518,6 +556,70 @@ export default function SecaoPerfil({
             </div>
           </div>
         )}
+      </div>
+
+      <div id="trocar-email" className="mt-8 pt-6 border-t border-borda scroll-mt-32">
+        <div className="flex items-center gap-2">
+          <Mail size={20} strokeWidth={1.75} className="text-petroleo" aria-hidden="true" />
+          <h3 className="text-base font-bold text-petroleo">E-mail e campus</h3>
+        </div>
+        <p className="text-sm text-tinta-suave mt-1">
+          {campusAtual ? (
+            <>
+              Seu campus é <strong className="text-tinta">{campusAtual.nome}</strong>, definido pelo e-mail {emailAtual}.
+            </>
+          ) : (
+            <>Seu e-mail atual ({emailAtual}) não é de uma faculdade participante.</>
+          )}{" "}
+          Mudou de faculdade? Troque o e-mail e você passa a ver os anúncios do novo campus.
+        </p>
+
+        {mensagemEmail && (
+          <p
+            role={mensagemEmail.tipo === "erro" ? "alert" : "status"}
+            className={`mt-3 p-3 rounded-card text-sm ${
+              mensagemEmail.tipo === "sucesso" ? "bg-troca-50 text-troca-texto" : "bg-perigo-50 text-perigo"
+            }`}
+          >
+            {mensagemEmail.texto}
+          </p>
+        )}
+
+        <form onSubmit={handleTrocarEmail} className="mt-3 flex flex-col sm:flex-row gap-3 sm:items-start">
+          <div className="flex-1">
+            <label htmlFor="novo-email" className="sr-only">
+              Novo e-mail da faculdade
+            </label>
+            <input
+              id="novo-email"
+              type="email"
+              value={novoEmail}
+              onChange={(e) => setNovoEmail(e.target.value)}
+              placeholder="novo@aluno.suafaculdade.br"
+              aria-describedby="campus-novo-email"
+              className="w-full text-sm px-3 py-2 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 bg-superficie"
+            />
+            {novoEmail.includes("@") && (
+              <p id="campus-novo-email" aria-live="polite" className="text-xs text-tinta-suave mt-1 flex items-center gap-1">
+                <GraduationCap size={14} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
+                {campusNovoEmail ? (
+                  <>
+                    Novo campus: <strong className="text-petroleo">{campusNovoEmail.nome}</strong>
+                  </>
+                ) : (
+                  "Domínio fora das faculdades participantes"
+                )}
+              </p>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={trocandoEmail || !novoEmail.trim()}
+            className="bg-superficie text-petroleo border border-borda-controle hover:border-petroleo text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-controle transition disabled:opacity-50 shrink-0 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+          >
+            {trocandoEmail ? "Enviando…" : "Trocar e-mail"}
+          </button>
+        </form>
       </div>
 
       <div className="mt-8 pt-6 border-t border-borda">

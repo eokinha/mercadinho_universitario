@@ -83,8 +83,8 @@ export default function HeroSection({ categorias = [], logado = false }: Props) 
     .map((c) => ({ id: c.id, nome: c.nome, Icone: iconeParaCategoria(c.nome) }));
 
   const slide = SLIDES[slideAtual];
-  // Visitante que clica em "Anunciar" vai para o cadastro
-  const ctaHref = slide.cta.href === "/anunciar" && !logado ? "/cadastro" : slide.cta.href;
+  // Visitante não vê catálogo nem anuncia: toda chamada leva ao cadastro
+  const ctaHref = logado ? slide.cta.href : "/cadastro";
 
   return (
     <div className="w-full bg-pagina pb-4">

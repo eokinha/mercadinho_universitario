@@ -9,13 +9,11 @@ import ModalProduto from "@/components/ModalProduto";
 import { createServerClient } from "@/lib/supabase";
 import {
   getCategoriasArvore,
-  getInstituicoes,
-  getMeuUsuario,
   getProdutosFiltrados,
+  getResumoUsuarioNavbar,
 } from "@/lib/queries";
 import type {
   CategoriaComFilhos,
-  Instituicao,
   OrdenacaoProdutos,
   ProdutoListagem,
 } from "@/types";
@@ -23,10 +21,9 @@ import type {
 interface Props {
   produtos: ProdutoListagem[];
   categorias: CategoriaComFilhos[];
-  instituicoes: Instituicao[];
+  campusNome: string | null;
   q: string;
   ordenacao: OrdenacaoProdutos;
-  instituicaoSelecionada?: number;
   categoriaSelecionada?: number;
   pagina: number;
   temMais: boolean;
@@ -62,19 +59,16 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 
   const supabase = createServerClient(ctx);
 
-  // Sem filtro na URL, abre no campus do aluno logado; "todas" mostra todos os campi
-  let instituicaoSelecionada = parseId(ctx.query.instituicao);
-  if (ctx.query.instituicao === undefined) {
-    const usuario = await getMeuUsuario(supabase).catch(() => null);
-    instituicaoSelecionada = usuario?.instituicoes_id ? Number(usuario.instituicoes_id) : undefined;
+  // Sempre o campus do aluno (vem do e-mail; a RLS também restringe). Sem filtro de campus.
+  const resumo = await getResumoUsuarioNavbar(supabase);
+  if (!resumo?.instituicoes_id) {
+    return { redirect: { destination: "/onboarding", permanent: false } };
   }
 
-  const [resultado, categorias, instituicoes] = await Promise.all([
+  const [resultado, categorias] = await Promise.all([
     getProdutosFiltrados({
       ...(q ? { q } : {}),
-      ...(instituicaoSelecionada !== undefined && {
-        instituicao_id: instituicaoSelecionada,
-      }),
+      campus_id: resumo.instituicoes_id,
       ...(categoriaSelecionada !== undefined && {
         categoria_id: categoriaSelecionada,
       }),
@@ -83,7 +77,6 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       offset: (pagina - 1) * POR_PAGINA,
     }, supabase),
     getCategoriasArvore(supabase),
-    getInstituicoes(supabase),
   ]);
 
   return {
@@ -92,24 +85,22 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       temMais: resultado.length > POR_PAGINA,
       pagina,
       categorias,
-      instituicoes,
+      campusNome: resumo.instituicao_nome,
       q,
       ordenacao,
-      ...(instituicaoSelecionada !== undefined && { instituicaoSelecionada }),
       ...(categoriaSelecionada !== undefined && { categoriaSelecionada }),
     },
   };
 };
 
-type Chave = "q" | "instituicao" | "categoria" | "ordenar" | "pagina";
+type Chave = "q" | "categoria" | "ordenar" | "pagina";
 
 export default function ListagemPage({
   produtos,
   categorias,
-  instituicoes,
+  campusNome,
   q,
   ordenacao,
-  instituicaoSelecionada,
   categoriaSelecionada,
   pagina,
   temMais,
@@ -123,13 +114,6 @@ export default function ListagemPage({
     const params = new URLSearchParams();
 
     const novoQ = chave === "q" ? valor : q;
-    // Instituição sempre explícita na URL, senão a página volta ao campus do aluno
-    const novaInstituicao =
-      (chave === "instituicao"
-        ? valor
-        : instituicaoSelecionada !== undefined
-          ? String(instituicaoSelecionada)
-          : undefined) ?? "todas";
     const novaCategoria =
       chave === "categoria"
         ? valor
@@ -140,7 +124,6 @@ export default function ListagemPage({
       chave === "ordenar" ? valor : ordenacao !== "recentes" ? ordenacao : undefined;
 
     if (novoQ) params.set("q", novoQ);
-    if (novaInstituicao) params.set("instituicao", novaInstituicao);
     if (novaCategoria) params.set("categoria", novaCategoria);
     if (novaOrdenacao) params.set("ordenar", novaOrdenacao);
     // Mudar qualquer filtro volta para a primeira página
@@ -157,27 +140,20 @@ export default function ListagemPage({
     <div className="max-w-6xl mx-auto px-4 py-8">
       <header className="mb-6">
         <h1 className="text-petroleo text-2xl font-bold">
-          Todos os produtos
+          {campusNome ? `Anúncios na ${campusNome}` : "Anúncios do seu campus"}
         </h1>
         <p className="text-tinta-suave mt-1">
-          Filtre por instituição, categoria ou ordene como preferir.
+          Só alunos da sua faculdade. Filtre por categoria ou ordene como preferir.
         </p>
       </header>
 
       <div className="mb-6">
         <FiltroBarProdutos
-          instituicoes={instituicoes}
           categorias={categorias}
           q={q}
-          {...(instituicaoSelecionada !== undefined && {
-            instituicaoSelecionada,
-          })}
           {...(categoriaSelecionada !== undefined && { categoriaSelecionada })}
           ordenacao={ordenacao}
           onAplicarBusca={(novo) => aplicarFiltro("q", novo || undefined)}
-          onFiltroInstituicao={(id) =>
-            aplicarFiltro("instituicao", id ? String(id) : undefined)
-          }
           onFiltroCategoria={(id) =>
             aplicarFiltro("categoria", id ? String(id) : undefined)
           }

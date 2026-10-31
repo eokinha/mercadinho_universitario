@@ -2,6 +2,7 @@
 // texto livre na URL permitia forjar avisos ("sua conta foi suspensa, ligue para...").
 export const AVISOS_LOGIN = {
   contato: "Entre na sua conta para falar com o vendedor.",
+  catalogo: "Entre com o e-mail da sua faculdade para ver os anúncios do seu campus.",
   denuncia: "Entre na sua conta para enviar a denúncia.",
   painel: "Faça login para acessar seu painel.",
   anunciar: "Faça login para anunciar um desapego ou troca.",

@@ -6,43 +6,50 @@ import HeroSection from "@/components/HeroSection";
 import ModalProduto from "@/components/ModalProduto";
 import SecaoTrocas from "@/components/SecaoTrocas";
 import { createServerClient } from "@/lib/supabase";
-import { getCategorias, getProdutosFiltrados } from "@/lib/queries";
+import { getCategorias, getInstituicoes, getProdutosFiltrados, getResumoUsuarioNavbar } from "@/lib/queries";
 import type { Categoria, ProdutoListagem } from "@/types";
-import { ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
+import { ChevronLeft, ChevronRight, GraduationCap, MailCheck, ShieldCheck, ShoppingBag } from "lucide-react";
 
 interface Props {
   produtos: ProdutoListagem[];
   produtosTroca: ProdutoListagem[];
   categorias: Categoria[];
   logado: boolean;
+  campusNome: string | null;
+  faculdades: string[];
 }
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const supabase = createServerClient(ctx);
-  const instituicaoParam = ctx.query.instituicao;
-  const instituicaoId =
-    typeof instituicaoParam === "string" && /^\d+$/.test(instituicaoParam)
-      ? Number(instituicaoParam)
-      : undefined;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const [produtos, produtosTroca, categorias, { data: { user } }] = await Promise.all([
-    getProdutosFiltrados(
-      {
-        apenasDestaque: true,
-        ...(instituicaoId ? { instituicao_id: instituicaoId } : {}),
+  const categorias = await getCategorias(supabase).catch(() => []);
+
+  // Visitante não vê catálogo (migração 19): só a apresentação e as faculdades participantes
+  if (!user) {
+    const instituicoes = await getInstituicoes(supabase).catch(() => []);
+    return {
+      props: {
+        produtos: [],
+        produtosTroca: [],
+        categorias,
+        logado: false,
+        campusNome: null,
+        faculdades: instituicoes.filter((i) => (i.dominios ?? []).length > 0).map((i) => i.nome),
       },
-      supabase
-    ).catch(() => []),
-    getProdutosFiltrados(
-      {
-        ordenar: "recentes",
-        apenasTroca: true,
-        ...(instituicaoId ? { instituicao_id: instituicaoId } : {}),
-      },
-      supabase
-    ).catch(() => []),
-    getCategorias(supabase).catch(() => []),
-    supabase.auth.getUser(),
+    };
+  }
+
+  const resumo = await getResumoUsuarioNavbar(supabase).catch(() => null);
+  const campus_id = resumo?.instituicoes_id ?? undefined;
+
+  const [produtos, produtosTroca] = await Promise.all([
+    getProdutosFiltrados({ apenasDestaque: true, ...(campus_id && { campus_id }) }, supabase).catch(() => []),
+    getProdutosFiltrados({ ordenar: "recentes", apenasTroca: true, ...(campus_id && { campus_id }) }, supabase).catch(
+      () => []
+    ),
   ]);
 
   return {
@@ -50,12 +57,84 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       produtos,
       produtosTroca,
       categorias,
-      logado: Boolean(user),
+      logado: true,
+      campusNome: resumo?.instituicao_nome ?? null,
+      faculdades: [],
     },
   };
 };
 
-export default function Home({ produtos, produtosTroca, categorias, logado }: Props) {
+const PASSOS = [
+  {
+    Icone: MailCheck,
+    titulo: "Cadastre-se com o e-mail da faculdade",
+    texto: "O domínio do seu e-mail define o seu campus. Nada de escolher: você entra direto na sua faculdade.",
+  },
+  {
+    Icone: GraduationCap,
+    titulo: "Veja só quem estuda com você",
+    texto: "O catálogo mostra os anúncios dos colegas do seu campus, com encontro nos lugares que você já frequenta.",
+  },
+  {
+    Icone: ShieldCheck,
+    titulo: "Negocie com aluno verificado",
+    texto: "Só alunos com matrícula confirmada anunciam. O contato é pelo WhatsApp, direto com o colega.",
+  },
+];
+
+function ApresentacaoVisitante({ faculdades }: { faculdades: string[] }) {
+  return (
+    <section className="py-10">
+      <div className="max-w-6xl mx-auto px-4">
+        <h2 className="text-petroleo text-xl sm:text-2xl font-bold tracking-tight">Como funciona</h2>
+        <ol className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {PASSOS.map(({ Icone, titulo, texto }) => (
+            <li key={titulo} className="bg-superficie border border-borda rounded-card p-5">
+              <Icone size={20} strokeWidth={1.75} className="text-petroleo" aria-hidden="true" />
+              <h3 className="text-tinta font-semibold mt-3">{titulo}</h3>
+              <p className="text-tinta-suave text-sm mt-1 leading-relaxed">{texto}</p>
+            </li>
+          ))}
+        </ol>
+
+        {faculdades.length > 0 && (
+          <div className="mt-8 bg-superficie border border-borda rounded-card p-5">
+            <h2 className="text-petroleo font-bold">Faculdades no Circular</h2>
+            <p className="text-tinta-suave text-sm mt-1">Use o e-mail institucional de uma delas para entrar.</p>
+            <ul className="mt-4 flex flex-wrap gap-2">
+              {faculdades.map((nome) => (
+                <li
+                  key={nome}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-petroleo-50 text-petroleo rounded-pill"
+                >
+                  <GraduationCap size={14} strokeWidth={1.75} aria-hidden="true" />
+                  {nome}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href="/cadastro"
+            className="w-full sm:w-auto bg-acao text-white rounded-controle hover:bg-acao-hover transition px-5 py-2.5 min-h-[44px] inline-flex items-center justify-center text-sm font-semibold focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+          >
+            Criar conta com e-mail da faculdade
+          </Link>
+          <Link
+            href="/login"
+            className="w-full sm:w-auto bg-superficie text-petroleo border border-borda-controle hover:border-petroleo rounded-controle transition px-5 py-2.5 min-h-[44px] inline-flex items-center justify-center text-sm font-semibold focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+          >
+            Já tenho conta
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default function Home({ produtos, produtosTroca, categorias, logado, campusNome, faculdades }: Props) {
   const [produtoAtivo, setProdutoAtivo] = useState<ProdutoListagem | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -66,6 +145,15 @@ export default function Home({ produtos, produtosTroca, categorias, logado }: Pr
     }
   };
 
+  if (!logado) {
+    return (
+      <>
+        <HeroSection categorias={categorias} logado={false} />
+        <ApresentacaoVisitante faculdades={faculdades} />
+      </>
+    );
+  }
+
   return (
     <>
       <HeroSection categorias={categorias} logado={logado} />
@@ -75,7 +163,7 @@ export default function Home({ produtos, produtosTroca, categorias, logado }: Pr
           <div className="flex items-baseline justify-between">
             <div>
               <h2 className="text-petroleo text-xl sm:text-2xl font-bold tracking-tight">
-                Impulsionados no seu campus
+                {campusNome ? `Impulsionados na ${campusNome}` : "Impulsionados no seu campus"}
               </h2>
               <p className="text-tinta-suave text-sm mt-0.5">
                 Anúncios em destaque de alunos verificados.

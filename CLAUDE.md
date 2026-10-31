@@ -106,9 +106,10 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `18`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `19`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`; a `18` é o endurecimento
-pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limites e URLs de imagem).
+pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limites e URLs de imagem);
+a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo).
 
 ### Segurança (RLS e triggers)
 
@@ -125,17 +126,22 @@ pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limi
 - **Telefone da loja** (`lojas.contato`, `lojas.whatsapp`) não é legível por `select` (nem pelo dono).
   Dono lê pela RPC `minha_loja()`; comprador logado pela RPC `contato_vendedor()`. Não incluir essas colunas em selects.
 - Para filtrar o próprio usuário use `auth_id` (nunca `email`).
-- Políticas usam os helpers `meu_usuario_id()`, `usuario_publico()` e `is_admin()`
+- Políticas usam os helpers `meu_usuario_id()`, `meu_campus_id()`, `campus_do_usuario()`, `campus_da_loja()`,
+  `campus_do_produto()`, `usuario_publico()` e `is_admin()`
   (SECURITY DEFINER) — não referenciar `usuarios` ↔ `lojas` direto em políticas (causa recursão).
   Políticas que usam `meu_usuario_id()`/`is_admin()` são `TO authenticated` (`anon` não executa esses helpers).
 - Dono da loja só tem `SELECT`/`UPDATE` na própria loja; a loja nasce só no trigger de signup.
-- Catálogo (RLS): produto `ativo`, loja `ativo` e `renovado_em` nos últimos 60 dias
-  (espelho: `DIAS_VALIDADE_ANUNCIO` em `src/lib/anuncios.ts` — mudar os dois juntos). Queries de catálogo filtram isso explicitamente.
+- Catálogo (RLS): só `authenticated` e só o próprio campus (`campus_da_loja(loja_id) = meu_campus_id()`);
+  `anon` não tem `SELECT` em `produtos`, `lojas` nem `usuarios`. Produto `ativo`, loja `ativo` e `renovado_em` nos últimos 60 dias
+  (espelho: `DIAS_VALIDADE_ANUNCIO` em `src/lib/anuncios.ts` — mudar os dois juntos). Queries de catálogo filtram isso explicitamente
+  (e `getProdutosFiltrados` recebe `campus_id`, porque o admin lê tudo pela política de admin).
 - Triggers:
-  - `handle_new_user` (signup): cria `usuarios` + loja `ativo` (slug `aluno-{id}`) e grava `termos_aceitos_em`;
-    se já existe linha com o e-mail, só vincula `auth_id`
-  - `proteger_colunas_usuarios`: usuário não altera `is_admin`, `auth_id`, `email`, `status`, `termos_aceitos_em`,
-    nem se marca como verificado (só pode voltar `matricula_status` para `pendente`); verificado não muda `instituicoes_id` nem `matricula`
+  - `handle_new_user` (signup): recusa domínio fora de `instituicoes.dominios`; cria `usuarios` com o campus do domínio
+    + loja `ativo` (slug `aluno-{id}`) e grava `termos_aceitos_em`; se já existe linha com o e-mail, só vincula `auth_id`
+  - `proteger_colunas_usuarios`: usuário não altera `is_admin`, `auth_id`, `email`, `status`, `termos_aceitos_em`, `instituicoes_id`,
+    nem se marca como verificado (só pode voltar `matricula_status` para `pendente`); verificado não muda `matricula`
+  - `on_auth_email_change_requested` (auth.users): pedido de troca de e-mail só para domínio cadastrado
+  - `on_auth_email_changed` (auth.users): e-mail confirmado sincroniza `usuarios.email` e o campus; mudou de campus, pausa os anúncios
   - `pausar_anuncios_sem_verificacao`: perder `matricula_validada` pausa os anúncios ativos
   - `proteger_status_loja`: dono só alterna `ativo ↔ pausado`, não muda `slug`/`usuario_id`, não apaga o WhatsApp com anúncio ativo
   - `exigir_vendedor_verificado`: publicar/reativar exige verificado, conta `ativo` e WhatsApp na loja; vendedor não altera `destaque`;
@@ -143,18 +149,19 @@ pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limi
 - RPCs (SECURITY DEFINER), expostas em `queries.ts`:
   - `meu_usuario()` → `getMeuUsuario` (dados completos do usuário logado); `minha_loja()` → `getMinhaLoja`
   - `verificar_matricula_por_email(p_matricula)` → `verificarMatriculaInstantanea`
-    (usa o e-mail confirmado do Auth; a instituição vem de `instituicao_por_email()`, que casa o domínio com `instituicoes.dominios`.
-    `validarEmailUniversitario` no cliente filtra o cadastro: ao cadastrar instituição com domínio fora de `.edu`/`.edu.br`,
-    incluir o domínio em `DOMINIOS_ACADEMICOS`, senão o aluno não consegue nem criar a conta)
-  - `contato_vendedor(p_loja_id, p_produto_id)` → `getContatoVendedor` (exige login e conta `ativo`; registra em `interesses`;
+    (usa o e-mail confirmado do Auth; a instituição vem de `instituicao_por_email()`, que casa o domínio com `instituicoes.dominios`;
+    espelho no cliente: `instituicaoDoEmail`/`validarEmailUniversitario` em `src/lib/validacoes.ts`, que recebem a lista do banco)
+  - `contato_vendedor(p_loja_id, p_produto_id)` → `getContatoVendedor` (exige login, conta `ativo` e o mesmo campus; registra em `interesses`;
     anti-raspagem: até 30 vendedores diferentes por 24h — erros `PT403`/`PT429` exibidos pelo `BotaoContato`)
+  - `perfil_leitura(p_id_ou_slug)` → `getPerfilLeitura` (exige login; perfil + anúncios de qualquer campus, um por vez;
+    `mesmo_campus = false` deixa `/perfil/[id]` só leitura)
   - `is_admin()` → usado pelo middleware para liberar `/admin`
   - `denunciar(...)` → `denunciar` (exige login; máx. 10 por dia) · `excluir_minha_conta()` → `excluirMinhaConta`
   - `admin_listar_usuarios()` / `admin_moderar_matricula(p_usuario_id, p_status)` / `admin_definir_status_usuario(p_usuario_id, p_status)`
   - `admin_listar_lojas()` / `admin_moderar_loja(p_loja_id, p_status)` / `admin_definir_destaque(p_produto_id, p_destaque)`
   - `admin_listar_denuncias()` / `admin_resolver_denuncia(p_denuncia_id, p_status)` — todas as `admin_*` exigem `is_admin()`
-- Cadastro só com e-mail acadêmico também no banco: `handle_new_user` rejeita o signup se
-  `email_cadastro_permitido()` falhar (espelho de `validarEmailUniversitario` + `instituicoes.dominios`).
+- Cadastro só com e-mail de faculdade participante também no banco: `handle_new_user` rejeita o signup se
+  `email_cadastro_permitido()` falhar (= domínio em `instituicoes.dominios`; espelho de `validarEmailUniversitario`).
 - Limites de texto/formato são `CHECK` no banco, espelhados em `LIMITES_TEXTO` (`src/lib/validacoes.ts`) como `maxLength`.
   `instagram_url`/`tiktok_url` guardam só o @; links de rede social só via `handleRedeSocial`.
 - `avatar_url`, `capa_url` e `imagem_url` só aceitam URL do Storage do próprio projeto, na pasta da própria
@@ -181,19 +188,27 @@ pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limi
 ## Regras de negócio
 
 ### Atores
-- **Visitante** — navega pelo catálogo; precisa de login para contatar, favoritar, denunciar ou anunciar
+- **Visitante** — vê só a home de apresentação (como funciona + faculdades participantes); catálogo exige login
 - **Estudante** — usuário cadastrado; ganha uma loja (perfil vendedor) no cadastro
 - **Vendedor** — estudante com `matricula_validada = true`, conta `ativo` e WhatsApp no perfil; pode publicar anúncios
 - **Administrador** — valida matrículas, bloqueia alunos, modera lojas e denúncias, define impulsionados e gerencia imagens
 
 ### Acesso
-- Catálogo (`/listagem`, `/lojas/*`, `/perfil/*`) é público
+- Catálogo (`/listagem`, `/lojas/*`, `/perfil/*`) exige login (middleware leva ao `/login?aviso=catalogo&next=…`)
 - `/minha-loja`, `/painel`, `/anunciar` exigem login; `/admin` exige `is_admin`
 - Anunciar exige matrícula validada (checado na página e no banco)
 - Cadastro exige aceitar Termos de Uso e Política de Privacidade; o aluno pode excluir a conta no painel (Perfil)
-- Matrícula verificada automaticamente só se o domínio do e-mail confirmado estiver em `instituicoes.dominios`
-  (a instituição vem do domínio); senão, verificação manual pelo admin
-- Listagem abre filtrada no campus do aluno logado (`?instituicao=todas` mostra todos)
+- Matrícula verificada automaticamente pelo e-mail confirmado (o domínio está em `instituicoes.dominios`);
+  a análise manual pelo admin continua para quem envia a matrícula
+
+### Campus
+- Cada aluno fica no campus do próprio e-mail: o domínio define `usuarios.instituicoes_id` no cadastro, sem seletor nem filtro
+- Cadastro só com domínio de faculdade participante; para abrir uma faculdade nova, cadastrar a instituição com os `dominios`
+- Home, listagem e busca mostram só o campus do aluno; a Navbar exibe o campus fixo
+- Perfil de outro campus (link compartilhado) abre só leitura: sem WhatsApp nem favoritar; denunciar continua liberado
+- Trocar de campus = trocar o e-mail no painel (Perfil → E-mail e campus); confirmado o novo e-mail
+  (template `db/emails/trocar-email.html`), o campus muda e os anúncios ativos são pausados
+- Conta antiga com domínio desconhecido mantém o campus que tinha; sem campus, o onboarding pede a troca de e-mail
 
 ### Lojas
 - **Uma loja por estudante** (`lojas.usuario_id` UNIQUE) — funciona como perfil de vendedor

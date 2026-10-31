@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Repeat, X } from "lucide-react";
+import { Eye, Repeat, X } from "lucide-react";
 import SeloVerificado from "@/components/SeloVerificado";
 import BotaoContato from "@/components/BotaoContato";
 import BotaoDenunciar from "@/components/BotaoDenunciar";
@@ -9,6 +9,8 @@ import type { ProdutoListagem } from "@/types";
 interface Props {
   produto: ProdutoListagem | null;
   onFechar: () => void;
+  // Anúncio de outro campus: dá para ver, mas não contatar (contato_vendedor também barra)
+  somenteLeitura?: boolean;
 }
 
 function formatarPreco(valor: number): string {
@@ -18,7 +20,7 @@ function formatarPreco(valor: number): string {
   }).format(valor);
 }
 
-export default function ModalProduto({ produto, onFechar }: Props) {
+export default function ModalProduto({ produto, onFechar, somenteLeitura = false }: Props) {
   useEffect(() => {
     if (!produto) return;
 
@@ -140,13 +142,20 @@ export default function ModalProduto({ produto, onFechar }: Props) {
               >
                 Ver perfil
               </Link>
-              <BotaoContato
-                lojaId={produto.loja_id}
-                produtoId={produto.id}
-                mensagem={`Olá! Vi "${produto.nome}" na Circular e tenho interesse.`}
-                rotulo="Tenho interesse"
-                className="w-full bg-acao text-white rounded-controle hover:bg-acao-hover transition px-4 py-2.5 min-h-[44px] font-semibold inline-flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
-              />
+              {somenteLeitura ? (
+                <p className="flex-1 inline-flex items-start gap-2 text-sm text-tinta-suave bg-pagina rounded-controle px-3 py-2.5">
+                  <Eye size={16} strokeWidth={1.75} className="shrink-0 mt-0.5" aria-hidden="true" />
+                  Anúncio de outro campus. O contato é só entre alunos da mesma faculdade.
+                </p>
+              ) : (
+                <BotaoContato
+                  lojaId={produto.loja_id}
+                  produtoId={produto.id}
+                  mensagem={`Olá! Vi "${produto.nome}" na Circular e tenho interesse.`}
+                  rotulo="Tenho interesse"
+                  className="w-full bg-acao text-white rounded-controle hover:bg-acao-hover transition px-4 py-2.5 min-h-[44px] font-semibold inline-flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+                />
+              )}
             </div>
 
             <BotaoDenunciar key={produto.id} lojaId={produto.loja_id} produtoId={produto.id} />

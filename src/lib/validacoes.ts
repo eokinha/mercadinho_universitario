@@ -61,32 +61,35 @@ export function handleRedeSocial(valor: string | null | undefined): string | nul
   return /^[A-Za-z0-9._]{1,30}$/.test(handle) ? handle : null;
 }
 
-// Cadastro: o banco aplica a mesma regra (email_cadastro_permitido, migração 18), usando também
-// instituicoes.dominios. A verificação de matrícula exige o domínio em instituicoes.dominios
-// (instituicao_por_email, migração 16).
-const SUFIXOS_ACADEMICOS = [".edu.br", ".edu"];
-// Domínios de instituições cadastradas que não terminam em .edu/.edu.br (ver instituicoes.dominios)
-const DOMINIOS_ACADEMICOS = [
-  "unb.br",
-  "usp.br",
-  "ufmg.br",
-  "pucminas.br",
-  "unijorge.com.br",
-  "unifacs.br",
-  "ucsal.br",
-  "estacio.br",
-  "senaicimatec.com.br",
-];
-
-export function validarEmailUniversitario(email: string): boolean {
+// O campus do aluno vem do domínio do e-mail (exato ou subdomínio, ex.: aluno.ufmg.br → ufmg.br).
+// Espelho de instituicao_por_email (migração 16) e email_cadastro_permitido (migração 19):
+// só cadastra quem tem e-mail de instituição listada em instituicoes.dominios.
+export function instituicaoDoEmail<T extends { dominios: string[] | null }>(
+  email: string,
+  instituicoes: T[]
+): T | null {
   const dominio = email.toLowerCase().trim().split("@")[1] ?? "";
-  if (!dominio) return false;
+  if (!dominio) return null;
 
-  return (
-    SUFIXOS_ACADEMICOS.some((sufixo) => dominio.endsWith(sufixo)) ||
-    dominio.includes(".edu.") ||
-    DOMINIOS_ACADEMICOS.some((d) => dominio === d || dominio.endsWith(`.${d}`))
-  );
+  let melhor: T | null = null;
+  let tamanho = 0;
+  for (const inst of instituicoes) {
+    for (const bruto of inst.dominios ?? []) {
+      const d = bruto.toLowerCase().trim();
+      if (d && (dominio === d || dominio.endsWith(`.${d}`)) && d.length > tamanho) {
+        melhor = inst;
+        tamanho = d.length;
+      }
+    }
+  }
+  return melhor;
+}
+
+export function validarEmailUniversitario(
+  email: string,
+  instituicoes: { dominios: string[] | null }[]
+): boolean {
+  return instituicaoDoEmail(email, instituicoes) !== null;
 }
 
 // Espelho da política de senha do Supabase Auth (Authentication → Providers → Email):

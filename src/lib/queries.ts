@@ -7,7 +7,6 @@ import type {
   Instituicao,
   Loja,
   LojaModeracao,
-  LojaPublica,
   MotivoDenuncia,
   LojaStatus,
   OrdenacaoProdutos,
@@ -15,6 +14,7 @@ import type {
   ProdutoListagem,
   ProdutoModeracao,
   ProdutoStatus,
+  PerfilLeitura,
   PerfilPublico,
   Usuario,
   UsuarioModeracao,
@@ -63,28 +63,10 @@ export async function getCategoriasArvore(
 }
 
 
-// Colunas de lojas legíveis por qualquer um (telefone fica de fora; ver contato_vendedor)
-const COLUNAS_LOJA_PUBLICA =
-  "id, usuario_id, nome, descricao, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, locais_entrega";
-
-export async function getLojaById(id: number, client: SupabaseClient = defaultClient): Promise<LojaPublica | null> {
-  const { data, error } = await client
-    .from("lojas")
-    .select(COLUNAS_LOJA_PUBLICA)
-    .eq("id", id)
-    .eq("status", "ativo")
-    .maybeSingle();
-
-  if (error) throw error;
-  return (data as LojaPublica | null) ?? null;
-}
-
-
-
 export async function getInstituicoes(client: SupabaseClient = defaultClient): Promise<Instituicao[]> {
   const { data, error } = await client
     .from("instituicoes")
-    .select("id, nome, cnpj")
+    .select("id, nome, cnpj, dominios")
     .order("nome", { ascending: true });
 
   if (error) throw error;
@@ -206,94 +188,21 @@ export async function getProdutosPrivados(lojaId: number, client: SupabaseClient
   return (data ?? []) as Produto[];
 }
 
-export async function getLojaBySlug(slug: string, client: SupabaseClient = defaultClient): Promise<LojaPublica | null> {
-  const { data, error } = await client
-    .from("lojas")
-    .select(COLUNAS_LOJA_PUBLICA)
-    .eq("slug", slug)
-    .eq("status", "ativo")
-    .maybeSingle();
-
-  if (error) throw error;
-  return (data as LojaPublica | null) ?? null;
-}
-
-export async function getPerfilPublico(
-  idOuSlug: string | number,
+// Perfil de qualquer campus (RPC; exige login). De outro campus a página fica só leitura:
+// contato e favoritos são barrados no banco (contato_vendedor, política de favoritos).
+export async function getPerfilLeitura(
+  idOuSlug: string,
   client: SupabaseClient = defaultClient
-): Promise<PerfilPublico | null> {
-  const isNumeric = typeof idOuSlug === "number" || /^\d+$/.test(String(idOuSlug));
+): Promise<PerfilLeitura | null> {
+  const { data, error } = await client.rpc("perfil_leitura", { p_id_ou_slug: idOuSlug });
+  if (error) throw error;
+  if (!data) return null;
 
-  // Tenta buscar com dados do usuário e instituição
-  try {
-    let query = client
-      .from("lojas")
-      .select(`
-        id, usuario_id, nome, descricao, status, criado_em, avatar_url, capa_url, slug, instagram_url, tiktok_url, locais_entrega,
-        usuarios (
-          id, nome, sobrenome, matricula_status, criado_em,
-          instituicoes ( id, nome )
-        )
-      `)
-      .eq("status", "ativo");
-
-    if (isNumeric) {
-      query = query.eq("id", Number(idOuSlug));
-    } else {
-      query = query.eq("slug", String(idOuSlug));
-    }
-
-    const { data, error } = await query.maybeSingle();
-
-    if (!error && data) {
-      const raw = data as unknown as LojaPublica & {
-        usuarios: {
-          nome: string;
-          sobrenome: string;
-          criado_em: string;
-          matricula_status: Usuario["matricula_status"];
-          instituicoes: { nome: string } | null;
-        } | null;
-      };
-      const usuario = raw.usuarios;
-      const instituicao = usuario?.instituicoes;
-
-      return {
-        id: raw.id,
-        usuario_id: raw.usuario_id,
-        nome: raw.nome,
-        descricao: raw.descricao || "",
-        status: raw.status,
-        criado_em: raw.criado_em,
-        avatar_url: raw.avatar_url,
-        capa_url: raw.capa_url,
-        slug: raw.slug,
-        instagram_url: raw.instagram_url,
-        tiktok_url: raw.tiktok_url,
-        locais_entrega: raw.locais_entrega ?? [],
-        usuario_nome: usuario?.nome,
-        usuario_sobrenome: usuario?.sobrenome,
-        usuario_criado_em: usuario?.criado_em,
-        matricula_status: usuario?.matricula_status,
-        instituicao_nome: instituicao?.nome,
-      };
-    }
-  } catch (err) {
-    console.warn("Erro ao buscar perfil completo com joins:", err);
-  }
-
-  // Fallback seguro caso o join de usuarios falhe
-  let fallbackLoja: LojaPublica | null = null;
-  if (isNumeric) {
-    fallbackLoja = await getLojaById(Number(idOuSlug), client);
-  } else {
-    fallbackLoja = await getLojaBySlug(String(idOuSlug), client);
-  }
-
-  if (!fallbackLoja) return null;
-
+  const raw = data as { perfil: PerfilPublico; produtos: ProdutoListagem[]; mesmo_campus: boolean };
   return {
-    ...fallbackLoja,
+    perfil: { ...raw.perfil, locais_entrega: raw.perfil.locais_entrega ?? [] },
+    produtos: (raw.produtos ?? []).map((p) => ({ ...p, preco: Number(p.preco) })),
+    mesmoCampus: raw.mesmo_campus,
   };
 }
 
@@ -332,30 +241,6 @@ export async function getFavoritos(usuarioId: number, client: SupabaseClient = d
   } catch {
     return [];
   }
-}
-
-export async function getProdutosListagemByLoja(lojaId: number, client: SupabaseClient = defaultClient): Promise<ProdutoListagem[]> {
-  const { data, error } = await client
-    .from("produtos")
-    .select(
-      `id, nome, descricao, preco, imagem_url, loja_id, categoria_id, destaque, aceita_troca,
-       categorias!inner(id, nome),
-       lojas!inner(id, nome, descricao, status, avatar_url, capa_url, usuarios(matricula_status))`
-    )
-    .eq("loja_id", lojaId)
-    .eq("status", "ativo")
-    .gt("renovado_em", inicioValidade())
-    .eq("lojas.status", "ativo")
-    .order("criado_em", { ascending: false });
-
-  if (error) throw error;
-
-  const produtos: ProdutoListagem[] = [];
-  for (const item of (data ?? []) as unknown as ProdutoComJoinsRaw[]) {
-    const produto = mapearProdutoListagem(item);
-    if (produto) produtos.push(produto);
-  }
-  return produtos;
 }
 
 interface UsuarioJoinRaw {
@@ -455,7 +340,7 @@ export async function getProdutosFavoritos(
 interface GetProdutosFiltradosOpts {
   q?: string;
   categoria_id?: number;
-  instituicao_id?: number;
+  campus_id?: number;
   ordenar?: OrdenacaoProdutos;
   apenasDestaque?: boolean;
   apenasTroca?: boolean;
@@ -467,7 +352,7 @@ export async function getProdutosFiltrados(
   opts: GetProdutosFiltradosOpts = {},
   client: SupabaseClient = defaultClient
 ): Promise<ProdutoListagem[]> {
-  const { q, categoria_id, instituicao_id, ordenar = "recentes", apenasDestaque, apenasTroca, limite = 60, offset = 0 } = opts;
+  const { q, categoria_id, campus_id, ordenar = "recentes", apenasDestaque, apenasTroca, limite = 60, offset = 0 } = opts;
 
   let query = client
     .from("produtos")
@@ -484,8 +369,9 @@ export async function getProdutosFiltrados(
   if (categoria_id) query = query.eq("categoria_id", categoria_id);
   if (apenasDestaque) query = query.eq("destaque", true);
   if (apenasTroca) query = query.eq("aceita_troca", true);
-  if (instituicao_id) {
-    query = query.eq("lojas.usuarios.instituicoes_id", instituicao_id);
+  // A RLS já limita ao campus do aluno; o filtro explícito cobre o admin (que lê tudo)
+  if (campus_id) {
+    query = query.eq("lojas.usuarios.instituicoes_id", campus_id);
   }
 
   switch (ordenar) {
@@ -525,23 +411,15 @@ export async function getMeuUsuario(
   return (data as Usuario | null) ?? null;
 }
 
+// O campus não entra aqui: vem do domínio do e-mail (migração 19)
 export async function solicitarVerificacaoMatricula(
   usuarioId: number,
-  dados: { matricula: string; instituicoes_id?: number },
+  matricula: string,
   client: SupabaseClient = defaultClient
 ): Promise<void> {
-  const updates: Record<string, string | number | boolean> = {
-    matricula: dados.matricula.trim(),
-    matricula_status: "pendente",
-    matricula_validada: false,
-  };
-  if (dados.instituicoes_id) {
-    updates.instituicoes_id = dados.instituicoes_id;
-  }
-
   const { error } = await client
     .from("usuarios")
-    .update(updates)
+    .update({ matricula: matricula.trim(), matricula_status: "pendente", matricula_validada: false })
     .eq("id", usuarioId);
 
   if (error) throw error;
@@ -550,42 +428,46 @@ export async function solicitarVerificacaoMatricula(
 // Dados mínimos do usuário logado para o Navbar (layout global, carregado no cliente)
 export async function getResumoUsuarioNavbar(
   client: SupabaseClient = defaultClient
-): Promise<{ is_admin: boolean; nome: string; instituicoes_id: number | null; loja_id: number | null } | null> {
+): Promise<{
+  is_admin: boolean;
+  nome: string;
+  instituicoes_id: number | null;
+  instituicao_nome: string | null;
+  loja_id: number | null;
+} | null> {
   const usuario = await getMeuUsuario(client);
   if (!usuario) return null;
 
-  const { data: loja, error } = await client
-    .from("lojas")
-    .select("id")
-    .eq("usuario_id", usuario.id)
-    .maybeSingle();
+  const [{ data: loja, error }, { data: instituicao, error: erroInstituicao }] = await Promise.all([
+    client.from("lojas").select("id").eq("usuario_id", usuario.id).maybeSingle(),
+    usuario.instituicoes_id
+      ? client.from("instituicoes").select("nome").eq("id", usuario.instituicoes_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
 
   if (error) throw error;
+  if (erroInstituicao) throw erroInstituicao;
 
   return {
     is_admin: !!usuario.is_admin,
     nome: usuario.nome || "",
     instituicoes_id: usuario.instituicoes_id ? Number(usuario.instituicoes_id) : null,
+    instituicao_nome: (instituicao as { nome: string } | null)?.nome ?? null,
     loja_id: loja?.id ?? null,
   };
 }
 
-export async function salvarOnboarding(
-  usuarioId: number,
-  dados: { instituicoes_id: number; matricula?: string },
+// Troca de e-mail = troca de campus. O Supabase envia o link ao novo endereço
+// (template db/emails/trocar-email.html); o banco recusa domínio fora de instituicoes.dominios
+// e, na confirmação, recalcula o campus e pausa os anúncios (migração 19).
+export async function solicitarTrocaEmail(
+  novoEmail: string,
   client: SupabaseClient = defaultClient
 ): Promise<void> {
-  const updates: Record<string, string | number | boolean> = { instituicoes_id: dados.instituicoes_id };
-  if (dados.matricula?.trim()) {
-    updates.matricula = dados.matricula.trim();
-    updates.matricula_status = "pendente";
-  }
-
-  const { error } = await client
-    .from("usuarios")
-    .update(updates)
-    .eq("id", usuarioId);
-
+  const { error } = await client.auth.updateUser(
+    { email: novoEmail.trim().toLowerCase() },
+    { emailRedirectTo: `${window.location.origin}/confirmar-email` }
+  );
   if (error) throw error;
 }
 

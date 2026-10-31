@@ -1,20 +1,13 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
-import type {
-  CategoriaComFilhos,
-  Instituicao,
-  OrdenacaoProdutos,
-} from "@/types";
+import type { CategoriaComFilhos, OrdenacaoProdutos } from "@/types";
 
 interface Props {
-  instituicoes: Instituicao[];
   categorias: CategoriaComFilhos[];
   q: string;
-  instituicaoSelecionada?: number;
   categoriaSelecionada?: number;
   ordenacao: OrdenacaoProdutos;
   onAplicarBusca: (q: string) => void;
-  onFiltroInstituicao: (id: number | undefined) => void;
   onFiltroCategoria: (id: number | undefined) => void;
   onOrdenacao: (ordem: OrdenacaoProdutos) => void;
 }
@@ -23,14 +16,11 @@ const pillSelectClass =
   "rounded-pill border border-borda-controle text-sm px-4 py-2 min-h-[44px] hover:border-petroleo bg-superficie text-tinta focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 transition cursor-pointer";
 
 export default function FiltroBarProdutos({
-  instituicoes,
   categorias,
   q,
-  instituicaoSelecionada,
   categoriaSelecionada,
   ordenacao,
   onAplicarBusca,
-  onFiltroInstituicao,
   onFiltroCategoria,
   onOrdenacao,
 }: Props) {
@@ -61,24 +51,6 @@ export default function FiltroBarProdutos({
       </form>
 
       <div className="flex flex-wrap gap-3">
-        <select
-          aria-label="Onde"
-          value={instituicaoSelecionada ?? ""}
-          onChange={(e) =>
-            onFiltroInstituicao(
-              e.target.value ? Number(e.target.value) : undefined
-            )
-          }
-          className={pillSelectClass}
-        >
-          <option value="">Onde</option>
-          {instituicoes.map((i) => (
-            <option key={i.id} value={i.id}>
-              {i.nome}
-            </option>
-          ))}
-        </select>
-
         {/* Seletor de categoria hierárquico com optgroup */}
         <select
           aria-label="Categoria"

@@ -4,6 +4,7 @@ import {
   Calendar,
   ChevronLeft,
   Clock,
+  Eye,
   GraduationCap,
   MapPin,
   Package,
@@ -15,7 +16,7 @@ import SeloVerificado from "@/components/SeloVerificado";
 import Head from "next/head";
 import type { GetServerSideProps } from "next";
 import { createServerClient } from "@/lib/supabase";
-import { getPerfilPublico, getProdutosListagemByLoja } from "@/lib/queries";
+import { getPerfilLeitura } from "@/lib/queries";
 import { handleRedeSocial } from "@/lib/validacoes";
 import CardProduto from "@/components/CardProduto";
 import ModalProduto from "@/components/ModalProduto";
@@ -26,6 +27,7 @@ import type { PerfilPublico, ProdutoListagem } from "@/types";
 interface Props {
   perfil: PerfilPublico;
   produtos: ProdutoListagem[];
+  mesmoCampus: boolean;
 }
 
 function formatarTempoPlataforma(dataString?: string): string {
@@ -57,23 +59,19 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const idOuSlug = ctx.params?.id as string;
   const supabase = createServerClient(ctx);
 
-  const perfil = await getPerfilPublico(idOuSlug, supabase);
+  // Qualquer campus abre (link compartilhado); de outro campus a página fica só leitura
+  const resultado = await getPerfilLeitura(idOuSlug, supabase);
 
-  if (!perfil) {
+  if (!resultado) {
     return { notFound: true };
   }
 
-  const produtos = await getProdutosListagemByLoja(perfil.id, supabase);
-
   return {
-    props: {
-      perfil,
-      produtos,
-    },
+    props: resultado,
   };
 };
 
-export default function PerfilPublicoPage({ perfil, produtos }: Props) {
+export default function PerfilPublicoPage({ perfil, produtos, mesmoCampus }: Props) {
   const [produtoAtivo, setProdutoAtivo] = useState<ProdutoListagem | null>(null);
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "venda" | "troca">("todos");
   const [busca, setBusca] = useState("");
@@ -134,6 +132,16 @@ export default function PerfilPublicoPage({ perfil, produtos }: Props) {
             Voltar para o início
           </Link>
 
+          {!mesmoCampus && (
+            <div role="status" className="mb-4 bg-petroleo-50 text-petroleo rounded-card p-4 flex items-start gap-3">
+              <Eye size={20} strokeWidth={1.75} className="shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-sm">
+                <strong>Perfil de outro campus{perfil.instituicao_nome ? ` (${perfil.instituicao_nome})` : ""}.</strong>{" "}
+                Você pode ver os anúncios, mas o contato é só entre alunos da mesma faculdade.
+              </p>
+            </div>
+          )}
+
           <header className="bg-superficie border border-borda rounded-card overflow-hidden mb-8">
             <div className="relative h-36 sm:h-48 w-full overflow-hidden bg-petroleo-50">
               {perfil.capa_url && (
@@ -187,12 +195,14 @@ export default function PerfilPublicoPage({ perfil, produtos }: Props) {
                       <IconeInstagram className="w-5 h-5" />
                     </Link>
                   )}
-                  <BotaoContato
-                    lojaId={perfil.id}
-                    mensagem={`Olá, ${perfil.nome}! Vi seu perfil na Circular e quero saber mais sobre seus anúncios.`}
-                    rotulo="Falar no WhatsApp"
-                    className={`w-full md:w-auto bg-acao hover:bg-acao-hover text-white font-semibold text-sm px-4 py-2.5 min-h-[44px] rounded-controle transition inline-flex items-center justify-center gap-2 ${FOCO}`}
-                  />
+                  {mesmoCampus && (
+                    <BotaoContato
+                      lojaId={perfil.id}
+                      mensagem={`Olá, ${perfil.nome}! Vi seu perfil na Circular e quero saber mais sobre seus anúncios.`}
+                      rotulo="Falar no WhatsApp"
+                      className={`w-full md:w-auto bg-acao hover:bg-acao-hover text-white font-semibold text-sm px-4 py-2.5 min-h-[44px] rounded-controle transition inline-flex items-center justify-center gap-2 ${FOCO}`}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -296,7 +306,7 @@ export default function PerfilPublicoPage({ perfil, produtos }: Props) {
         </div>
       </div>
 
-      <ModalProduto produto={produtoAtivo} onFechar={() => setProdutoAtivo(null)} />
+      <ModalProduto produto={produtoAtivo} onFechar={() => setProdutoAtivo(null)} somenteLeitura={!mesmoCampus} />
     </>
   );
 }

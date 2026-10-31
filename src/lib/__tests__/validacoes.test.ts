@@ -7,6 +7,7 @@ import {
   problemaSenha,
   validarCPF,
   validarEmail,
+  instituicaoDoEmail,
   validarEmailUniversitario,
 } from "../validacoes.ts";
 
@@ -37,27 +38,42 @@ test("validarEmail", () => {
   assert.equal(validarEmail("ana ufmg.br"), false);
 });
 
-test("validarEmailUniversitario reconhece domínios acadêmicos", () => {
-  assert.equal(validarEmailUniversitario("ana@aluno.ufmg.br"), true);
-  assert.equal(validarEmailUniversitario("ana@puc.edu.br"), true);
-  assert.equal(validarEmailUniversitario("ana@mit.edu"), true);
-  assert.equal(validarEmailUniversitario("2250108793@unijorge.com.br"), true);
-  assert.equal(validarEmailUniversitario("ANA@USP.BR"), true);
+const INSTITUICOES = [
+  { id: 1, nome: "UFMG", dominios: ["ufmg.br"] },
+  { id: 2, nome: "PUC Minas", dominios: ["pucminas.br"] },
+  { id: 3, nome: "Unijorge", dominios: ["unijorge.edu.br", "unijorge.com.br"] },
+  { id: 4, nome: "Estácio", dominios: ["estacio.br"] },
+  { id: 5, nome: "Sem domínio", dominios: null },
+];
+
+test("instituicaoDoEmail acha o campus pelo domínio exato ou subdomínio", () => {
+  assert.equal(instituicaoDoEmail("ana@ufmg.br", INSTITUICOES)?.id, 1);
+  assert.equal(instituicaoDoEmail("ana@aluno.ufmg.br", INSTITUICOES)?.id, 1);
+  assert.equal(instituicaoDoEmail("ANA@SGA.PUCMINAS.BR", INSTITUICOES)?.id, 2);
+  assert.equal(instituicaoDoEmail("2250108793@unijorge.com.br", INSTITUICOES)?.id, 3);
+  assert.equal(instituicaoDoEmail("ana@alunos.estacio.br", INSTITUICOES)?.id, 4);
 });
 
-test("validarEmailUniversitario não aceita qualquer domínio só por começar com aluno.", () => {
-  assert.equal(validarEmailUniversitario("ana@aluno.faculdade.com.br"), false);
+test("instituicaoDoEmail prefere o domínio mais específico", () => {
+  const lista = [
+    { id: 1, dominios: ["ufmg.br"] },
+    { id: 2, dominios: ["icex.ufmg.br"] },
+  ];
+  assert.equal(instituicaoDoEmail("ana@icex.ufmg.br", lista)?.id, 2);
+  assert.equal(instituicaoDoEmail("ana@ufmg.br", lista)?.id, 1);
+});
+
+test("validarEmailUniversitario recusa domínio fora das instituições cadastradas", () => {
+  assert.equal(validarEmailUniversitario("ana@puc.edu.br", INSTITUICOES), false);
+  assert.equal(validarEmailUniversitario("ana@mit.edu", INSTITUICOES), false);
+  assert.equal(validarEmailUniversitario("ana@gmail.com", INSTITUICOES), false);
+  assert.equal(validarEmailUniversitario("ana@outlook.com", INSTITUICOES), false);
 });
 
 test("validarEmailUniversitario não aceita domínio que só termina parecido", () => {
-  assert.equal(validarEmailUniversitario("ana@fakeusp.br"), false);
-  assert.equal(validarEmailUniversitario("ana@meualuno.com"), false);
-  assert.equal(validarEmailUniversitario("usp.br"), false);
-});
-
-test("validarEmailUniversitario rejeita e-mails comuns", () => {
-  assert.equal(validarEmailUniversitario("ana@gmail.com"), false);
-  assert.equal(validarEmailUniversitario("ana@outlook.com"), false);
+  assert.equal(validarEmailUniversitario("ana@fakeufmg.br", INSTITUICOES), false);
+  assert.equal(validarEmailUniversitario("ufmg.br", INSTITUICOES), false);
+  assert.equal(validarEmailUniversitario("", INSTITUICOES), false);
 });
 
 test("problemaSenha aceita senha com 8+ caracteres, maiúscula, minúscula e número", () => {
@@ -69,20 +85,6 @@ test("problemaSenha aponta o que falta", () => {
   assert.match(problemaSenha("CIRCULAR2026") ?? "", /minúscula/);
   assert.match(problemaSenha("circular2026") ?? "", /maiúscula/);
   assert.match(problemaSenha("CircularUfmg") ?? "", /número/);
-});
-
-test("validarEmailUniversitario aceita as instituições cadastradas sem .edu.br", () => {
-  for (const email of [
-    "ana@unifacs.br",
-    "ana@ucsal.br",
-    "ana@alunos.estacio.br",
-    "ana@senaicimatec.com.br",
-    "ana@sga.pucminas.br",
-    "ana@uniftc.edu.br",
-    "ana@bahiana.edu.br",
-  ]) {
-    assert.equal(validarEmailUniversitario(email), true, email);
-  }
 });
 
 test("handleRedeSocial aceita só @ válido (nunca domínio ou caminho)", () => {

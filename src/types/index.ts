@@ -2,6 +2,7 @@ export interface Instituicao {
   id: number;
   nome: string;
   cnpj: string | null;
+  dominios: string[] | null; // domínios de e-mail que definem o campus do aluno
 }
 
 export type UsuarioStatus = "ativo" | "bloqueado";
@@ -169,4 +170,11 @@ export interface PerfilPublico extends LojaPublica {
   usuario_criado_em?: string;
   matricula_status?: "pendente" | "verificado" | "rejeitado";
   instituicao_nome?: string;
+}
+
+// Perfil aberto pela RPC perfil_leitura: de outro campus (mesmoCampus = false) é só leitura
+export interface PerfilLeitura {
+  perfil: PerfilPublico;
+  produtos: ProdutoListagem[];
+  mesmoCampus: boolean;
 }

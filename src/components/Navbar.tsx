@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState, useEffect, useRef, useMemo, useSyncExternalStore, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
-import { getInstituicoes, getResumoUsuarioNavbar } from "@/lib/queries";
+import { getResumoUsuarioNavbar } from "@/lib/queries";
 import { PAGINAS_PAINEL } from "@/lib/painel-routes";
 import Logo from "@/components/Logo";
-import { Check, ChevronDown, Flag, Globe, GraduationCap, Image as ImageIcon, LogOut, Plus, Search, ShieldCheck, Store, UserRound, X } from "lucide-react";
+import { Flag, GraduationCap, Image as ImageIcon, LogOut, Plus, ShieldCheck, Store, UserRound } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
-import type { Instituicao } from "@/types";
 
 export default function Navbar() {
   const router = useRouter();
@@ -17,25 +16,11 @@ export default function Navbar() {
   const [nomeUsuario, setNomeUsuario] = useState("");
   const [menuAberto, setMenuAberto] = useState(false);
 
-  // Estados do seletor / combobox de universidades
-  const [instituicoes, setInstituicoes] = useState<Instituicao[]>([]);
-  const [instituicaoUsuarioId, setInstituicaoUsuarioId] = useState<number | null>(null);
-  // undefined = usuário ainda não escolheu nada no combobox
-  const [instituicaoEscolhida, setInstituicaoEscolhida] = useState<number | null | undefined>(undefined);
+  // Campus fixo do aluno (vem do domínio do e-mail; não há seletor)
+  const [campusNome, setCampusNome] = useState<string | null>(null);
   const [lojaId, setLojaId] = useState<number | null>(null);
-  const [comboboxAberto, setComboboxAberto] = useState(false);
-  const [buscaUniversidade, setBuscaUniversidade] = useState("");
 
   const menuRef = useRef<HTMLDivElement>(null);
-  const comboboxRef = useRef<HTMLDivElement>(null);
-  const hasAutoAppliedRef = useRef(false);
-
-  // Carregar lista de instituições cadastradas
-  useEffect(() => {
-    getInstituicoes(supabase)
-      .then(setInstituicoes)
-      .catch((err) => console.warn("Erro ao carregar instituições:", err));
-  }, []);
 
   // Carregar dados da sessão do usuário
   useEffect(() => {
@@ -46,14 +31,16 @@ export default function Navbar() {
       if (data) {
         setIsAdmin(data.is_admin);
         setNomeUsuario(data.nome);
-        setInstituicaoUsuarioId(data.instituicoes_id);
+        setCampusNome(data.instituicao_nome);
         setLojaId(data.loja_id);
 
-        // Se não tiver instituição e não estiver no onboarding ou login, redireciona
+        // Sem campus (e-mail de faculdade não participante): onboarding explica e oferece a troca
         const isAuthPage =
           router.pathname === "/login" ||
           router.pathname === "/cadastro" ||
-          router.pathname === "/onboarding";
+          router.pathname === "/onboarding" ||
+          router.pathname === "/confirmar-email" ||
+          router.pathname === "/painel/perfil";
 
         if (!data.instituicoes_id && !isAuthPage) {
           router.push("/onboarding");
@@ -75,7 +62,7 @@ export default function Navbar() {
       } else {
         setIsAdmin(false);
         setNomeUsuario("");
-        setInstituicaoUsuarioId(null);
+        setCampusNome(null);
         setLojaId(null);
       }
     });
@@ -86,9 +73,6 @@ export default function Navbar() {
       if (menuRef.current && !menuRef.current.contains(target)) {
         setMenuAberto(false);
       }
-      if (comboboxRef.current && !comboboxRef.current.contains(target)) {
-        setComboboxAberto(false);
-      }
     }
     document.addEventListener("mousedown", handleClickFora);
 
@@ -97,34 +81,6 @@ export default function Navbar() {
       document.removeEventListener("mousedown", handleClickFora);
     };
   }, [router]);
-
-  // Instituição selecionada: URL -> escolha no combobox -> perfil do usuário -> localStorage
-  const instituicaoUrl = router.query.instituicao ? Number(router.query.instituicao) : null;
-  const instituicaoArmazenada = useSyncExternalStore(
-    () => () => {},
-    () => {
-      const stored = localStorage.getItem("mercadinho_instituicao_id");
-      return stored && /^\d+$/.test(stored) ? Number(stored) : null;
-    },
-    () => null
-  );
-  const instituicaoSelecionada =
-    instituicaoUrl ??
-    (instituicaoEscolhida !== undefined
-      ? instituicaoEscolhida
-      : instituicaoUsuarioId ?? instituicaoArmazenada);
-
-  // Auto-aplica na URL da Home/Listagem o campus do perfil (uma vez por sessão)
-  useEffect(() => {
-    if (instituicaoUrl || !instituicaoUsuarioId || hasAutoAppliedRef.current) return;
-    hasAutoAppliedRef.current = true;
-
-    if (router.pathname === "/" || router.pathname === "/listagem") {
-      const params = new URLSearchParams(window.location.search);
-      params.set("instituicao", String(instituicaoUsuarioId));
-      router.replace(`${router.pathname}?${params.toString()}`, undefined, { shallow: false });
-    }
-  }, [instituicaoUrl, instituicaoUsuarioId, router]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -138,58 +94,10 @@ export default function Navbar() {
 
     const params = new URLSearchParams();
     if (q) params.set("q", q);
-    if (instituicaoSelecionada) params.set("instituicao", String(instituicaoSelecionada));
 
     router.push(`/listagem?${params.toString()}`);
     setTermo("");
   }
-
-  // Ação ao selecionar uma instituição no combobox
-  function selecionarInstituicao(id: number | null) {
-    setInstituicaoEscolhida(id);
-    if (id) {
-      localStorage.setItem("mercadinho_instituicao_id", String(id));
-    } else {
-      localStorage.removeItem("mercadinho_instituicao_id");
-    }
-
-    setComboboxAberto(false);
-    setBuscaUniversidade("");
-
-    // Atualiza a URL na página atual ou redireciona
-    if (router.pathname === "/listagem") {
-      const params = new URLSearchParams(window.location.search);
-      if (id) {
-        params.set("instituicao", String(id));
-      } else {
-        params.delete("instituicao");
-      }
-      router.push(`/listagem?${params.toString()}`);
-    } else if (router.pathname === "/") {
-      if (id) {
-        router.push(`/?instituicao=${id}`);
-      } else {
-        router.push("/");
-      }
-    } else {
-      if (id) {
-        router.push(`/listagem?instituicao=${id}`);
-      }
-    }
-  }
-
-  // Filtragem dinâmica de universidades dentro do combobox
-  const instituicoesFiltradas = useMemo(() => {
-    if (!buscaUniversidade.trim()) return instituicoes;
-    const termoBusca = buscaUniversidade.toLowerCase();
-    return instituicoes.filter((i) => i.nome.toLowerCase().includes(termoBusca));
-  }, [instituicoes, buscaUniversidade]);
-
-  // Objeto da instituição atualmente ativa
-  const instituicaoAtivaObj = useMemo(() => {
-    if (!instituicaoSelecionada) return null;
-    return instituicoes.find((i) => i.id === instituicaoSelecionada) || null;
-  }, [instituicoes, instituicaoSelecionada]);
 
   return (
     <header className="bg-superficie border-b border-borda sticky top-0 z-30">
@@ -208,142 +116,33 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Barra Central: Busca + Seletor de Universidades */}
-        <div className="flex-1 min-w-0 flex items-center justify-center gap-2 max-w-xl sm:mx-2">
-          {/* Input de Busca de Produtos */}
-          <form onSubmit={handleSubmit} className="flex-1 min-w-0" role="search">
-            <input
-              type="search"
-              value={termo}
-              onChange={(e) => setTermo(e.target.value)}
-              placeholder="Buscar"
-              aria-label="Buscar anúncios"
-              className="w-full rounded-pill border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 px-4 py-2 min-h-[44px] text-sm text-tinta placeholder:text-tinta-sutil transition bg-superficie"
-            />
-          </form>
-
-          {/* Campo de Busca de Universidades (Combobox) */}
-          <div className="relative shrink-0" ref={comboboxRef}>
-            <button
-              type="button"
-              onClick={() => setComboboxAberto(!comboboxAberto)}
-              className="min-h-[44px] flex items-center gap-1.5 px-3 rounded-pill border border-borda-controle hover:border-petroleo bg-superficie text-xs font-semibold text-tinta transition focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 sm:max-w-[190px]"
-              title={
-                instituicaoAtivaObj
-                  ? `Campus ativo: ${instituicaoAtivaObj.nome}`
-                  : "Todas as universidades"
-              }
-            >
-              <GraduationCap size={16} strokeWidth={1.75} className="shrink-0 text-petroleo" aria-hidden="true" />
-              <span className="hidden sm:inline truncate text-left font-semibold">
-                {instituicaoAtivaObj ? instituicaoAtivaObj.nome : "Todas as faculdades"}
-              </span>
-              <span className="sr-only sm:hidden">Escolher faculdade</span>
-              <ChevronDown
-                size={16}
-                strokeWidth={1.75}
-                aria-hidden="true"
-                className={`text-tinta-sutil shrink-0 transition-transform duration-200 ${
-                  comboboxAberto ? "rotate-180 text-petroleo" : ""
-                }`}
+        {/* Barra central: busca no catálogo do campus + campus fixo (só logados) */}
+        {user ? (
+          <div className="flex-1 min-w-0 flex items-center justify-center gap-2 max-w-xl sm:mx-2">
+            <form onSubmit={handleSubmit} className="flex-1 min-w-0" role="search">
+              <input
+                type="search"
+                value={termo}
+                onChange={(e) => setTermo(e.target.value)}
+                placeholder={campusNome ? `Buscar na ${campusNome}` : "Buscar"}
+                aria-label="Buscar anúncios do seu campus"
+                className="w-full rounded-pill border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 px-4 py-2 min-h-[44px] text-sm text-tinta placeholder:text-tinta-sutil transition bg-superficie"
               />
-            </button>
+            </form>
 
-            {/* Dropdown Popover do Combobox */}
-            {comboboxAberto && (
-              <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-superficie border border-borda rounded-card shadow-flutuante p-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="px-2 py-1 flex items-center justify-between text-xs font-bold text-tinta-sutil uppercase tracking-wider mb-2">
-                  <span>Filtrar por Campus</span>
-                  <span className="text-xs text-tinta-sutil font-normal">
-                    {instituicoes.length} faculdades
-                  </span>
-                </div>
-
-                {/* Input de Busca de Universidade */}
-                <div className="relative mb-2">
-                  <input
-                    type="text"
-                    value={buscaUniversidade}
-                    onChange={(e) => setBuscaUniversidade(e.target.value)}
-                    placeholder="Buscar faculdade ou sigla..."
-                    className="w-full text-xs px-3 py-2 pl-8 rounded-controle border border-borda-controle focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 focus:border-petroleo bg-superficie"
-                    autoFocus
-                  />
-                  <Search size={16} strokeWidth={1.75} aria-hidden="true" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tinta-sutil" />
-                  {buscaUniversidade && (
-                    <button
-                      type="button"
-                      onClick={() => setBuscaUniversidade("")}
-                      aria-label="Limpar busca"
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tinta-sutil hover:text-tinta"
-                    >
-                      <X size={16} strokeWidth={1.75} aria-hidden="true" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Opções de Seleção */}
-                <div className="max-h-60 overflow-y-auto no-scrollbar space-y-1">
-                  {/* Opção "Todas as universidades" */}
-                  <button
-                    type="button"
-                    onClick={() => selecionarInstituicao(null)}
-                    className={`w-full text-left px-3 py-2 rounded-controle text-xs font-semibold flex items-center justify-between transition ${
-                      instituicaoSelecionada === null
-                        ? "bg-petroleo-50 text-petroleo font-bold"
-                        : "hover:bg-pagina text-tinta"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Globe size={16} strokeWidth={1.75} aria-hidden="true" />
-                      <span>Todas as Universidades (Sem filtro)</span>
-                    </span>
-                    {instituicaoSelecionada === null && (
-                      <Check size={16} strokeWidth={1.75} className="text-petroleo" aria-label="Selecionado" />
-                    )}
-                  </button>
-
-                  {/* Lista de Instituições */}
-                  {instituicoesFiltradas.length === 0 ? (
-                    <p className="text-center py-4 text-xs text-tinta-sutil">
-                      Nenhuma universidade encontrada com este termo.
-                    </p>
-                  ) : (
-                    instituicoesFiltradas.map((inst) => {
-                      const isSelecionada = instituicaoSelecionada === inst.id;
-                      const isCampusUsuario = instituicaoUsuarioId === inst.id;
-
-                      return (
-                        <button
-                          key={inst.id}
-                          type="button"
-                          onClick={() => selecionarInstituicao(inst.id)}
-                          className={`w-full text-left px-3 py-2 rounded-controle text-xs font-semibold flex items-center justify-between gap-2 transition ${
-                            isSelecionada
-                              ? "bg-petroleo-50 text-petroleo font-bold"
-                              : "hover:bg-pagina text-tinta"
-                          }`}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate">{inst.nome}</p>
-                            {isCampusUsuario && (
-                              <span className="inline-block text-xs font-semibold text-petroleo bg-petroleo-50 px-2 py-0.5 rounded-pill mt-0.5">
-                                Seu campus de cadastro
-                              </span>
-                            )}
-                          </div>
-                          {isSelecionada && (
-                            <Check size={16} strokeWidth={1.75} className="shrink-0 text-petroleo" aria-label="Selecionado" />
-                          )}
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
+            {campusNome && (
+              <span
+                title={`Seu campus: ${campusNome}`}
+                className="hidden md:inline-flex shrink-0 items-center gap-1.5 min-h-[44px] px-3 rounded-pill bg-petroleo-50 text-petroleo text-xs font-semibold max-w-[190px]"
+              >
+                <GraduationCap size={16} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
+                <span className="truncate">{campusNome}</span>
+              </span>
             )}
           </div>
-        </div>
+        ) : (
+          <div className="flex-1" />
+        )}
 
         {/* Ações e Menu do Usuário */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -382,10 +181,10 @@ export default function Navbar() {
                       <p className="text-sm font-semibold text-tinta truncate">
                         {nomeUsuario || user.email}
                       </p>
-                      {instituicaoAtivaObj && (
+                      {campusNome && (
                         <p className="text-xs text-tinta-suave truncate flex items-center gap-1 mt-0.5">
                           <GraduationCap size={14} strokeWidth={1.75} aria-hidden="true" />
-                          <span>{instituicaoAtivaObj.nome}</span>
+                          <span>{campusNome}</span>
                         </p>
                       )}
                     </div>

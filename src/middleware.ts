@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { urlLogin } from "@/lib/avisos-login";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -42,13 +43,24 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/cadastro") ||
     request.nextUrl.pathname.startsWith("/esqueci-senha");
   
-  // Catálogo (/listagem, /lojas, /perfil) é público; anunciar e gerir loja exigem login.
   const isProtectedRoute =
     request.nextUrl.pathname.startsWith("/minha-loja") ||
     request.nextUrl.pathname.startsWith("/admin");
 
+  // Catálogo é só para logados, cada um no próprio campus (RLS, migração 19).
+  // Visitante vai para o login e volta para a página que tentou abrir.
+  const isCatalogo =
+    request.nextUrl.pathname.startsWith("/listagem") ||
+    request.nextUrl.pathname.startsWith("/perfil") ||
+    request.nextUrl.pathname.startsWith("/lojas");
+
   if (!user && isProtectedRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  if (!user && isCatalogo) {
+    const destino = request.nextUrl.pathname + request.nextUrl.search;
+    return NextResponse.redirect(new URL(urlLogin("catalogo", destino), request.url));
   }
 
   // /admin exige usuarios.is_admin (as RPCs de moderação também checam no banco).

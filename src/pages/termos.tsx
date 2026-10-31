@@ -36,8 +36,14 @@ export default function TermosPage() {
           <section>
             <h2 className="text-lg font-bold text-petroleo mb-2">2. Quem pode usar</h2>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Qualquer pessoa pode navegar pelo catálogo.</li>
-              <li>Para falar com um vendedor, favoritar ou denunciar, é preciso ter conta.</li>
+              <li>
+                A conta é criada com o e-mail institucional de uma faculdade participante. O domínio desse e-mail
+                define o seu campus, e você vê e negocia com alunos do seu campus.
+              </li>
+              <li>
+                Anúncios de outro campus podem ser vistos por link, mas o contato é só entre alunos da mesma faculdade.
+                Para mudar de campus, troque o e-mail da conta pelo da nova faculdade.
+              </li>
               <li>
                 Para anunciar, é preciso ter a matrícula verificada (pelo e-mail institucional ou por análise da
                 equipe) e um WhatsApp cadastrado no perfil.

@@ -1,13 +1,30 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import type { GetServerSideProps } from "next";
+import { GraduationCap } from "lucide-react";
 import Logo from "@/components/Logo";
-import { supabase } from "@/lib/supabase";
+import { createServerClient, supabase } from "@/lib/supabase";
+import { getInstituicoes } from "@/lib/queries";
 import { urlLogin } from "@/lib/avisos-login";
 import { MENSAGEM_SENHA_VAZADA, senhaVazada } from "@/lib/senha-vazada";
-import { DICA_SENHA, problemaSenha, SENHA_TAMANHO_MINIMO, validarEmail, validarEmailUniversitario } from "@/lib/validacoes";
+import { DICA_SENHA, instituicaoDoEmail, problemaSenha, SENHA_TAMANHO_MINIMO, validarEmail } from "@/lib/validacoes";
+import type { Instituicao } from "@/types";
 
-export default function CadastroPage() {
+interface Props {
+  instituicoes: Instituicao[];
+}
+
+// Domínios das faculdades participantes: o campus do aluno sai do e-mail (o banco confere de novo no signup)
+export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
+  const instituicoes = await getInstituicoes(createServerClient(ctx));
+  return { props: { instituicoes: instituicoes.filter((i) => (i.dominios ?? []).length > 0) } };
+};
+
+const MENSAGEM_FACULDADE_FORA =
+  "Sua faculdade ainda não está no Circular. Use o e-mail institucional de uma das faculdades participantes.";
+
+export default function CadastroPage({ instituicoes }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,8 +49,8 @@ export default function CadastroPage() {
       return;
     }
 
-    if (!validarEmailUniversitario(formData.email)) {
-      setError("Por favor, use seu e-mail universitário (.edu.br) para garantir a segurança da comunidade.");
+    if (!instituicaoDoEmail(formData.email, instituicoes)) {
+      setError(MENSAGEM_FACULDADE_FORA);
       setLoading(false);
       return;
     }
@@ -77,6 +94,9 @@ export default function CadastroPage() {
         errorMessage = "Este e-mail já está cadastrado. Tente entrar na sua conta.";
       } else if (signUpError.code === "weak_password" || signUpError.message.includes("weak")) {
         errorMessage = `A senha escolhida é muito fraca ou já apareceu em vazamentos. ${DICA_SENHA}`;
+      } else if (signUpError.message.toLowerCase().includes("database error")) {
+        // handle_new_user recusa domínio fora de instituicoes.dominios
+        errorMessage = MENSAGEM_FACULDADE_FORA;
       } else if (signUpError.message.toLowerCase().includes("email address") && signUpError.message.toLowerCase().includes("invalid")) {
         errorMessage = "O e-mail informado parece ser inválido ou não é aceito pelo sistema.";
       }
@@ -87,6 +107,8 @@ export default function CadastroPage() {
       router.push(urlLogin("cadastro"));
     }
   }
+
+  const campusDoEmail = instituicaoDoEmail(formData.email, instituicoes);
 
   const inputClass = "w-full px-4 py-2 border border-borda-controle rounded-controle focus:ring-2 focus:ring-petroleo focus:border-transparent outline-none transition";
 
@@ -136,15 +158,29 @@ export default function CadastroPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-tinta mb-1">E-mail</label>
+            <label htmlFor="email-cadastro" className="block text-sm font-semibold text-tinta mb-1">
+              E-mail da faculdade
+            </label>
             <input
+              id="email-cadastro"
               type="email"
               required
-              placeholder="exemplo@email.com"
+              placeholder="voce@aluno.suafaculdade.br"
+              aria-describedby="campus-email"
               className={inputClass}
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             />
+            <p id="campus-email" aria-live="polite" className="text-xs text-tinta-suave mt-1 flex items-center gap-1">
+              {campusDoEmail ? (
+                <>
+                  <GraduationCap size={14} strokeWidth={1.75} className="text-petroleo shrink-0" aria-hidden="true" />
+                  Seu campus: <strong className="text-petroleo">{campusDoEmail.nome}</strong>
+                </>
+              ) : (
+                "O domínio do seu e-mail define o seu campus no Circular."
+              )}
+            </p>
           </div>
 
           <div>

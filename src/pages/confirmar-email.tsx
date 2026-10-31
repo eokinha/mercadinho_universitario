@@ -4,13 +4,15 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import { supabase } from "@/lib/supabase";
 
-// Destino do link de confirmação de cadastro (template em db/emails/confirmar-cadastro.html):
-// /confirmar-email?token_hash=...&type=email
+// Destino dos links de confirmação (templates em db/emails/):
+// cadastro → /confirmar-email?token_hash=...&type=email (confirmar-cadastro.html)
+// troca de e-mail/campus → /confirmar-email?token_hash=...&type=email_change (trocar-email.html)
 // Mesmo padrão de /redefinir-senha: o token só é validado no clique do botão, para que
 // scanners de link (ex.: Microsoft Safe Links) não o consumam ao abrir a página.
 export default function ConfirmarEmailPage() {
   const router = useRouter();
   const tokenHash = typeof router.query.token_hash === "string" ? router.query.token_hash : null;
+  const trocaEmail = router.query.type === "email_change";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [linkInvalido, setLinkInvalido] = useState(false);
@@ -21,14 +23,17 @@ export default function ConfirmarEmailPage() {
     setLoading(true);
 
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({ type: "email", token_hash: tokenHash });
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        type: trocaEmail ? "email_change" : "email",
+        token_hash: tokenHash,
+      });
       if (verifyError) {
         setLinkInvalido(true);
         return;
       }
 
-      // verifyOtp já abre a sessão; segue para completar o perfil
-      await router.push("/onboarding");
+      // verifyOtp já abre a sessão. Na troca de e-mail o banco já recalculou o campus.
+      await router.push(trocaEmail ? "/painel/perfil#trocar-email" : "/onboarding");
     } catch {
       setError("Não foi possível conectar. Verifique sua internet e tente novamente.");
     } finally {
@@ -62,7 +67,9 @@ export default function ConfirmarEmailPage() {
             )}
 
             <p className="text-sm text-tinta-suave text-center mb-6">
-              Falta só um clique para ativar sua conta no Circular.
+              {trocaEmail
+                ? "Confirme o novo e-mail. Seu campus passa a ser o da faculdade desse e-mail."
+                : "Falta só um clique para ativar sua conta no Circular."}
             </p>
 
             <button
@@ -71,7 +78,7 @@ export default function ConfirmarEmailPage() {
               disabled={loading || !tokenHash}
               className="w-full bg-acao text-white font-semibold py-3 rounded-controle hover:bg-acao-hover transition disabled:opacity-50"
             >
-              {loading ? "Confirmando..." : "Confirmar e-mail"}
+              {loading ? "Confirmando..." : trocaEmail ? "Confirmar novo e-mail" : "Confirmar e-mail"}
             </button>
           </>
         )}
