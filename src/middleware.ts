@@ -51,14 +51,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // /admin exige usuarios.is_admin (as RPCs de moderação também checam no banco)
+  // /admin exige usuarios.is_admin (as RPCs de moderação também checam no banco).
+  // is_admin não é legível por select (migração 18): usa a RPC.
   if (user && request.nextUrl.pathname.startsWith("/admin")) {
-    const { data: perfil } = await supabase
-      .from("usuarios")
-      .select("is_admin")
-      .eq("auth_id", user.id)
-      .maybeSingle();
-    if (!perfil?.is_admin) {
+    const { data: isAdmin } = await supabase.rpc("is_admin");
+    if (isAdmin !== true) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }

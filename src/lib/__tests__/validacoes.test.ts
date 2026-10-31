@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   formatarCPF,
   formatarTelefone,
+  handleRedeSocial,
   problemaSenha,
   validarCPF,
   validarEmail,
@@ -82,4 +83,15 @@ test("validarEmailUniversitario aceita as instituições cadastradas sem .edu.br
   ]) {
     assert.equal(validarEmailUniversitario(email), true, email);
   }
+});
+
+test("handleRedeSocial aceita só @ válido (nunca domínio ou caminho)", () => {
+  assert.equal(handleRedeSocial("@lucas.silva_1"), "lucas.silva_1");
+  assert.equal(handleRedeSocial("lucas"), "lucas");
+  assert.equal(handleRedeSocial(".evil.example/login"), null);
+  assert.equal(handleRedeSocial("evil.com/x"), null);
+  assert.equal(handleRedeSocial("https://instagram.com/x"), null);
+  assert.equal(handleRedeSocial(""), null);
+  assert.equal(handleRedeSocial(null), null);
+  assert.equal(handleRedeSocial("a".repeat(31)), null);
 });

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import { getContatoVendedor } from "@/lib/queries";
 import { linkWhatsapp } from "@/lib/contato";
+import { urlLogin } from "@/lib/avisos-login";
 
 interface Props {
   lojaId: number;
@@ -41,9 +42,14 @@ export default function BotaoContato({ lojaId, produtoId, mensagem, rotulo, clas
       if (janela) janela.opener = null;
       else window.location.href = url;
     } catch (err) {
-      if ((err as { code?: string })?.code === "42501") {
-        const msg = "Entre na sua conta para falar com o vendedor.";
-        router.push(`/login?msg=${encodeURIComponent(msg)}&next=${encodeURIComponent(router.asPath)}`);
+      const { code, message } = (err as { code?: string; message?: string }) ?? {};
+      if (code === "42501") {
+        router.push(urlLogin("contato", router.asPath));
+        return;
+      }
+      // PT403 = conta bloqueada; PT429 = limite diário de vendedores (contato_vendedor, migração 18)
+      if ((code === "PT403" || code === "PT429") && message) {
+        setErro(message);
         return;
       }
       setErro("Não foi possível abrir o contato. Tente de novo.");

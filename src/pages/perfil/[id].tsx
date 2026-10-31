@@ -16,6 +16,7 @@ import Head from "next/head";
 import type { GetServerSideProps } from "next";
 import { createServerClient } from "@/lib/supabase";
 import { getPerfilPublico, getProdutosListagemByLoja } from "@/lib/queries";
+import { handleRedeSocial } from "@/lib/validacoes";
 import CardProduto from "@/components/CardProduto";
 import ModalProduto from "@/components/ModalProduto";
 import BotaoContato from "@/components/BotaoContato";
@@ -76,6 +77,7 @@ export default function PerfilPublicoPage({ perfil, produtos }: Props) {
   const [produtoAtivo, setProdutoAtivo] = useState<ProdutoListagem | null>(null);
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "venda" | "troca">("todos");
   const [busca, setBusca] = useState("");
+  const instagram = handleRedeSocial(perfil?.instagram_url);
 
   const nomeExibicao = perfil.usuario_nome 
     ? `${perfil.usuario_nome} ${perfil.usuario_sobrenome || ""}`.trim()
@@ -174,9 +176,9 @@ export default function PerfilPublicoPage({ perfil, produtos }: Props) {
                 </div>
 
                 <div className="flex items-center gap-3 w-full md:w-auto">
-                  {perfil.instagram_url && (
+                  {instagram && (
                     <Link
-                      href={`https://instagram.com/${perfil.instagram_url.replace("@", "")}`}
+                      href={`https://instagram.com/${encodeURIComponent(instagram)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label="Instagram"

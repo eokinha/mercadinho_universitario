@@ -4,6 +4,7 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import { supabase } from "@/lib/supabase";
 import { DICA_SENHA, problemaSenha, SENHA_TAMANHO_MINIMO } from "@/lib/validacoes";
+import { MENSAGEM_SENHA_VAZADA, senhaVazada } from "@/lib/senha-vazada";
 
 // Destino do link de recuperação (template em db/emails/recuperar-senha.html):
 // /redefinir-senha?token_hash=...&type=recovery
@@ -35,6 +36,12 @@ export default function RedefinirSenhaPage() {
     }
 
     setLoading(true);
+    // Antes do verifyOtp, para não gastar o token do link com uma senha recusada
+    if (await senhaVazada(senha)) {
+      setError(MENSAGEM_SENHA_VAZADA);
+      setLoading(false);
+      return;
+    }
     try {
       const { error: verifyError } = await supabase.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
       if (verifyError) {

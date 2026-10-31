@@ -10,7 +10,7 @@ import { normalizarTelefone } from "@/lib/contato";
 import { removerImagensDaConta, uploadImagemLoja } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import SeloVerificado from "@/components/SeloVerificado";
-import { validarEmailUniversitario } from "@/lib/validacoes";
+import { LIMITES_TEXTO, validarEmailUniversitario } from "@/lib/validacoes";
 import type { Instituicao, Loja, Usuario } from "@/types";
 import {
   Check,
@@ -282,6 +282,7 @@ export default function SecaoPerfil({
             type="text"
             required
             value={nome}
+            maxLength={LIMITES_TEXTO.lojaNome}
             onChange={(e) => setNome(e.target.value)}
             placeholder="Seu nome"
             className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie"
@@ -297,6 +298,7 @@ export default function SecaoPerfil({
             type="tel"
             required
             value={whatsapp}
+            maxLength={LIMITES_TEXTO.whatsapp}
             onChange={(e) => setWhatsapp(e.target.value)}
             placeholder="(31) 99999-9999"
             className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie"
@@ -314,6 +316,7 @@ export default function SecaoPerfil({
           <textarea
             rows={3}
             value={descricao}
+            maxLength={LIMITES_TEXTO.lojaDescricao}
             onChange={(e) => setDescricao(e.target.value)}
             placeholder="Ex: Aluno do 4º semestre de Engenharia desapegando de livros do ciclo básico..."
             className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie resize-y"
@@ -494,6 +497,7 @@ export default function SecaoPerfil({
                       type="text"
                       required
                       value={matriculaInput}
+                      maxLength={LIMITES_TEXTO.matricula}
                       onChange={(e) => setMatriculaInput(e.target.value)}
                       placeholder="Ex: 2024019283"
                       className="w-full text-sm px-3 py-2 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 bg-superficie"

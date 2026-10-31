@@ -9,7 +9,7 @@ import {
   salvarOnboarding,
   verificarMatriculaInstantanea,
 } from "@/lib/queries";
-import { validarEmailUniversitario } from "@/lib/validacoes";
+import { LIMITES_TEXTO, validarEmailUniversitario } from "@/lib/validacoes";
 import type { Instituicao } from "@/types";
 
 interface Props {
@@ -123,6 +123,7 @@ export default function OnboardingPage({ instituicoes, usuarioId, email, institu
             <input
               type="text"
               value={matricula}
+              maxLength={LIMITES_TEXTO.matricula}
               onChange={(e) => setMatricula(e.target.value)}
               placeholder="Ex: 2024019283 (opcional agora)"
               className="w-full px-4 py-2.5 text-xs sm:text-sm border border-borda-controle rounded-controle focus:ring-2 focus:ring-petroleo outline-none transition bg-superficie"

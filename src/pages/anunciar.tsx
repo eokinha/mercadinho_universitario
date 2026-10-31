@@ -4,6 +4,8 @@ import Link from "next/link";
 import Head from "next/head";
 import type { GetServerSideProps } from "next";
 import { createServerClient } from "@/lib/supabase";
+import { urlLogin } from "@/lib/avisos-login";
+import { LIMITES_TEXTO } from "@/lib/validacoes";
 import {
   atualizarProduto,
   criarProduto,
@@ -90,7 +92,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   if (!user) {
     return {
       redirect: {
-        destination: `/login?msg=${encodeURIComponent("Faça login para anunciar um desapego ou troca.")}`,
+        destination: urlLogin("anunciar"),
         permanent: false,
       },
     };
@@ -401,6 +403,7 @@ export default function AnunciarPage({ loja, categorias, produto }: Props) {
                     type="text"
                     required={modalidade === "troca"}
                     value={itemTrocaDesejado}
+                    maxLength={LIMITES_TEXTO.itemTroca}
                     onChange={(e) => setItemTrocaDesejado(e.target.value)}
                     placeholder="Ex: Livro de Física 1, mouse ou jaleco"
                     className="w-full px-3 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-xs sm:text-sm bg-superficie"
@@ -417,6 +420,7 @@ export default function AnunciarPage({ loja, categorias, produto }: Props) {
                   type="text"
                   required
                   value={nome}
+                  maxLength={LIMITES_TEXTO.produtoNome}
                   onChange={(e) => setNome(e.target.value)}
                   placeholder="Ex: Livro Cálculo James Stewart Vol. 1 (8ª Ed.)"
                   className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie"
@@ -495,6 +499,7 @@ export default function AnunciarPage({ loja, categorias, produto }: Props) {
                 <textarea
                   rows={4}
                   value={descricao}
+                  maxLength={LIMITES_TEXTO.produtoDescricao}
                   onChange={(e) => setDescricao(e.target.value)}
                   placeholder="Descreva o estado de conservação, marcas de uso, edição ou motivo do desapego..."
                   className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie resize-y"

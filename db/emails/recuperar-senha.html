@@ -1,7 +1,8 @@
 <!-- Supabase → Authentication → Emails → Templates → Reset Password
      Assunto: Redefina sua senha do Circular
-     Link aponta para /redefinir-senha (RedirectTo, vindo do resetPasswordForEmail) com token_hash:
-     o token só é validado quando o aluno envia o formulário, à prova de scanners de link.
+     Link fixo em {{ .SiteURL }}/redefinir-senha com token_hash (nunca {{ .RedirectTo }}: vem do cliente
+     e, com curinga na allow-list, permitiria roubar o token e a conta). Token só validado no envio,
+     à prova de scanners de link.
      Cores = tokens de src/styles/globals.css (e-mail não lê CSS do site, por isso hex inline). -->
 <!doctype html>
 <html lang="pt-BR">
@@ -21,7 +22,7 @@
                 <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#1c2b2f;">
                   Recebemos um pedido para trocar a senha da sua conta. Clique no botão abaixo para escolher uma nova.
                 </p>
-                <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery" style="display:inline-block;background:#b9521a;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 24px;border-radius:10px;">
+                <a href="{{ .SiteURL }}/redefinir-senha?token_hash={{ .TokenHash }}&type=recovery" style="display:inline-block;background:#b9521a;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 24px;border-radius:10px;">
                   Criar nova senha
                 </a>
                 <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#55656a;">

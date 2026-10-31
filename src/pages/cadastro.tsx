@@ -3,6 +3,8 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import { supabase } from "@/lib/supabase";
+import { urlLogin } from "@/lib/avisos-login";
+import { MENSAGEM_SENHA_VAZADA, senhaVazada } from "@/lib/senha-vazada";
 import { DICA_SENHA, problemaSenha, SENHA_TAMANHO_MINIMO, validarEmail, validarEmailUniversitario } from "@/lib/validacoes";
 
 export default function CadastroPage() {
@@ -43,13 +45,19 @@ export default function CadastroPage() {
       return;
     }
 
+    if (await senhaVazada(formData.password)) {
+      setError(MENSAGEM_SENHA_VAZADA);
+      setLoading(false);
+      return;
+    }
+
     const { email, password, nome, sobrenome } = formData;
 
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        // Link do e-mail de confirmação ({{ .RedirectTo }} no template)
+        // O template usa {{ .SiteURL }}/confirmar-email (db/emails); isto só vale como fallback do Supabase
         emailRedirectTo: `${window.location.origin}/confirmar-email`,
         data: {
           nome,
@@ -76,7 +84,7 @@ export default function CadastroPage() {
       setError(errorMessage);
       setLoading(false);
     } else {
-      router.push("/login?msg=Cadastro realizado! Enviamos um link de confirmação para o seu e-mail; confirme antes de entrar (veja também o spam).");
+      router.push(urlLogin("cadastro"));
     }
   }
 

@@ -1,5 +1,6 @@
 import type { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
 import { createServerClient } from "@/lib/supabase";
+import { urlLogin } from "@/lib/avisos-login";
 import {
   getInstituicoes,
   getMinhaLoja,
@@ -115,7 +116,7 @@ export async function getPainelServerSideProps(
   if (!user) {
     return {
       redirect: {
-        destination: `/login?msg=${encodeURIComponent("Faça login para acessar seu painel.")}`,
+        destination: urlLogin("painel"),
         permanent: false,
       },
     };

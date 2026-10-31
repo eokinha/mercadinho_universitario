@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import { Flag } from "lucide-react";
 import { denunciar } from "@/lib/queries";
+import { urlLogin } from "@/lib/avisos-login";
 import type { MotivoDenuncia } from "@/types";
 
 interface Props {
@@ -37,8 +38,7 @@ export default function BotaoDenunciar({ lojaId, produtoId }: Props) {
       setEnviado(true);
     } catch (err) {
       if ((err as { code?: string })?.code === "42501") {
-        const msg = "Entre na sua conta para enviar a denúncia.";
-        router.push(`/login?msg=${encodeURIComponent(msg)}&next=${encodeURIComponent(router.asPath)}`);
+        router.push(urlLogin("denuncia", router.asPath));
         return;
       }
       setErro((err as { message?: string })?.message || "Não foi possível enviar. Tente de novo.");

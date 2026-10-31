@@ -4,6 +4,7 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import { type AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { mensagemAvisoLogin } from "@/lib/avisos-login";
 
 function mensagemErroLogin(erro: AuthError | Error): string {
   const code = "code" in erro ? String(erro.code ?? "") : "";
@@ -38,7 +39,8 @@ function mensagemErroLogin(erro: AuthError | Error): string {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { msg, next } = router.query;
+  const { aviso, next } = router.query;
+  const msg = mensagemAvisoLogin(aviso);
   // Só caminhos internos: evita redirecionar para outro site depois do login
   const destino = typeof next === "string" && /^\/(?![/\\])/.test(next) ? next : "/";
   const [loading, setLoading] = useState(false);

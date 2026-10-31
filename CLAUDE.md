@@ -60,6 +60,8 @@ src/
 │   ├── painel-routes.ts  # Rotas/abas do painel
 │   ├── storage.ts        # Helpers de upload para Supabase Storage
 │   ├── contato.ts        # Link/formatação do WhatsApp
+│   ├── avisos-login.ts   # Avisos fixos do /login (?aviso=) e urlLogin
+│   ├── senha-vazada.ts   # Checagem de senha vazada (HIBP, k-anonimato) no cadastro e redefinição
 │   ├── anuncios.ts       # Validade (60 dias), modalidade e descrição de troca do anúncio
 │   └── validacoes.ts     # CPF, telefone, e-mail acadêmico
 └── types/
@@ -104,15 +106,22 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `17`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
-A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`.
+`01`, `009`, `02`, `04`, `05` … `18`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`; a `18` é o endurecimento
+pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limites e URLs de imagem).
 
 ### Segurança (RLS e triggers)
 
 - **Colunas pessoais** (`email`, `cpf`, `telefone`, `matricula`, `password`) não são
-  legíveis via `select` pela API. Logado lê de `usuarios` só colunas públicas
-  (`id, auth_id, nome, sobrenome, instituicoes_id, matricula_status, matricula_validada, status, is_admin, criado_em`);
-  visitante (`anon`) não lê `auth_id`, `status` nem `is_admin`. Linhas: a própria ou de quem tem anúncio ativo (`usuario_publico()`).
+  legíveis via `select` pela API. Logado e visitante leem de `usuarios` só
+  `id, nome, sobrenome, instituicoes_id, matricula_status, matricula_validada, criado_em`
+  (`auth_id`, `status` e `is_admin` só pelas RPCs `meu_usuario()`/`is_admin()`).
+  Linhas: a própria ou de quem tem anúncio ativo (`usuario_publico()`).
+- **Grants mínimos (migração 18)**: `anon`/`authenticated` só têm os privilégios de coluna que o app usa
+  (ex.: `usuarios` só `UPDATE` de `matricula, matricula_status, matricula_validada, instituicoes_id`;
+  `produtos` sem `destaque`/`loja_id` no `UPDATE`; `categorias`/`instituicoes` só `SELECT`).
+  Coluna nova que o cliente precise ler/gravar exige `GRANT` explícito na migração.
+  Função de trigger `SECURITY INVOKER` não pode ler colunas ocultas de `usuarios`: use `meu_usuario()`.
 - **Telefone da loja** (`lojas.contato`, `lojas.whatsapp`) não é legível por `select` (nem pelo dono).
   Dono lê pela RPC `minha_loja()`; comprador logado pela RPC `contato_vendedor()`. Não incluir essas colunas em selects.
 - Para filtrar o próprio usuário use `auth_id` (nunca `email`).
@@ -137,11 +146,23 @@ A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`.
     (usa o e-mail confirmado do Auth; a instituição vem de `instituicao_por_email()`, que casa o domínio com `instituicoes.dominios`.
     `validarEmailUniversitario` no cliente filtra o cadastro: ao cadastrar instituição com domínio fora de `.edu`/`.edu.br`,
     incluir o domínio em `DOMINIOS_ACADEMICOS`, senão o aluno não consegue nem criar a conta)
-  - `contato_vendedor(p_loja_id, p_produto_id)` → `getContatoVendedor` (exige login; registra em `interesses`)
+  - `contato_vendedor(p_loja_id, p_produto_id)` → `getContatoVendedor` (exige login e conta `ativo`; registra em `interesses`;
+    anti-raspagem: até 30 vendedores diferentes por 24h — erros `PT403`/`PT429` exibidos pelo `BotaoContato`)
+  - `is_admin()` → usado pelo middleware para liberar `/admin`
   - `denunciar(...)` → `denunciar` (exige login; máx. 10 por dia) · `excluir_minha_conta()` → `excluirMinhaConta`
   - `admin_listar_usuarios()` / `admin_moderar_matricula(p_usuario_id, p_status)` / `admin_definir_status_usuario(p_usuario_id, p_status)`
   - `admin_listar_lojas()` / `admin_moderar_loja(p_loja_id, p_status)` / `admin_definir_destaque(p_produto_id, p_destaque)`
   - `admin_listar_denuncias()` / `admin_resolver_denuncia(p_denuncia_id, p_status)` — todas as `admin_*` exigem `is_admin()`
+- Cadastro só com e-mail acadêmico também no banco: `handle_new_user` rejeita o signup se
+  `email_cadastro_permitido()` falhar (espelho de `validarEmailUniversitario` + `instituicoes.dominios`).
+- Limites de texto/formato são `CHECK` no banco, espelhados em `LIMITES_TEXTO` (`src/lib/validacoes.ts`) como `maxLength`.
+  `instagram_url`/`tiktok_url` guardam só o @; links de rede social só via `handleRedeSocial`.
+- `avatar_url`, `capa_url` e `imagem_url` só aceitam URL do Storage do próprio projeto, na pasta da própria
+  loja/produto (`url_imagem_valida`, host vem do `iss` do JWT) — sempre gravar a URL devolvida pelo upload.
+- `/login` mostra só avisos de `AVISOS_LOGIN` (`?aviso=<código>`, via `urlLogin`); nunca texto livre na URL.
+- Headers de segurança (CSP, `frame-ancestors 'none'`, HSTS etc.) em `next.config.ts`: domínio externo novo
+  de imagem/API precisa entrar na CSP.
+- E-mails do Auth: links montados com `{{ .SiteURL }}`, nunca `{{ .RedirectTo }}` (controlado pelo cliente).
 - Mudanças de verificação/admin sempre via RPC no banco, nunca por `update` no cliente.
 - Admin é definido manualmente: `UPDATE usuarios SET is_admin = true WHERE email = '…';`
 - Modos `?preview=1` / `?demo=1` (dados de exemplo) só funcionam com `NODE_ENV=development`.

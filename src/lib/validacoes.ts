@@ -42,8 +42,28 @@ export function validarEmail(email: string): boolean {
   return re.test(email);
 }
 
-// Só uma dica no cadastro. Quem decide a verificação é o banco: o domínio precisa estar em
-// instituicoes.dominios (instituicao_por_email, migração 16).
+// Espelho dos CHECKs da migração 18 (lojas/produtos/usuarios). Mudar os dois juntos.
+export const LIMITES_TEXTO = {
+  lojaNome: 80,
+  lojaDescricao: 1000,
+  whatsapp: 20,
+  produtoNome: 120,
+  // produtos.descricao aceita 2000; a descrição e o item de troca são gravados juntos (montarDescricao)
+  produtoDescricao: 1800,
+  itemTroca: 150,
+  matricula: 40,
+} as const;
+
+// @ do Instagram/TikTok (espelho de lojas_instagram_formato). Devolve o handle sem "@",
+// ou null se não for um @ válido — nunca monte link com valor fora desse formato.
+export function handleRedeSocial(valor: string | null | undefined): string | null {
+  const handle = (valor ?? "").trim().replace(/^@/, "");
+  return /^[A-Za-z0-9._]{1,30}$/.test(handle) ? handle : null;
+}
+
+// Cadastro: o banco aplica a mesma regra (email_cadastro_permitido, migração 18), usando também
+// instituicoes.dominios. A verificação de matrícula exige o domínio em instituicoes.dominios
+// (instituicao_por_email, migração 16).
 const SUFIXOS_ACADEMICOS = [".edu.br", ".edu"];
 // Domínios de instituições cadastradas que não terminam em .edu/.edu.br (ver instituicoes.dominios)
 const DOMINIOS_ACADEMICOS = [
