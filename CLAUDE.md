@@ -53,7 +53,8 @@ src/
 │       └── denuncias.tsx     # Fila de denúncias (somente admin)
 ├── components/           # Navbar, Footer, HeroSection, CardProduto, ModalProduto,
 │                         # BotaoContato (WhatsApp via RPC), BotaoDenunciar,
-│                         # ConfiraEmail (pós-cadastro/senha), GuiaEmail + AjudaEmailFaculdade (tutorial do e-mail)
+│                         # ConfiraEmail (pós-cadastro/senha), GuiaEmail + AjudaEmailFaculdade (tutorial do e-mail),
+│                         # BotaoCompartilharLoja (QR code da loja, só para o dono no perfil público)
 │   └── painel/           # PainelEstudante (cabeçalho/visão geral) + SecaoAnuncios, SecaoFavoritos, SecaoPerfil
 ├── lib/
 │   ├── supabase.ts       # Clientes Supabase (browser e servidor via @supabase/ssr)
@@ -65,6 +66,7 @@ src/
 │   ├── avisos-login.ts   # Avisos fixos do /login (?aviso=) e urlLogin
 │   ├── senha-vazada.ts   # Checagem de senha vazada (HIBP, k-anonimato) no cadastro e redefinição
 │   ├── anuncios.ts       # Validade (60 dias), modalidade e descrição de troca do anúncio
+│   ├── compartilhar.ts   # Link do QR code da loja (?c=código&utm_source=qr) e leitura do next do login
 │   ├── guias-email.ts    # Provedor (Outlook/Gmail) e passo a passo do e-mail por domínio de faculdade
 │   ├── faq.ts            # Perguntas e respostas do /ajuda (revisar ao mudar regra de negócio)
 │   └── validacoes.ts     # CPF, telefone, e-mail acadêmico
@@ -110,10 +112,10 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `19`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `20`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`; a `18` é o endurecimento
 pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limites e URLs de imagem);
-a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo).
+a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20` cria o código do QR code da loja.
 
 ### Segurança (RLS e triggers)
 
@@ -127,6 +129,8 @@ a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo).
   `produtos` sem `destaque`/`loja_id` no `UPDATE`; `categorias`/`instituicoes` só `SELECT`).
   Coluna nova que o cliente precise ler/gravar exige `GRANT` explícito na migração.
   Função de trigger `SECURITY INVOKER` não pode ler colunas ocultas de `usuarios`: use `meu_usuario()`.
+- **Código do QR** (`lojas.codigo_compartilhamento`, 12 hex aleatórios) também não é legível por `select`;
+  o dono recebe por `minha_loja()` e `perfil_leitura()`. Não incluir em selects nem em `GRANT`.
 - **Telefone da loja** (`lojas.contato`, `lojas.whatsapp`) não é legível por `select` (nem pelo dono).
   Dono lê pela RPC `minha_loja()`; comprador logado pela RPC `contato_vendedor()`. Não incluir essas colunas em selects.
 - Para filtrar o próprio usuário use `auth_id` (nunca `email`).
@@ -158,7 +162,9 @@ a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo).
   - `contato_vendedor(p_loja_id, p_produto_id)` → `getContatoVendedor` (exige login, conta `ativo` e o mesmo campus; registra em `interesses`;
     anti-raspagem: até 30 vendedores diferentes por 24h — erros `PT403`/`PT429` exibidos pelo `BotaoContato`)
   - `perfil_leitura(p_id_ou_slug)` → `getPerfilLeitura` (exige login; perfil + anúncios de qualquer campus, um por vez;
-    `mesmo_campus = false` deixa `/perfil/[id]` só leitura)
+    `mesmo_campus = false` deixa `/perfil/[id]` só leitura; `eh_dono` e, só para o dono, `codigo_compartilhamento`)
+  - `resumo_loja_compartilhada(p_slug, p_codigo)` → `getResumoLojaCompartilhada` (liberada para `anon`;
+    nome da loja e da faculdade só com o código certo, para o `/login?aviso=loja` do QR sem permitir listar alunos)
   - `is_admin()` → usado pelo middleware para liberar `/admin`
   - `denunciar(...)` → `denunciar` (exige login; máx. 10 por dia) · `excluir_minha_conta()` → `excluirMinhaConta`
   - `admin_listar_usuarios()` / `admin_moderar_matricula(p_usuario_id, p_status)` / `admin_definir_status_usuario(p_usuario_id, p_status)`
@@ -213,6 +219,8 @@ a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo).
 - Cadastro só com domínio de faculdade participante; para abrir uma faculdade nova, cadastrar a instituição com os `dominios`
 - Home, listagem e busca mostram só o campus do aluno; a Navbar exibe o campus fixo
 - Perfil de outro campus (link compartilhado) abre só leitura: sem WhatsApp nem favoritar; denunciar continua liberado
+- QR code da loja: o dono gera no próprio perfil público (PNG, copiar link, compartilhar). Visitante que escaneia
+  vai para o login com "Entre para ver a loja de X na Y" (middleware usa `aviso=loja` quando o `next` tem código válido)
 - Trocar de campus = trocar o e-mail no painel (Perfil → E-mail e campus); confirmado o novo e-mail
   (template `db/emails/trocar-email.html`), o campus muda e os anúncios ativos são pausados
 - Conta antiga com domínio desconhecido mantém o campus que tinha; sem campus, o onboarding pede a troca de e-mail

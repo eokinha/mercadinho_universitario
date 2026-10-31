@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { urlLogin } from "@/lib/avisos-login";
+import { lojaDoDestino } from "@/lib/compartilhar";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -60,7 +61,8 @@ export async function middleware(request: NextRequest) {
 
   if (!user && isCatalogo) {
     const destino = request.nextUrl.pathname + request.nextUrl.search;
-    return NextResponse.redirect(new URL(urlLogin("catalogo", destino), request.url));
+    const aviso = lojaDoDestino(destino) ? "loja" : "catalogo";
+    return NextResponse.redirect(new URL(urlLogin(aviso, destino), request.url));
   }
 
   // /admin exige usuarios.is_admin (as RPCs de moderação também checam no banco).

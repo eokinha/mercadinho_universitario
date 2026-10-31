@@ -21,6 +21,7 @@ import { handleRedeSocial } from "@/lib/validacoes";
 import CardProduto from "@/components/CardProduto";
 import ModalProduto from "@/components/ModalProduto";
 import BotaoContato from "@/components/BotaoContato";
+import BotaoCompartilharLoja from "@/components/BotaoCompartilharLoja";
 import BotaoDenunciar from "@/components/BotaoDenunciar";
 import type { PerfilPublico, ProdutoListagem } from "@/types";
 
@@ -28,6 +29,8 @@ interface Props {
   perfil: PerfilPublico;
   produtos: ProdutoListagem[];
   mesmoCampus: boolean;
+  ehDono: boolean;
+  codigoCompartilhamento: string | null;
 }
 
 function formatarTempoPlataforma(dataString?: string): string {
@@ -71,7 +74,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   };
 };
 
-export default function PerfilPublicoPage({ perfil, produtos, mesmoCampus }: Props) {
+export default function PerfilPublicoPage({ perfil, produtos, mesmoCampus, ehDono, codigoCompartilhamento }: Props) {
   const [produtoAtivo, setProdutoAtivo] = useState<ProdutoListagem | null>(null);
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "venda" | "troca">("todos");
   const [busca, setBusca] = useState("");
@@ -195,7 +198,9 @@ export default function PerfilPublicoPage({ perfil, produtos, mesmoCampus }: Pro
                       <IconeInstagram className="w-5 h-5" />
                     </Link>
                   )}
-                  {mesmoCampus && (
+                  {ehDono && perfil.slug && codigoCompartilhamento ? (
+                    <BotaoCompartilharLoja slug={perfil.slug} codigo={codigoCompartilhamento} nomeLoja={perfil.nome} />
+                  ) : mesmoCampus && (
                     <BotaoContato
                       lojaId={perfil.id}
                       mensagem={`Olá, ${perfil.nome}! Vi seu perfil na Circular e quero saber mais sobre seus anúncios.`}

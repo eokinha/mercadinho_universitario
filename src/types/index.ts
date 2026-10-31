@@ -177,4 +177,13 @@ export interface PerfilLeitura {
   perfil: PerfilPublico;
   produtos: ProdutoListagem[];
   mesmoCampus: boolean;
+  ehDono: boolean;
+  // Só vem para o dono: vai no link do QR code da loja (src/lib/compartilhar.ts)
+  codigoCompartilhamento: string | null;
+}
+
+// Nome da loja e da faculdade mostrados no login para quem chegou pelo QR code
+export interface ResumoLojaCompartilhada {
+  loja_nome: string;
+  instituicao_nome: string | null;
 }

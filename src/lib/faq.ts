@@ -188,6 +188,15 @@ export const FAQ: SecaoFaq[] = [
         ],
       },
       {
+        id: "qr-code-loja",
+        pergunta: "Como divulgo minha loja com QR code?",
+        resposta: [
+          "Abra o seu perfil público e toque em \"Compartilhar minha loja\". Dá para baixar o QR code em imagem, copiar o link ou mandar direto pelo WhatsApp.",
+          "Quem escanear precisa entrar com o e-mail da faculdade para ver seus anúncios. Colegas do seu campus podem falar com você; alunos de outro campus só veem a loja.",
+        ],
+        links: [{ href: "/painel", texto: "Ir para o painel" }],
+      },
+      {
         id: "itens-proibidos",
         pergunta: "O que não pode ser anunciado?",
         resposta: ["A lista de itens proibidos está nos Termos de Uso."],

@@ -2,9 +2,27 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import type { GetServerSideProps } from "next";
 import { type AuthError } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { createServerClient, supabase } from "@/lib/supabase";
 import { mensagemAvisoLogin } from "@/lib/avisos-login";
+import { lojaDoDestino } from "@/lib/compartilhar";
+import { getResumoLojaCompartilhada } from "@/lib/queries";
+import type { ResumoLojaCompartilhada } from "@/types";
+
+interface Props {
+  lojaCompartilhada: ResumoLojaCompartilhada | null;
+}
+
+// Chegou pelo QR code de uma loja (?aviso=loja&next=/perfil/{slug}?c={código}): mostra de quem é a loja.
+// O nome vem do banco e só com o código certo; nada de texto livre da URL.
+export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
+  const alvo = ctx.query.aviso === "loja" ? lojaDoDestino(ctx.query.next) : null;
+  const lojaCompartilhada = alvo
+    ? await getResumoLojaCompartilhada(alvo.slug, alvo.codigo, createServerClient(ctx)).catch(() => null)
+    : null;
+  return { props: { lojaCompartilhada } };
+};
 
 function mensagemErroLogin(erro: AuthError | Error): string {
   const code = "code" in erro ? String(erro.code ?? "") : "";
@@ -37,10 +55,13 @@ function mensagemErroLogin(erro: AuthError | Error): string {
   return "Não foi possível entrar. Tente novamente em instantes.";
 }
 
-export default function LoginPage() {
+export default function LoginPage({ lojaCompartilhada }: Props) {
   const router = useRouter();
   const { aviso, next } = router.query;
-  const msg = mensagemAvisoLogin(aviso);
+  const msg = lojaCompartilhada
+    ? `Entre com o e-mail da sua faculdade para ver a loja de ${lojaCompartilhada.loja_nome}` +
+      (lojaCompartilhada.instituicao_nome ? ` na ${lojaCompartilhada.instituicao_nome}.` : ".")
+    : mensagemAvisoLogin(aviso);
   // Só caminhos internos: evita redirecionar para outro site depois do login
   const destino = typeof next === "string" && /^\/(?![/\\])/.test(next) ? next : "/";
   const [loading, setLoading] = useState(false);

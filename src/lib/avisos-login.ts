@@ -3,6 +3,8 @@
 export const AVISOS_LOGIN = {
   contato: "Entre na sua conta para falar com o vendedor.",
   catalogo: "Entre com o e-mail da sua faculdade para ver os anúncios do seu campus.",
+  // Link do QR code: o login troca pelo nome da loja quando o código confere (ver login.tsx)
+  loja: "Entre com o e-mail da sua faculdade para ver a loja que compartilharam com você.",
   denuncia: "Entre na sua conta para enviar a denúncia.",
   painel: "Faça login para acessar seu painel.",
   anunciar: "Faça login para anunciar um desapego ou troca.",

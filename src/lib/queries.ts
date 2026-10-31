@@ -16,6 +16,7 @@ import type {
   ProdutoStatus,
   PerfilLeitura,
   PerfilPublico,
+  ResumoLojaCompartilhada,
   Usuario,
   UsuarioModeracao,
   UsuarioStatus,
@@ -198,12 +199,33 @@ export async function getPerfilLeitura(
   if (error) throw error;
   if (!data) return null;
 
-  const raw = data as { perfil: PerfilPublico; produtos: ProdutoListagem[]; mesmo_campus: boolean };
+  const raw = data as {
+    perfil: PerfilPublico;
+    produtos: ProdutoListagem[];
+    mesmo_campus: boolean;
+    eh_dono?: boolean;
+    codigo_compartilhamento?: string | null;
+  };
   return {
     perfil: { ...raw.perfil, locais_entrega: raw.perfil.locais_entrega ?? [] },
     produtos: (raw.produtos ?? []).map((p) => ({ ...p, preco: Number(p.preco) })),
     mesmoCampus: raw.mesmo_campus,
+    ehDono: raw.eh_dono ?? false,
+    codigoCompartilhamento: raw.codigo_compartilhamento ?? null,
   };
+}
+
+// Visitante vindo do QR code: nome da loja e da faculdade, só com o código certo (RPC, migração 20)
+export async function getResumoLojaCompartilhada(
+  slug: string,
+  codigo: string,
+  client: SupabaseClient = defaultClient
+): Promise<ResumoLojaCompartilhada | null> {
+  const { data, error } = await client
+    .rpc("resumo_loja_compartilhada", { p_slug: slug, p_codigo: codigo })
+    .maybeSingle();
+  if (error) throw error;
+  return (data as ResumoLojaCompartilhada | null) ?? null;
 }
 
 export async function toggleFavorito(usuarioId: number, produtoId: number, client: SupabaseClient = defaultClient): Promise<boolean> {
