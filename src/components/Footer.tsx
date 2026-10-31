@@ -9,8 +9,11 @@ export default function Footer() {
           <Logo cor="branco" />
           <p className="text-white/80">Circular. Economia comunitária.</p>
         </div>
-        <nav aria-label="Links legais" className="flex flex-wrap items-center justify-center gap-x-4 text-white/80">
+        <nav aria-label="Ajuda e links legais" className="flex flex-wrap items-center justify-center gap-x-4 text-white/80">
           <span>© 2026 Circular</span>
+          <Link href="/ajuda" className="hover:text-white hover:underline min-h-[44px] inline-flex items-center">
+            Ajuda
+          </Link>
           <Link href="/termos" className="hover:text-white hover:underline min-h-[44px] inline-flex items-center">
             Termos de Uso
           </Link>

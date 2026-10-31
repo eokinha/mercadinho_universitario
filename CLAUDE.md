@@ -41,6 +41,7 @@ src/
 │   ├── login.tsx, cadastro.tsx, esqueci-senha.tsx, redefinir-senha.tsx, confirmar-email.tsx, onboarding.tsx
 │   ├── anunciar.tsx      # Criação de anúncio; ?editar=<id> edita um anúncio próprio
 │   ├── termos.tsx, privacidade.tsx  # Termos de Uso (itens proibidos) e Política de Privacidade
+│   ├── ajuda.tsx         # FAQ público (conteúdo em lib/faq.ts; âncora por pergunta, ex.: /ajuda#nao-chegou)
 │   ├── lojas/[slug].tsx  # Perfil público da loja
 │   ├── perfil/[id].tsx   # Perfil público do estudante
 │   ├── painel/           # Painel do estudante (index, anuncios, favoritos, perfil)
@@ -51,7 +52,8 @@ src/
 │       ├── imagens.tsx       # Upload de avatar/capa/imagens (somente admin)
 │       └── denuncias.tsx     # Fila de denúncias (somente admin)
 ├── components/           # Navbar, Footer, HeroSection, CardProduto, ModalProduto,
-│                         # BotaoContato (WhatsApp via RPC), BotaoDenunciar
+│                         # BotaoContato (WhatsApp via RPC), BotaoDenunciar,
+│                         # ConfiraEmail (pós-cadastro/senha), GuiaEmail + AjudaEmailFaculdade (tutorial do e-mail)
 │   └── painel/           # PainelEstudante (cabeçalho/visão geral) + SecaoAnuncios, SecaoFavoritos, SecaoPerfil
 ├── lib/
 │   ├── supabase.ts       # Clientes Supabase (browser e servidor via @supabase/ssr)
@@ -63,6 +65,8 @@ src/
 │   ├── avisos-login.ts   # Avisos fixos do /login (?aviso=) e urlLogin
 │   ├── senha-vazada.ts   # Checagem de senha vazada (HIBP, k-anonimato) no cadastro e redefinição
 │   ├── anuncios.ts       # Validade (60 dias), modalidade e descrição de troca do anúncio
+│   ├── guias-email.ts    # Provedor (Outlook/Gmail) e passo a passo do e-mail por domínio de faculdade
+│   ├── faq.ts            # Perguntas e respostas do /ajuda (revisar ao mudar regra de negócio)
 │   └── validacoes.ts     # CPF, telefone, e-mail acadêmico
 └── types/
     └── index.ts          # Interfaces TypeScript
@@ -234,6 +238,12 @@ a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo).
 - `lojas.contato` armazena apenas dígitos do telefone (DDI + DDD + número);
   use os helpers de `src/lib/contato.ts` para gerar link e formatar
 - Sem carrinho, pedido ou pagamento interno
+
+### Ajuda e e-mail da faculdade
+- Depois do cadastro e do "esqueci a senha", a tela `ConfiraEmail` mostra o botão para abrir o Outlook/Gmail
+  da faculdade, onde procurar o e-mail, reenviar o link e corrigir o endereço; o login reenvia a confirmação
+- Faculdade nova: adicionar o domínio em `GUIAS_POR_DOMINIO` (provedor pelo MX). Formato do endereço,
+  primeiro acesso e suporte só entram quando confirmados com alunos; sem eles vale o texto genérico
 
 ### Fora do escopo desta versão
 - Pagamento interno, chat, notificações por email
