@@ -6,6 +6,7 @@ interface Props {
   slug: string;
   codigo: string;
   nomeLoja: string;
+  ehDono: boolean; // muda só os textos: "minha loja" para o dono, "a loja de X" para quem está vendo
 }
 
 const FOCO = "focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2";
@@ -18,7 +19,7 @@ function corDoTema(token: string, padrao: string): string {
 }
 
 // Cartão em PNG: QR code com o nome da loja e a marca embaixo, em resolução boa para imprimir
-async function gerarCartaoQr(url: string, nomeLoja: string): Promise<string> {
+async function gerarCartaoQr(url: string, nomeLoja: string, ehDono: boolean): Promise<string> {
   const QRCode = (await import("qrcode")).default;
   const tinta = corDoTema("--color-tinta", "#000000");
   const petroleo = corDoTema("--color-petroleo", "#000000");
@@ -50,7 +51,7 @@ async function gerarCartaoQr(url: string, nomeLoja: string): Promise<string> {
   ctx.fillText(nome, cartao.width / 2, 1100);
   ctx.fillStyle = petroleo;
   ctx.font = `600 40px ${fonte}`;
-  ctx.fillText("Minha loja no Circular · Deixa Circular.", cartao.width / 2, 1180);
+  ctx.fillText(`${ehDono ? "Minha loja" : "Loja"} no Circular · Deixa Circular.`, cartao.width / 2, 1180);
 
   return cartao.toDataURL("image/png");
 }
@@ -65,8 +66,8 @@ function nomeArquivo(nomeLoja: string): string {
   return `qr-loja-${base || "circular"}.png`;
 }
 
-// Só aparece para o dono, no próprio perfil público
-export default function BotaoCompartilharLoja({ slug, codigo, nomeLoja }: Props) {
+// Perfil público: o dono divulga a própria loja; os demais alunos compartilham a loja que estão vendo
+export default function BotaoCompartilharLoja({ slug, codigo, nomeLoja, ehDono }: Props) {
   const [aberto, setAberto] = useState(false);
   const [imagem, setImagem] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -83,7 +84,7 @@ export default function BotaoCompartilharLoja({ slug, codigo, nomeLoja }: Props)
     const url = urlCompartilhamentoLoja(window.location.origin, slug, codigo);
     setLink(url);
     try {
-      setImagem(await gerarCartaoQr(url, nomeLoja));
+      setImagem(await gerarCartaoQr(url, nomeLoja, ehDono));
     } catch {
       setErro("Não foi possível gerar o QR code. Tente de novo.");
     }
@@ -113,7 +114,9 @@ export default function BotaoCompartilharLoja({ slug, codigo, nomeLoja }: Props)
   }
 
   async function compartilhar() {
-    const texto = `Confira minha loja no Circular: ${nomeLoja}`;
+    const texto = ehDono
+      ? `Confira minha loja no Circular: ${nomeLoja}`
+      : `Confira a loja de ${nomeLoja} no Circular`;
     if (navigator.share) {
       try {
         await navigator.share({ title: nomeLoja, text: texto, url: link });
@@ -128,9 +131,9 @@ export default function BotaoCompartilharLoja({ slug, codigo, nomeLoja }: Props)
 
   return (
     <>
-      <button type="button" onClick={abrir} className={`w-full md:w-auto ${BOTAO_SECUNDARIO}`}>
+      <button type="button" onClick={abrir} className={`${ehDono ? "w-full" : "flex-1"} md:w-auto md:flex-none ${BOTAO_SECUNDARIO}`}>
         <QrCode size={18} strokeWidth={1.75} aria-hidden="true" />
-        Compartilhar minha loja
+        {ehDono ? "Compartilhar minha loja" : "Compartilhar loja"}
       </button>
 
       {aberto && (
@@ -155,11 +158,12 @@ export default function BotaoCompartilharLoja({ slug, codigo, nomeLoja }: Props)
             </button>
 
             <h2 id="titulo-compartilhar-loja" className="text-petroleo text-lg font-bold pr-12">
-              QR code da sua loja
+              {ehDono ? "QR code da sua loja" : `Compartilhar a loja de ${nomeLoja}`}
             </h2>
             <p className="text-tinta-suave text-sm mt-1">
-              Cole no mural, no grupo da turma ou na sua bio. Quem escanear vê seus anúncios depois de entrar
-              com o e-mail da faculdade.
+              {ehDono
+                ? "Cole no mural, no grupo da turma ou na sua bio. Quem escanear vê seus anúncios depois de entrar com o e-mail da faculdade."
+                : "Mande para um colega pelo link ou pelo QR code. Ele vê os anúncios depois de entrar com o e-mail da faculdade."}
             </p>
 
             <div className="mt-4 aspect-[1080/1320] w-full bg-pagina rounded-card overflow-hidden flex items-center justify-center">

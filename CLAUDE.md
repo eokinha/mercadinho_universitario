@@ -54,7 +54,7 @@ src/
 ├── components/           # Navbar, Footer, HeroSection, CardProduto, ModalProduto,
 │                         # BotaoContato (WhatsApp via RPC), BotaoDenunciar,
 │                         # ConfiraEmail (pós-cadastro/senha), GuiaEmail + AjudaEmailFaculdade (tutorial do e-mail),
-│                         # BotaoCompartilharLoja (QR code da loja, só para o dono no perfil público)
+│                         # BotaoCompartilharLoja (QR code e link da loja, para quem abre o perfil público)
 │   └── painel/           # PainelEstudante (cabeçalho/visão geral) + SecaoAnuncios, SecaoFavoritos, SecaoPerfil
 ├── lib/
 │   ├── supabase.ts       # Clientes Supabase (browser e servidor via @supabase/ssr)
@@ -112,10 +112,10 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `20`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `21`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`; a `18` é o endurecimento
 pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limites e URLs de imagem);
-a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20` cria o código do QR code da loja.
+a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20` cria o código do QR code da loja e a `21` libera esse código a qualquer aluno logado.
 
 ### Segurança (RLS e triggers)
 
@@ -130,7 +130,7 @@ a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20
   Coluna nova que o cliente precise ler/gravar exige `GRANT` explícito na migração.
   Função de trigger `SECURITY INVOKER` não pode ler colunas ocultas de `usuarios`: use `meu_usuario()`.
 - **Código do QR** (`lojas.codigo_compartilhamento`, 12 hex aleatórios) também não é legível por `select`;
-  o dono recebe por `minha_loja()` e `perfil_leitura()`. Não incluir em selects nem em `GRANT`.
+  sai por `minha_loja()` (dono) e `perfil_leitura()` (qualquer aluno logado, para compartilhar). Não incluir em selects nem em `GRANT`.
 - **Telefone da loja** (`lojas.contato`, `lojas.whatsapp`) não é legível por `select` (nem pelo dono).
   Dono lê pela RPC `minha_loja()`; comprador logado pela RPC `contato_vendedor()`. Não incluir essas colunas em selects.
 - Para filtrar o próprio usuário use `auth_id` (nunca `email`).
@@ -162,7 +162,7 @@ a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20
   - `contato_vendedor(p_loja_id, p_produto_id)` → `getContatoVendedor` (exige login, conta `ativo` e o mesmo campus; registra em `interesses`;
     anti-raspagem: até 30 vendedores diferentes por 24h — erros `PT403`/`PT429` exibidos pelo `BotaoContato`)
   - `perfil_leitura(p_id_ou_slug)` → `getPerfilLeitura` (exige login; perfil + anúncios de qualquer campus, um por vez;
-    `mesmo_campus = false` deixa `/perfil/[id]` só leitura; `eh_dono` e, só para o dono, `codigo_compartilhamento`)
+    `mesmo_campus = false` deixa `/perfil/[id]` só leitura; `eh_dono` e `codigo_compartilhamento`)
   - `resumo_loja_compartilhada(p_slug, p_codigo)` → `getResumoLojaCompartilhada` (liberada para `anon`;
     nome da loja e da faculdade só com o código certo, para o `/login?aviso=loja` do QR sem permitir listar alunos)
   - `is_admin()` → usado pelo middleware para liberar `/admin`
@@ -219,7 +219,8 @@ a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20
 - Cadastro só com domínio de faculdade participante; para abrir uma faculdade nova, cadastrar a instituição com os `dominios`
 - Home, listagem e busca mostram só o campus do aluno; a Navbar exibe o campus fixo
 - Perfil de outro campus (link compartilhado) abre só leitura: sem WhatsApp nem favoritar; denunciar continua liberado
-- QR code da loja: o dono gera no próprio perfil público (PNG, copiar link, compartilhar). Visitante que escaneia
+- QR code da loja: qualquer aluno que abre um perfil público compartilha a loja (PNG, copiar link, compartilhar);
+  o dono vê "Compartilhar minha loja", os demais "Compartilhar loja" ao lado do WhatsApp. Visitante que escaneia
   vai para o login com "Entre para ver a loja de X na Y" (middleware usa `aviso=loja` quando o `next` tem código válido)
 - Trocar de campus = trocar o e-mail no painel (Perfil → E-mail e campus); confirmado o novo e-mail
   (template `db/emails/trocar-email.html`), o campus muda e os anúncios ativos são pausados

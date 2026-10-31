@@ -178,7 +178,7 @@ export interface PerfilLeitura {
   produtos: ProdutoListagem[];
   mesmoCampus: boolean;
   ehDono: boolean;
-  // Só vem para o dono: vai no link do QR code da loja (src/lib/compartilhar.ts)
+  // Vai no link do QR code da loja (src/lib/compartilhar.ts); qualquer aluno logado pode compartilhar
   codigoCompartilhamento: string | null;
 }
 

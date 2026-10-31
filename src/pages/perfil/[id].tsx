@@ -186,7 +186,7 @@ export default function PerfilPublicoPage({ perfil, produtos, mesmoCampus, ehDon
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto">
                   {instagram && (
                     <Link
                       href={`https://instagram.com/${encodeURIComponent(instagram)}`}
@@ -198,9 +198,15 @@ export default function PerfilPublicoPage({ perfil, produtos, mesmoCampus, ehDon
                       <IconeInstagram className="w-5 h-5" />
                     </Link>
                   )}
-                  {ehDono && perfil.slug && codigoCompartilhamento ? (
-                    <BotaoCompartilharLoja slug={perfil.slug} codigo={codigoCompartilhamento} nomeLoja={perfil.nome} />
-                  ) : mesmoCampus && (
+                  {perfil.slug && codigoCompartilhamento && (
+                    <BotaoCompartilharLoja
+                      slug={perfil.slug}
+                      codigo={codigoCompartilhamento}
+                      nomeLoja={perfil.nome}
+                      ehDono={ehDono}
+                    />
+                  )}
+                  {!ehDono && mesmoCampus && (
                     <BotaoContato
                       lojaId={perfil.id}
                       mensagem={`Olá, ${perfil.nome}! Vi seu perfil na Circular e quero saber mais sobre seus anúncios.`}
