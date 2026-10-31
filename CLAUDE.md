@@ -244,6 +244,7 @@ a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo).
   da faculdade, onde procurar o e-mail, reenviar o link e corrigir o endereço; o login reenvia a confirmação
 - Faculdade nova: adicionar o domínio em `GUIAS_POR_DOMINIO` (provedor pelo MX). Formato do endereço,
   primeiro acesso e suporte só entram quando confirmados com alunos; sem eles vale o texto genérico
+- Pendências (domínios suspeitos, detalhes por faculdade, prints, canal de suporte): `docs/pendencias-ajuda.md`
 
 ### Fora do escopo desta versão
 - Pagamento interno, chat, notificações por email
