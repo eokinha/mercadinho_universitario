@@ -180,12 +180,15 @@ a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo).
 - Cookies de sessão: clientes de servidor usam `getAll`/`setAll` do `@supabase/ssr`
   (não reescrever com `get`/`set`/`remove`).
 
-### Ambiente de dev
+### Carga fria (catálogo inicial)
 
-- Carga fria: `db/seed/carga_fria.sql` (5 alunos de teste com anúncios realistas). Fotos dos anúncios são CC0/domínio público do Openverse, enviadas ao Storage; créditos em `db/seed/creditos_imagens.json`.
-
-- Contas de tester: `*@example.com` (5 vendedores com loja), senha comum definida no seed — só dev.
-- Nunca reutilizar essas contas ou senha em produção.
+- `db/seed/carga_fria.sql`: os 5 alunos de teste (lojas 1 a 5) viram vendedores da **Unijorge**, com 180 anúncios
+  (20 por categoria principal, Trocas incluída). O campus vem do domínio no topo do arquivo; para outra
+  instituição da Bahia, trocar o domínio. Está aplicada no banco que o site usa (o mesmo do MCP).
+- Fotos: CC0 do Openverse, enviadas ao Storage logado como cada vendedor; créditos em `db/seed/creditos_imagens.json`.
+  Reaplicar a carga apaga os anúncios das lojas 1 a 5: remover as fotos deles do Storage antes.
+- Contas de tester: `*@example.com`, WhatsApp fictício (DDD 71). A senha é aleatória e não fica no repositório;
+  para usar, definir uma nova direto em `auth.users`. Domínio `example.com` não cadastra conta nova.
 
 ---
 

@@ -1,61 +1,219 @@
--- Carga fria da Circular (ambiente de dev)
--- Re-tematiza os 5 alunos de teste (*@example.com) e recria os anúncios deles.
--- Imagens são preenchidas depois pelo script de imagens (fotos CC0 do Openverse).
--- Idempotente: pode ser executada de novo.
+-- Carga fria da Circular
+-- Os 5 alunos de teste (*@example.com) viram vendedores de um campus da Bahia, com 180 anúncios
+-- (20 por categoria principal, incluindo Trocas). Fotos: CC0 do Openverse, enviadas ao Storage
+-- depois desta carga; créditos em db/seed/creditos_imagens.json.
+-- WhatsApp dos testers é fictício (DDD 71). Idempotente: pode ser executada de novo.
+-- Gerado a partir de uma lista de itens; para outro campus, troque o domínio abaixo.
+--
+-- Atenção: apaga os anúncios atuais das lojas 1 a 5. Remova antes as fotos deles do Storage
+-- (a política do bucket exige que o produto ainda exista).
 
 BEGIN;
 
--- Corrige nome de subcategoria gravado com encoding quebrado
-UPDATE public.categorias SET nome = 'Utensílios de Cozinha' WHERE nome = 'Utenspara Cozinha';
+-- Campus da carga (instituições da Bahia: unijorge.com.br, unifacs.br, ucsal.br, uniftc.edu.br, ...)
+CREATE TEMP TABLE carga_campus ON COMMIT DROP AS
+  SELECT id FROM public.instituicoes WHERE 'unijorge.com.br' = ANY(dominios);
 
-UPDATE public.usuarios SET nome = 'Lucas', sobrenome = 'Silva', instituicoes_id = 1 WHERE id = 1;
-UPDATE public.lojas SET nome = 'Lucas Silva', slug = 'lucas-silva', descricao = 'Engenharia Mecânica, 7º período na UFMG. Repassando o material do ciclo básico que me salvou nas provas.', contato = '5531999990001', whatsapp = '5531999990001', locais_entrega = ARRAY['Biblioteca Universitária', 'Bloco de Aulas', 'RU Central'], avatar_url = NULL, capa_url = NULL, status = 'ativo' WHERE id = 1;
-UPDATE public.usuarios SET nome = 'Ana', sobrenome = 'Costa', instituicoes_id = 1 WHERE id = 2;
-UPDATE public.lojas SET nome = 'Ana Costa', slug = 'ana-costa', descricao = 'Medicina, 5º período na UFMG. Material de anatomia e semiologia bem cuidado, sem rabiscos.', contato = '5531999990002', whatsapp = '5531999990002', locais_entrega = ARRAY['Centro de Vivência', 'Biblioteca Universitária'], avatar_url = NULL, capa_url = NULL, status = 'ativo' WHERE id = 2;
-UPDATE public.usuarios SET nome = 'Bruno', sobrenome = 'Mendes', instituicoes_id = 1 WHERE id = 3;
-UPDATE public.lojas SET nome = 'Bruno Mendes', slug = 'bruno-mendes', descricao = 'Arquitetura e Urbanismo na UFMG. Formando este semestre e desapegando do ateliê.', contato = '5531999990003', whatsapp = '5531999990003', locais_entrega = ARRAY['Entrada Principal do Campus', 'Centro Acadêmico (CA)'], avatar_url = NULL, capa_url = NULL, status = 'ativo' WHERE id = 3;
-UPDATE public.usuarios SET nome = 'Carlos', sobrenome = 'Ferreira', instituicoes_id = 2 WHERE id = 4;
-UPDATE public.lojas SET nome = 'Carlos Ferreira', slug = 'carlos-ferreira', descricao = 'Ciência da Computação na PUC Minas. Periféricos testados e livros de programação. Topo troca por hardware.', contato = '5531999990004', whatsapp = '5531999990004', locais_entrega = ARRAY['Bloco de Aulas', 'Centro de Vivência'], avatar_url = NULL, capa_url = NULL, status = 'ativo' WHERE id = 4;
-UPDATE public.usuarios SET nome = 'Daniela', sobrenome = 'Rocha', instituicoes_id = 2 WHERE id = 5;
-UPDATE public.lojas SET nome = 'Daniela Rocha', slug = 'daniela-rocha', descricao = 'Direito, 8º período na PUC Minas. Mudando de república: livros, códigos e coisas da casa.', contato = '5531999990005', whatsapp = '5531999990005', locais_entrega = ARRAY['Biblioteca Universitária', 'RU Central'], avatar_url = NULL, capa_url = NULL, status = 'ativo' WHERE id = 5;
+DO $$ BEGIN
+  IF (SELECT count(*) FROM carga_campus) <> 1 THEN
+    RAISE EXCEPTION 'Campus da carga não encontrado';
+  END IF;
+END $$;
 
-DELETE FROM public.favoritos WHERE produto_id IN (SELECT id FROM public.produtos WHERE loja_id IN (1,2,3,4,5));
-DELETE FROM public.produtos WHERE loja_id IN (1,2,3,4,5);
+UPDATE public.usuarios SET nome = 'Lucas', sobrenome = 'Silva', instituicoes_id = (SELECT id FROM carga_campus) WHERE id = 1;
+UPDATE public.lojas SET nome = 'Lucas Silva', slug = 'lucas-silva', descricao = 'Engenharia Civil, 6º semestre na Unijorge. Repassando livros e equipamentos do ciclo básico e do estágio de obra.', contato = '5571999990001', whatsapp = '5571999990001', locais_entrega = ARRAY['Biblioteca do Campus Paralela', 'Praça de Alimentação', 'Portaria da Av. Paralela'], avatar_url = NULL, capa_url = NULL, status = 'ativo' WHERE id = 1;
+UPDATE public.usuarios SET nome = 'Ana', sobrenome = 'Costa', instituicoes_id = (SELECT id FROM carga_campus) WHERE id = 2;
+UPDATE public.lojas SET nome = 'Ana Costa', slug = 'ana-costa', descricao = 'Odontologia, 5º semestre na Unijorge. Instrumentais e material de clínica bem cuidados, e uns doces de vez em quando.', contato = '5571999990002', whatsapp = '5571999990002', locais_entrega = ARRAY['Clínica-escola de Odontologia', 'Biblioteca do Campus Paralela', 'Praça de Alimentação'], avatar_url = NULL, capa_url = NULL, status = 'ativo' WHERE id = 2;
+UPDATE public.usuarios SET nome = 'Bruno', sobrenome = 'Mendes', instituicoes_id = (SELECT id FROM carga_campus) WHERE id = 3;
+UPDATE public.lojas SET nome = 'Bruno Mendes', slug = 'bruno-mendes', descricao = 'Arquitetura e Urbanismo na Unijorge. Desapegando do ateliê e fazendo fotos, renders e identidade visual.', contato = '5571999990003', whatsapp = '5571999990003', locais_entrega = ARRAY['Ateliê de Arquitetura', 'Portaria da Av. Paralela', 'Praça de Alimentação'], avatar_url = NULL, capa_url = NULL, status = 'ativo' WHERE id = 3;
+UPDATE public.usuarios SET nome = 'Carlos', sobrenome = 'Ferreira', instituicoes_id = (SELECT id FROM carga_campus) WHERE id = 4;
+UPDATE public.lojas SET nome = 'Carlos Ferreira', slug = 'carlos-ferreira', descricao = 'Análise e Desenvolvimento de Sistemas na Unijorge. Periféricos testados, eletrônica e ajuda com programação.', contato = '5571999990004', whatsapp = '5571999990004', locais_entrega = ARRAY['Laboratório de Informática', 'Biblioteca do Campus Paralela', 'Praça de Alimentação'], avatar_url = NULL, capa_url = NULL, status = 'ativo' WHERE id = 4;
+UPDATE public.usuarios SET nome = 'Daniela', sobrenome = 'Rocha', instituicoes_id = (SELECT id FROM carga_campus) WHERE id = 5;
+UPDATE public.lojas SET nome = 'Daniela Rocha', slug = 'daniela-rocha', descricao = 'Direito, 8º semestre na Unijorge. Livros e códigos, coisas da casa e marmitas sob encomenda.', contato = '5571999990005', whatsapp = '5571999990005', locais_entrega = ARRAY['Núcleo de Prática Jurídica', 'Praça de Alimentação', 'Portaria da Av. Paralela'], avatar_url = NULL, capa_url = NULL, status = 'ativo' WHERE id = 5;
+
+DELETE FROM public.favoritos WHERE produto_id IN (SELECT id FROM public.produtos WHERE loja_id IN (1, 2, 3, 4, 5));
+DELETE FROM public.produtos WHERE loja_id IN (1, 2, 3, 4, 5);
 
 INSERT INTO public.produtos (loja_id, nome, descricao, preco, categoria_id, aceita_troca, destaque, status) VALUES
-  (1, 'Cálculo Volume 1 — James Stewart (7ª ed.)', 'Capa com marcas de uso, miolo limpo. Poucas marcações a lápis no capítulo de derivadas.', 120, 19, true, true, 'ativo'),
-  (1, 'Física 1 — Halliday & Resnick', 'Edição 10. Usado em Física I, todas as páginas inteiras.', 95, 19, true, false, 'ativo'),
-  (1, 'Calculadora científica Casio fx-82MS', 'Funcionando perfeitamente, com tampa. Aceita nas provas do ciclo básico.', 55, 25, true, true, 'ativo'),
-  (1, 'Calculadora financeira HP 12c', 'Original, com capa de couro. Bateria trocada mês passado.', 210, 25, false, false, 'ativo'),
-  (1, 'Kit desenho técnico: esquadros, compasso e escalímetro', 'Usado em Desenho Técnico I. Compasso Trident com estojo.', 60, 31, true, false, 'ativo'),
-  (1, 'Apostila de Cálculo 2 com listas resolvidas', 'Resumos e listas resolvidas do professor, encadernadas.', 0, 20, true, false, 'ativo'),
-  (1, 'Jaleco de laboratório tamanho M', 'Usado no laboratório de Química Geral, lavado e sem manchas.', 40, 47, true, false, 'ativo'),
-  (2, 'Atlas de Anatomia Humana — Netter', '7ª edição, capa dura. Algumas páginas marcadas com post-it removível.', 260, 19, false, true, 'ativo'),
-  (2, 'Estetoscópio duplo adulto', 'Pouco uso, olivas extras incluídas.', 180, 29, false, false, 'ativo'),
-  (2, 'Jaleco feminino manga longa tamanho P', 'Tecido gabardine, bordado removível.', 70, 47, true, false, 'ativo'),
-  (2, 'Guyton — Tratado de Fisiologia Médica', '13ª edição, ótimo estado.', 190, 19, true, false, 'ativo'),
-  (2, 'Resumos de Semiologia (impressos)', 'Resumos do 4º período, organizados por sistema. Troco por resumo de Farmacologia.', 0, 20, true, false, 'ativo'),
-  (2, 'Esfigmomanômetro aneroide com braçadeira', 'Calibrado este ano, acompanha bolsa.', 90, 29, false, false, 'ativo'),
-  (2, 'Luminária de mesa articulada', 'LED, três intensidades. Ótima para estudar à noite.', 45, 48, true, false, 'ativo'),
-  (3, 'Prancheta de desenho A3 com régua paralela', 'Régua deslizando sem folga, ideal para os primeiros períodos.', 150, 32, true, true, 'ativo'),
+  (1, 'Resistência dos Materiais — Hibbeler (7ª ed.)', 'Usado em Mecânica dos Sólidos. Poucas marcações a lápis, capa inteira.', 140, 19, true, true, 'ativo'),
+  (1, 'Cálculo Volume 1 — James Stewart (8ª ed.)', 'Miolo limpo, só a capa com marcas de uso. Serve para Cálculo I e II.', 130, 19, true, false, 'ativo'),
+  (1, 'Física Básica 1 — Moysés Nussenzveig', 'Ótimo para Física I. Algumas páginas com post-it removível.', 85, 19, true, false, 'ativo'),
+  (2, 'Atlas de Anatomia Humana — Sobotta (2 volumes)', '24ª edição. Volumes sem rasgos, com marcações discretas.', 280, 19, false, true, 'ativo'),
+  (2, 'Odontologia Restauradora — Baratieri', 'Livro base de Dentística. Bem conservado, sem grifos.', 220, 19, false, false, 'ativo'),
+  (5, 'Vade Mecum Saraiva 2026', 'Comprado este ano e usado em um semestre. Sem anotações.', 120, 19, true, false, 'ativo'),
+  (5, 'Manual de Direito Civil — Flávio Tartuce (volume único)', 'Edição 2025. Grifos em marca-texto só nos primeiros capítulos.', 110, 19, true, false, 'ativo'),
+  (4, 'Engenharia de Software — Ian Sommerville (10ª ed.)', 'Usado em Engenharia de Software I. Estado de novo.', 120, 19, true, false, 'ativo'),
+  (3, 'Neufert — A Arte de Projetar em Arquitetura', '18ª edição. A bíblia do ateliê, capa um pouco gasta.', 170, 19, false, false, 'ativo'),
+  (2, 'Resumos de Anatomia de Cabeça e Pescoço', 'Resumos impressos e encadernados do 2º semestre, com esquemas coloridos.', 35, 20, true, false, 'ativo'),
+  (5, 'Apostila OAB 1ª fase — Ética e Constitucional', 'Questões comentadas, nenhuma resposta marcada.', 45, 20, true, false, 'ativo'),
+  (4, 'Resumos de Banco de Dados (SQL e modelagem)', 'Exemplos de SQL e diagramas ER que me salvaram na prova.', 20, 20, true, false, 'ativo'),
+  (1, 'Listas resolvidas de Cálculo II', 'Todas as listas do semestre resolvidas à mão. Entrego impresso e encadernado.', 30, 20, true, false, 'ativo'),
+  (1, 'Caderno de Geometria Analítica completo', 'Matéria do semestre inteiro, letra legível e exercícios resolvidos.', 25, 21, true, false, 'ativo'),
+  (5, 'Cadernos de Direito Penal I e II', 'Matéria completa dos dois semestres, organizada por tópicos.', 40, 21, true, false, 'ativo'),
+  (3, 'Capitães da Areia — Jorge Amado', 'Edição da Companhia das Letras. Leitura obrigatória que virou favorita.', 25, 22, true, true, 'ativo'),
+  (5, 'Dona Flor e Seus Dois Maridos — Jorge Amado', 'Edição de bolso, bem cuidada.', 20, 22, true, false, 'ativo'),
+  (2, 'O Alquimista — Paulo Coelho', 'Edição de bolso. Páginas amareladas, mas todas inteiras.', 15, 22, true, false, 'ativo'),
+  (4, '1984 — George Orwell', 'Edição da Companhia das Letras, sem marcações.', 25, 22, true, false, 'ativo'),
+  (3, 'Box Harry Potter (7 livros)', 'Box completo, capas com marcas leves de uso.', 180, 22, true, false, 'ativo'),
+  (4, 'Notebook Lenovo IdeaPad i5, 8 GB, SSD 256 GB', 'Bateria dura umas 4 horas. Acompanha carregador original.', 1800, 23, false, true, 'ativo'),
+  (4, 'Notebook Acer Aspire 5 Ryzen 5, 16 GB', 'Usei para programar e rodar máquinas virtuais. Tela sem riscos.', 2600, 23, false, false, 'ativo'),
+  (3, 'Monitor LG 24 polegadas Full HD IPS', 'Ótimo para desenho e modelagem. Sem pixel queimado, cabo HDMI incluso.', 520, 23, true, false, 'ativo'),
+  (4, 'Raspberry Pi 4 (4 GB) com case', 'Usado em projeto de IoT. Acompanha fonte e cartão de 32 GB.', 380, 23, true, false, 'ativo'),
+  (5, 'iPhone 11 64 GB', 'Bateria em 82%. Tela original, acompanha capinha.', 1500, 24, false, false, 'ativo'),
+  (1, 'Samsung Galaxy A54 128 GB', 'Sem marcas, sempre usado com película e capa.', 1300, 24, true, false, 'ativo'),
+  (2, 'Xiaomi Redmi Note 12', 'Funcionando perfeitamente. Aceito tablet na troca.', 750, 24, true, false, 'ativo'),
+  (1, 'Calculadora gráfica HP 50g', 'Usada em Cálculo Numérico. Funciona perfeitamente.', 450, 25, false, true, 'ativo'),
+  (1, 'Calculadora científica Casio fx-991ES Plus', 'Aceita nas provas de Engenharia. Com tampa.', 70, 25, true, false, 'ativo'),
+  (4, 'Calculadora financeira HP 12c', 'Original, com capa de couro. Bateria trocada mês passado.', 200, 25, false, false, 'ativo'),
+  (4, 'Teclado mecânico Redragon ABNT2', 'Switch azul, todas as teclas funcionando, RGB.', 150, 26, true, false, 'ativo'),
+  (4, 'Mouse sem fio Logitech M280', 'Pilha nova, receptor USB incluso.', 50, 26, true, false, 'ativo'),
+  (3, 'Mesa digitalizadora Wacom One', 'Caneta com pontas extras. Ótima para croquis e pós-produção.', 280, 26, true, false, 'ativo'),
+  (2, 'Fone Bluetooth JBL Tune 510', 'Bateria dura o dia todo. Perfeito para estudar na biblioteca.', 140, 26, true, false, 'ativo'),
+  (4, 'Webcam Full HD com microfone', 'Usei nas aulas remotas, imagem nítida.', 90, 26, true, false, 'ativo'),
+  (5, 'HD externo 1 TB Seagate', 'Formatado e sem setores ruins. Cabo USB 3.0.', 220, 26, false, false, 'ativo'),
+  (4, 'Kit Arduino Uno com sensores', 'Protoboard, jumpers, LEDs e sensores de temperatura e ultrassom.', 120, 27, true, false, 'ativo'),
+  (1, 'Multímetro digital', 'Usado em Eletricidade Aplicada. Pontas de prova novas.', 60, 27, true, false, 'ativo'),
+  (4, 'Kit ESP32 com display OLED', 'Placa ESP32, display de 0,96 polegada e cabos.', 75, 27, true, false, 'ativo'),
+  (4, 'Ferro de solda 60 W com suporte', 'Ponta nova, acompanha estanho e sugador.', 45, 27, true, false, 'ativo'),
+  (2, 'Kit de instrumentais de Dentística', 'Espátulas, calcadores e sonda exploradora. Esterilizados e embalados.', 180, 28, false, true, 'ativo'),
+  (2, 'Manequim odontológico com arcadas', 'Usado no laboratório de pré-clínica. Arcadas completas.', 250, 28, false, false, 'ativo'),
+  (2, 'Fotopolimerizador LED sem fio', 'Funcionando, a bateria segura uma clínica inteira.', 320, 28, false, false, 'ativo'),
+  (2, 'Caixa de esterilização em inox', 'Tamanho médio, com tampa e sem amassados.', 60, 28, true, false, 'ativo'),
+  (2, 'Estetoscópio Littmann Classic III', 'Pouco uso, olivas extras incluídas.', 550, 29, false, true, 'ativo'),
+  (2, 'Esfigmomanômetro aneroide com braçadeira', 'Calibrado este ano, acompanha bolsa.', 90, 29, true, false, 'ativo'),
+  (2, 'Kit de semiologia: martelo, lanterna e diapasão', 'Usado em Semiologia. Lanterna com pilhas novas.', 70, 29, true, false, 'ativo'),
+  (2, 'Óculos de proteção para laboratório', 'Lente antiembaçante, sem riscos.', 20, 30, true, false, 'ativo'),
+  (2, 'Kit de vidraria: béqueres e proveta', 'Béqueres de 50, 100 e 250 ml e proveta de 100 ml.', 65, 30, true, false, 'ativo'),
+  (1, 'Kit de desenho técnico: esquadros, compasso e escalímetro', 'Usado em Desenho Técnico. Compasso com estojo.', 60, 31, true, false, 'ativo'),
+  (1, 'Capacete e colete de obra', 'Usados em Construção Civil e no estágio. Capacete com jugular.', 50, 31, true, false, 'ativo'),
+  (1, 'Trena a laser 40 m', 'Ótima para levantamento de obra. Com pilhas.', 110, 31, true, false, 'ativo'),
+  (3, 'Prancheta A3 com régua paralela', 'Régua deslizando sem folga, ideal para os primeiros semestres.', 150, 32, true, true, 'ativo'),
   (3, 'Escalímetro triangular 30 cm', 'Escalas legíveis, sem lascas.', 25, 32, true, false, 'ativo'),
-  (3, 'Kit lapiseiras técnicas 0.3, 0.5 e 0.7', 'Lapiseiras de metal com grafites extras.', 50, 57, true, false, 'ativo'),
-  (3, 'Neufert — A Arte de Projetar em Arquitetura', '18ª edição, a bíblia do ateliê. Capa um pouco gasta.', 170, 19, false, false, 'ativo'),
-  (3, 'Estilete de precisão e base de corte A3', 'Base verde autocicatrizante com poucas marcas. Lâminas extras.', 35, 57, true, false, 'ativo'),
-  (3, 'Câmera fotográfica analógica com filme', 'Funcionando, ótima para a disciplina de fotografia. Troco por lente de celular.', 0, 41, true, false, 'ativo'),
-  (4, 'Notebook Dell Inspiron i5, 8 GB, SSD 256 GB', 'Bateria segura umas 3 horas. Acompanha carregador original.', 1650, 23, false, true, 'ativo'),
-  (4, 'Teclado mecânico ABNT2 switch azul', 'Todas as teclas funcionando, RGB.', 140, 26, true, false, 'ativo'),
-  (4, 'Mouse sem fio Logitech', 'Pilha nova, receptor USB incluso.', 45, 26, true, false, 'ativo'),
-  (4, 'Monitor 21,5 polegadas Full HD', 'Sem pixel queimado, cabo HDMI incluso.', 420, 23, true, false, 'ativo'),
-  (4, 'Algoritmos — Cormen (Teoria e Prática)', '3ª edição em português. Estado de novo.', 150, 19, true, false, 'ativo'),
-  (4, 'Arduino Uno com kit de sensores', 'Protoboard, jumpers, LEDs e sensores. Usado em Sistemas Embarcados.', 110, 27, true, false, 'ativo'),
-  (4, 'Monitoria de Programação em Python', 'Aulas de 1h na biblioteca para Algoritmos I e Estruturas de Dados.', 40, 37, false, false, 'ativo'),
-  (5, 'Vade Mecum Saraiva 2025', 'Usado em um semestre, sem anotações.', 110, 19, true, true, 'ativo'),
-  (5, 'Curso de Direito Constitucional — Gilmar Mendes', 'Algumas marcações a marca-texto.', 95, 19, true, false, 'ativo'),
-  (5, 'Frigobar 120 litros', 'Funcionando bem, ideal para quarto de república. Retirada no campus combinada.', 380, 49, false, false, 'ativo'),
-  (5, 'Bicicleta aro 26 com cadeado', 'Revisada, pneus novos. Perfeita para ir até o campus.', 450, 48, true, false, 'ativo'),
-  (5, 'Cafeteira elétrica', 'Faz até 15 xícaras. Funciona normal.', 0, 49, true, false, 'ativo'),
-  (5, 'Mochila para notebook', 'Compartimento acolchoado para notebook de até 15,6 polegadas.', 70, 46, true, false, 'ativo'),
-  (5, 'Revisão de TCC e ABNT', 'Revisão de formatação ABNT e ortografia para trabalhos de conclusão.', 90, 38, false, false, 'ativo');
+  (3, 'Sobras de MDF e papel paraná para maquete', 'MDF de 3 mm e papel paraná, suficiente para duas maquetes de estudo.', 30, 32, true, false, 'ativo'),
+  (3, 'Tubo porta-projeto extensível', 'Leva pranchas A1 sem amassar.', 35, 32, true, false, 'ativo'),
+  (1, 'Kit de dissecação em estojo', 'Bisturi, pinças e tesouras. Comprei para uma optativa de Biologia.', 45, 33, true, false, 'ativo'),
+  (5, 'Código de Processo Civil comentado', 'Edição 2025, poucas anotações a lápis.', 90, 34, true, false, 'ativo'),
+  (5, 'Beca para audiência simulada', 'Usada no Núcleo de Prática Jurídica. Tamanho M.', 80, 34, true, false, 'ativo'),
+  (3, 'Câmera Canon T6 com lente 18-55', 'Usada em Fotografia Publicitária. Acompanha bateria extra e bolsa.', 1700, 35, false, false, 'ativo'),
+  (5, 'Vestido midi floral tamanho M', 'Usado duas vezes. Tecido leve, ótimo para o calor de Salvador.', 60, 43, true, true, 'ativo'),
+  (5, 'Calça jeans wide leg 38', 'Lavagem clara, sem desgastes.', 70, 43, true, false, 'ativo'),
+  (2, 'Blazer feminino preto tamanho P', 'Usei em apresentações de seminário. Bem conservado.', 90, 43, true, false, 'ativo'),
+  (5, 'Cropped de tricô tamanho P', 'Feito à mão, cor off-white.', 35, 43, true, false, 'ativo'),
+  (1, 'Camisa social azul tamanho M', 'Usada no estágio, sem manchas no colarinho.', 45, 44, true, false, 'ativo'),
+  (4, 'Moletom com capuz cinza G', 'Para o ar-condicionado gelado da sala. Bem quentinho.', 60, 44, true, false, 'ativo'),
+  (1, 'Bermuda de sarja bege 42', 'Pouco uso.', 40, 44, true, false, 'ativo'),
+  (4, 'Kit 3 camisetas básicas M', 'Preta, branca e cinza, 100% algodão.', 50, 44, true, false, 'ativo'),
+  (3, 'Tênis Nike Air Max tamanho 41', 'Original, sola em ótimo estado.', 280, 45, true, true, 'ativo'),
+  (5, 'Sandália rasteira de couro 37', 'Usada poucas vezes, confortável para o dia todo no campus.', 45, 45, true, false, 'ativo'),
+  (2, 'Tênis branco de clínica tamanho 36', 'Exigido na clínica de Odontologia. Fácil de limpar.', 80, 45, true, false, 'ativo'),
+  (1, 'Bota de segurança tamanho 42', 'Biqueira de aço, usada no estágio de obra.', 90, 45, true, false, 'ativo'),
+  (4, 'Mochila para notebook até 15,6 polegadas', 'Compartimento acolchoado e entrada USB.', 90, 46, true, false, 'ativo'),
+  (5, 'Bolsa transversal de couro caramelo', 'Cabe tablet e caderno.', 70, 46, true, false, 'ativo'),
+  (3, 'Óculos de sol Ray-Ban Wayfarer', 'Original, com estojo. Lentes sem riscos.', 300, 46, false, false, 'ativo'),
+  (2, 'Relógio Casio digital', 'Pulseira de resina, bateria nova.', 80, 46, true, false, 'ativo'),
+  (2, 'Jaleco de Odontologia manga longa tamanho P', 'Gabardine, bordado removível e sem manchas.', 70, 47, true, false, 'ativo'),
+  (2, 'Pijama cirúrgico (scrub) azul tamanho M', 'Conjunto de blusa e calça, usado na clínica.', 60, 47, true, false, 'ativo'),
+  (1, 'Jaleco de laboratório tamanho G', 'Usado no laboratório de Química Geral, lavado.', 40, 47, true, false, 'ativo'),
+  (2, 'Kit 3 toucas cirúrgicas de tecido', 'Estampadas e laváveis.', 30, 47, true, false, 'ativo'),
+  (5, 'Escrivaninha com gaveta', 'MDF branco, 1 m de largura. Desmonto para levar.', 220, 48, true, true, 'ativo'),
+  (3, 'Cadeira de escritório giratória', 'Encosto em tela e regulagem de altura funcionando.', 250, 48, true, false, 'ativo'),
+  (2, 'Luminária de mesa LED articulada', 'Três intensidades, ótima para estudar à noite.', 50, 48, true, false, 'ativo'),
+  (5, 'Estante de 4 prateleiras', 'Cabe livros e organizadores. Madeira clara.', 150, 48, true, false, 'ativo'),
+  (4, 'Ventilador de coluna Mondial', 'Silencioso, três velocidades. Indispensável no verão.', 130, 48, true, false, 'ativo'),
+  (3, 'Quadro de cortiça 60x40', 'Para organizar a rotina de provas.', 35, 48, true, false, 'ativo'),
+  (5, 'Frigobar 120 litros', 'Funcionando bem, ideal para quarto de república.', 450, 49, false, true, 'ativo'),
+  (1, 'Micro-ondas 20 litros', 'Funcionando, prato giratório inteiro.', 280, 49, true, false, 'ativo'),
+  (4, 'Air fryer 4 litros', 'Pouco uso, cesto antiaderente sem riscos.', 220, 49, true, false, 'ativo'),
+  (5, 'Cafeteira elétrica 15 xícaras', 'Funciona normal, acompanha filtro permanente.', 70, 49, true, false, 'ativo'),
+  (2, 'Liquidificador Arno', 'Copo sem trincas, todas as velocidades funcionando.', 80, 49, true, false, 'ativo'),
+  (5, 'Kit de panelas antiaderentes (5 peças)', 'Mudei de república e sobrou. Sem arranhões.', 150, 50, true, false, 'ativo'),
+  (1, 'Conjunto de potes herméticos (10 peças)', 'Ótimos para levar marmita.', 40, 50, true, false, 'ativo'),
+  (4, 'Garrafa térmica 1 litro', 'Mantém o café quente o dia inteiro.', 45, 50, true, false, 'ativo'),
+  (5, 'Jogo de pratos e copos para 4 pessoas', 'Louça branca completa, sem lascas.', 70, 50, true, false, 'ativo'),
+  (2, 'Sanduicheira grill', 'Funcionando, chapa antiaderente.', 50, 50, true, false, 'ativo'),
+  (5, 'Jogo de cama solteiro 100% algodão', 'Lençol, fronha e capa de edredom.', 60, 51, true, false, 'ativo'),
+  (2, 'Edredom de casal', 'Lavado e sem manchas. Leve.', 80, 51, true, false, 'ativo'),
+  (1, 'Kit 4 toalhas de banho', 'Pouco uso, felpudas.', 60, 51, true, false, 'ativo'),
+  (3, 'Travesseiro de espuma viscoelástica', 'Usado poucas semanas, com capa protetora.', 45, 51, true, false, 'ativo'),
+  (5, 'Marmita de frango com legumes (sob encomenda)', 'Feita no dia, 400 g. Entrego na praça de alimentação no almoço.', 18, 52, false, true, 'ativo'),
+  (5, 'Kit 5 marmitas congeladas da semana', 'Cardápio variado: frango, carne moída, peixe e opção vegana.', 80, 52, false, false, 'ativo'),
+  (2, 'Escondidinho de aipim com carne do sol', 'Porção individual. Encomendas até o dia anterior.', 20, 52, false, false, 'ativo'),
+  (1, 'Moqueca de peixe (porção individual)', 'Receita da família, com arroz e farofa. Às sextas, sob encomenda.', 25, 52, false, false, 'ativo'),
+  (4, 'Salada no pote', 'Montada no dia, molho separado.', 15, 52, false, false, 'ativo'),
+  (5, 'Brigadeiros gourmet (caixa com 6)', 'Tradicional, ninho e maracujá. Encomendas até quarta.', 18, 53, false, true, 'ativo'),
+  (5, 'Bolo de aipim inteiro', 'Receita baiana, sai quentinho para a aula da manhã.', 30, 53, false, false, 'ativo'),
+  (2, 'Cocada baiana (kit com 5)', 'Cocada branca e queimada, feita em casa.', 15, 53, false, false, 'ativo'),
+  (3, 'Coxinha de frango (cento)', 'Para festas de turma e confraternizações.', 70, 53, false, false, 'ativo'),
+  (1, 'Cookies de chocolate (pacote com 6)', 'Crocantes por fora e macios por dentro.', 15, 53, false, false, 'ativo'),
+  (5, 'Bolo de pote de ninho com morango', 'Pote de 250 ml.', 12, 53, false, false, 'ativo'),
+  (4, 'Suco natural de cajá (500 ml)', 'Feito no dia, sem açúcar ou adoçado.', 7, 54, false, false, 'ativo'),
+  (2, 'Café coado na garrafa (1 litro)', 'Para grupo de estudo ou véspera de prova.', 12, 54, false, false, 'ativo'),
+  (5, 'Kombucha artesanal (garrafa 500 ml)', 'Sabores gengibre e hibisco.', 10, 54, false, false, 'ativo'),
+  (1, 'Água de coco gelada (1 litro)', 'Coco verde da feira, envasado no dia.', 10, 54, false, false, 'ativo'),
+  (4, 'Barra de proteína caseira (kit com 5)', 'Aveia, pasta de amendoim e whey.', 25, 55, false, false, 'ativo'),
+  (2, 'Granola caseira sem açúcar (500 g)', 'Castanhas, aveia e coco.', 22, 55, false, false, 'ativo'),
+  (5, 'Pão integral de fermentação natural', 'Sai às terças e quintas.', 18, 55, false, false, 'ativo'),
+  (4, 'Pasta de amendoim artesanal (300 g)', 'Sem açúcar e sem conservantes.', 18, 55, false, false, 'ativo'),
+  (1, 'Whey protein 900 g (lacrado)', 'Comprei dois e sobrou um lacrado. Sabor baunilha.', 110, 55, false, false, 'ativo'),
+  (3, 'Kit de marca-textos Stabilo Boss (6 cores)', 'Todos com tinta, pouco uso.', 30, 56, true, false, 'ativo'),
+  (5, 'Planner acadêmico 2026 (lacrado)', 'Ganhei dois, este nunca foi aberto.', 40, 56, true, true, 'ativo'),
+  (1, 'Fichário universitário com 4 divisórias', 'Capa dura, argolas funcionando.', 30, 56, true, false, 'ativo'),
+  (4, 'Caneta tinteiro Lamy Safari', 'Original, com cartucho novo.', 90, 56, true, false, 'ativo'),
+  (2, 'Kit de post-its e marcadores de página', 'Vários tamanhos, para organizar resumos.', 15, 56, true, false, 'ativo'),
+  (5, 'Lapiseira Pentel 0,7 com grafites', 'Grafites extras e borracha.', 20, 56, true, false, 'ativo'),
+  (3, 'Kit de lapiseiras técnicas 0,3, 0,5 e 0,7', 'Lapiseiras de metal com grafites extras.', 50, 57, true, false, 'ativo'),
+  (3, 'Lápis aquareláveis Faber-Castell (36 cores)', 'Pouco uso, todas as cores inteiras.', 80, 57, true, true, 'ativo'),
+  (3, 'Canetas nanquim descartáveis (5 espessuras)', 'Para croquis e desenho técnico.', 40, 57, true, false, 'ativo'),
+  (3, 'Bloco de papel manteiga A3', 'Metade do bloco, 25 folhas.', 20, 57, true, false, 'ativo'),
+  (3, 'Estilete de precisão e base de corte A3', 'Base autocicatrizante com poucas marcas. Lâminas extras.', 35, 57, true, false, 'ativo'),
+  (2, 'Telas de pintura 40x50 (kit com 3)', 'Sem uso.', 45, 57, true, false, 'ativo'),
+  (3, 'Tintas acrílicas (12 cores)', 'Bisnagas pela metade, nenhuma ressecada.', 35, 57, true, false, 'ativo'),
+  (5, 'Caderno de lettering e kit de brush pens', 'Para caligrafia, com 10 canetas.', 40, 57, true, false, 'ativo'),
+  (4, 'Impressão de TCC e trabalhos (preto e branco)', 'Preço por página. Entrego no campus no dia seguinte.', 0.25, 58, false, false, 'ativo'),
+  (4, 'Encadernação em espiral', 'Capa transparente e contracapa. Preço por encadernação.', 6, 58, false, false, 'ativo'),
+  (3, 'Plotagem de pranchas A1', 'Plotagem colorida para entregas de ateliê. Preço por prancha.', 25, 58, false, false, 'ativo'),
+  (1, 'Resma de papel A4 (500 folhas, lacrada)', 'Sobrou do semestre.', 30, 58, true, false, 'ativo'),
+  (5, 'Banner 60x90 para apresentação de TCC', 'Impressão colorida para TCC e congressos.', 60, 58, false, false, 'ativo'),
+  (4, 'Grampeador e perfurador de mesa', 'Kit funcionando, com grampos.', 30, 58, true, false, 'ativo'),
+  (1, 'Monitoria de Cálculo I e II', 'Aulas de 1 hora na biblioteca. Preço por hora.', 40, 37, false, true, 'ativo'),
+  (4, 'Aulas de lógica de programação em Python', 'Do zero aos exercícios da disciplina. Preço por hora.', 45, 37, false, false, 'ativo'),
+  (2, 'Monitoria de Anatomia em grupo', 'Revisão para as práticas, até 4 pessoas. Preço por pessoa.', 30, 37, false, false, 'ativo'),
+  (5, 'Aulas de inglês para conversação', 'Nível intermediário. Preço por hora.', 50, 37, false, false, 'ativo'),
+  (5, 'Revisão de TCC e normas ABNT', 'Formatação, referências e ortografia. Trabalhos de até 50 páginas.', 150, 38, false, false, 'ativo'),
+  (5, 'Revisão de artigos e resumos expandidos', 'Para congressos e iniciação científica.', 60, 38, false, false, 'ativo'),
+  (2, 'Tradução de abstracts (português/inglês)', 'Entrega em 48 horas.', 40, 38, false, false, 'ativo'),
+  (3, 'Criação de logotipo e identidade visual', 'Para empresa júnior, atlética e pequenos negócios.', 200, 39, false, true, 'ativo'),
+  (3, 'Diagramação de TCC e portfólio', 'Portfólio de Arquitetura ou Design em PDF.', 120, 39, false, false, 'ativo'),
+  (3, 'Renderização 3D de projetos', 'SketchUp e V-Ray. Preço por imagem.', 80, 39, false, false, 'ativo'),
+  (4, 'Formatação e instalação de Windows e Linux', 'Com backup dos arquivos e dos programas da faculdade.', 80, 40, false, false, 'ativo'),
+  (4, 'Criação de site simples ou landing page', 'Para negócio, evento ou portfólio.', 350, 40, false, false, 'ativo'),
+  (4, 'Ajuda com projetos de programação', 'Revisão de código e explicação dos exercícios.', 50, 40, false, false, 'ativo'),
+  (1, 'Limpeza e troca de pasta térmica de notebook', 'Notebook esquentando? Faço no campus.', 70, 40, false, false, 'ativo'),
+  (3, 'Ensaio fotográfico de formatura', '1 hora de ensaio no campus e 30 fotos editadas.', 250, 41, false, false, 'ativo'),
+  (3, 'Fotos profissionais para LinkedIn', 'Fundo neutro e 10 fotos tratadas.', 90, 41, false, false, 'ativo'),
+  (3, 'Gravação e edição de vídeos curtos', 'Para apresentações, eventos e redes sociais.', 120, 41, false, false, 'ativo'),
+  (5, 'Tranças box braids e nagô', 'Atendo em casa, perto do campus. Preço a partir de.', 150, 42, false, false, 'ativo'),
+  (2, 'Design de sobrancelhas com henna', 'Atendimento perto do campus.', 35, 42, false, false, 'ativo'),
+  (1, 'Frete e pequena mudança de carro', 'Mudança de república e transporte de móveis em Salvador.', 80, 42, false, false, 'ativo'),
+  (1, 'Troco Física 3 (Halliday) por Física 4', 'Livro inteiro e sem anotações. Quero o volume 4 da mesma coleção.', 0, 18, true, false, 'ativo'),
+  (2, 'Troco jaleco P por jaleco M', 'Jaleco de Odontologia, comprei o tamanho errado.', 0, 18, true, true, 'ativo'),
+  (4, 'Troco teclado de membrana por mouse gamer', 'Teclado ABNT2 funcionando.', 0, 18, true, false, 'ativo'),
+  (5, 'Troco Vade Mecum 2025 por livro de Processo Penal', 'Vade Mecum em ótimo estado.', 0, 18, true, false, 'ativo'),
+  (3, 'Troco escalímetro e esquadros por lapiseiras técnicas', 'Kit completo de desenho.', 0, 18, true, false, 'ativo'),
+  (2, 'Troco resumos de Histologia por resumos de Fisiologia', 'Resumos impressos e encadernados.', 0, 18, true, false, 'ativo'),
+  (1, 'Troco Casio fx-82 por fx-991', 'Volto a diferença se precisar.', 0, 18, true, false, 'ativo'),
+  (5, 'Troco 5 romances por livros de Direito', 'Livros de literatura em bom estado.', 0, 18, true, false, 'ativo'),
+  (4, 'Troco cabo HDMI e adaptador USB-C por fone com fio', 'Os dois funcionando.', 0, 18, true, false, 'ativo'),
+  (3, 'Troco suculentas por mudas de jiboia', 'Suculentas em vasinhos de cerâmica.', 0, 18, true, false, 'ativo'),
+  (5, 'Troco vestido de festa M por vestido P', 'Usado uma vez, em formatura.', 0, 18, true, false, 'ativo'),
+  (1, 'Troco capacete de obra por óculos de proteção', 'Capacete com jugular.', 0, 18, true, false, 'ativo'),
+  (2, 'Troco luminária de mesa por ventilador de mesa', 'Luminária LED funcionando.', 0, 18, true, false, 'ativo'),
+  (4, 'Troco livro de Java por livro de Python', 'Use a Cabeça! Java, sem anotações.', 0, 18, true, false, 'ativo'),
+  (3, 'Troco gibis da Turma da Mônica por mangás', 'Coleção com 15 revistinhas.', 0, 18, true, false, 'ativo'),
+  (5, 'Troco War por Banco Imobiliário', 'Jogo completo, com todas as peças.', 0, 18, true, false, 'ativo'),
+  (1, 'Troco tênis de corrida 42 por 41', 'Pouco uso.', 0, 18, true, false, 'ativo'),
+  (2, 'Troco kit de Periodontia por kit de Endodontia', 'Kit completo e esterilizado.', 0, 18, true, false, 'ativo'),
+  (4, 'Troco controle de PS4 por controle de Xbox', 'Funcionando, analógicos sem drift.', 0, 18, true, false, 'ativo'),
+  (3, 'Troco violão por ukulele', 'Violão de nylon com cordas novas.', 0, 18, true, false, 'ativo');
 
 COMMIT;
