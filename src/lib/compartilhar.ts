@@ -28,10 +28,13 @@ export function caminhoAnuncio(id: number, nome: string): string {
   return slug ? `/anuncio/${id}-${slug}` : `/anuncio/${id}`;
 }
 
-// Parâmetro da rota /anuncio/[id] ("89-calculadora-hp" ou "89") → 89; o resto é inválido
+// Parâmetro da rota /anuncio/[id] ("89-calculadora-hp" ou "89") → 89. O nome depois do id pode vir
+// em qualquer forma ("89-Calculadora-HP", "89-café"): a página redireciona para o endereço certo.
+const TAMANHO_MAXIMO_PARAM = 300;
+
 export function idDoAnuncio(param: unknown): number | null {
-  if (typeof param !== "string") return null;
-  const m = param.match(/^(\d{1,9})(?:-[a-z0-9-]*)?$/);
+  if (typeof param !== "string" || param.length > TAMANHO_MAXIMO_PARAM) return null;
+  const m = param.match(/^(\d{1,9})(?:-[^/\\]*)?$/);
   if (!m) return null;
   const id = Number(m[1]);
   return id > 0 ? id : null;
@@ -54,6 +57,15 @@ export type DestinoCompartilhado =
   | { tipo: "loja"; slug: string; codigo: string }
   | { tipo: "anuncio"; id: number; codigo: string };
 
+// "%E0" solto faz decodeURIComponent lançar erro; no middleware isso virava erro 500
+function decodificar(trecho: string): string | null {
+  try {
+    return decodeURIComponent(trecho);
+  } catch {
+    return null;
+  }
+}
+
 // Lê um caminho interno (o "next" do login) e diz se é link compartilhado de loja ou anúncio
 export function destinoCompartilhado(destino: unknown): DestinoCompartilhado | null {
   if (typeof destino !== "string" || !/^\/(?![/\\])/.test(destino)) return null;
@@ -68,12 +80,12 @@ export function destinoCompartilhado(destino: unknown): DestinoCompartilhado | n
 
   const loja = url.pathname.match(/^\/perfil\/([^/]+)$/);
   if (loja) {
-    const slug = decodeURIComponent(loja[1]);
-    return SLUG.test(slug) ? { tipo: "loja", slug, codigo } : null;
+    const slug = decodificar(loja[1]);
+    return slug !== null && SLUG.test(slug) ? { tipo: "loja", slug, codigo } : null;
   }
   const anuncio = url.pathname.match(/^\/anuncio\/([^/]+)$/);
   if (anuncio) {
-    const id = idDoAnuncio(decodeURIComponent(anuncio[1]));
+    const id = idDoAnuncio(decodificar(anuncio[1]));
     return id ? { tipo: "anuncio", id, codigo } : null;
   }
   return null;

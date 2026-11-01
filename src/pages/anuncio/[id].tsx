@@ -20,6 +20,7 @@ import BotaoContato from "@/components/BotaoContato";
 import BotaoDenunciar from "@/components/BotaoDenunciar";
 import CardProduto from "@/components/CardProduto";
 import SeloVerificado from "@/components/SeloVerificado";
+import { motivoForaDoAr } from "@/lib/anuncios";
 import { caminhoAnuncio, idDoAnuncio } from "@/lib/compartilhar";
 import { createServerClient } from "@/lib/supabase";
 import { definirFavorito, getAnuncioLeitura, getMeusFavoritosIds } from "@/lib/queries";
@@ -41,12 +42,6 @@ function formatarData(iso: string): string {
   if (isNaN(data.getTime())) return "";
   return data.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
 }
-
-const STATUS_DONO: Record<string, string> = {
-  pausado: "pausado",
-  vendido: "marcado como vendido",
-  ativo: "vencido (passou de 60 dias sem renovar)",
-};
 
 // /anuncio/{id}-{nome}: só o id identifica; nome diferente redireciona para o endereço certo
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
@@ -155,7 +150,7 @@ export default function AnuncioPage({ leitura, favoritos }: Props) {
 
         {ehDono && !disponivel && (
           <div role="status" className="mb-4 bg-doacao-50 text-doacao rounded-card p-4 text-sm">
-            Seu anúncio está {STATUS_DONO[anuncio.status] ?? anuncio.status}. Só você vê esta página até ele voltar
+            Seu anúncio está {motivoForaDoAr(anuncio.status, anuncio.renovado_em)}. Só você vê esta página até ele voltar
             ao ar.{" "}
             <Link href="/painel/anuncios" className="font-semibold underline">
               Gerenciar no painel

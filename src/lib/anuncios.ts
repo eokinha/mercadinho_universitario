@@ -12,6 +12,15 @@ export function anuncioExpirado(renovadoEm: string, agora: Date = new Date()): b
   return new Date(renovadoEm).getTime() <= agora.getTime() - DIAS_VALIDADE_ANUNCIO * DIA_MS;
 }
 
+// Por que o anúncio do dono está fora do ar. Status "ativo" dentro do prazo só sai do ar
+// quando a loja não está ativa (admin pausou ou reprovou; anuncio_leitura não manda o status da loja).
+export function motivoForaDoAr(status: string, renovadoEm: string, agora: Date = new Date()): string {
+  if (status === "vendido") return "marcado como vendido";
+  if (status === "pausado") return "pausado";
+  if (anuncioExpirado(renovadoEm, agora)) return "vencido (passou de 60 dias sem renovar)";
+  return "fora do ar porque sua loja não está ativa";
+}
+
 export type Modalidade = "venda" | "troca" | "ambos";
 
 export function modalidadeDoAnuncio(preco: number, aceitaTroca: boolean): Modalidade {
