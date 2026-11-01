@@ -332,4 +332,6 @@ em `src/styles/globals.css`; não use hex soltos nem as cores padrão do Tailwin
 - Ícone de categoria: `iconeParaCategoria` em `src/lib/icones-categoria.ts` (a coluna `categorias.icone` guarda emoji e não é exibida)
 - Todas as lojas seguem a identidade do site (não há cor por loja)
 - Hero da home (`HeroSection`): cada slide tem foto de fundo em `public/hero/` (WebP 1600px, CC0; créditos em
-  `public/hero/creditos.json`) sob degradê `petroleo-900` para o texto branco ficar legível
+  `public/hero/creditos.json`) sob degradê `petroleo-900` para o texto branco ficar legível. Os textos de todos os slides
+  ficam empilhados na mesma célula do grid (inativos `invisible`), então a altura do carrossel é a do slide mais longo e não pula
+- Manifesto do Modo Trocar (`SecaoTrocas`) usa o mesmo padrão: foto `public/hero/trocas.webp` sob degradê `petroleo-900`

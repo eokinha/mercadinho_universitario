@@ -93,9 +93,7 @@ export default function HeroSection({ categorias = [], logado = false }: Props) 
     .filter((c) => !c.nome.toLowerCase().includes("troca"))
     .map((c) => ({ id: c.id, nome: c.nome, Icone: iconeParaCategoria(c.nome) }));
 
-  const slide = SLIDES[slideAtual];
-  // Visitante não vê catálogo nem anuncia: toda chamada leva ao cadastro
-  const ctaHref = logado ? slide.cta.href : "/cadastro";
+  // Visitante não vê catálogo nem anuncia: toda chamada (CTA do slide) leva ao cadastro
 
   return (
     <div className="w-full bg-pagina pb-4">
@@ -241,28 +239,38 @@ export default function HeroSection({ categorias = [], logado = false }: Props) 
               className="absolute inset-0 -z-10 bg-petroleo-900/75 md:bg-transparent md:bg-linear-to-r md:from-petroleo-900 md:via-petroleo-900/85 md:to-petroleo-900/20"
             />
 
-            <div
-              className="w-full p-6 sm:p-10 min-h-[300px] sm:min-h-[340px] flex flex-col justify-between gap-6"
-              aria-live="polite"
-            >
-              <div key={slideAtual} className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                <div className="md:col-span-7 flex flex-col gap-3 text-center md:text-left">
-                  <span className="inline-flex items-center justify-center md:justify-start gap-1.5 text-sm font-semibold text-white/90">
-                    <slide.Icone size={16} strokeWidth={1.75} aria-hidden="true" />
-                    {slide.rotulo}
-                  </span>
-                  <h2 className="text-2xl sm:text-4xl font-bold tracking-tight leading-tight">{slide.titulo}</h2>
-                  <p className="text-base text-white/90 leading-relaxed max-w-xl mx-auto md:mx-0">{slide.texto}</p>
-                  <div className="mt-2">
-                    <Link
-                      href={ctaHref}
-                      className="inline-flex items-center gap-2 bg-superficie text-petroleo font-semibold rounded-controle px-4 py-2.5 min-h-[44px] hover:bg-petroleo-50 transition focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
+            <div className="w-full p-6 sm:p-10 flex flex-col justify-between gap-6" aria-live="polite">
+              {/* Todos os slides ocupam a mesma célula do grid: a altura é sempre a do texto mais longo,
+                  então o carrossel não muda de tamanho ao trocar de slide (os inativos ficam invisíveis) */}
+              <div className="grid">
+                {SLIDES.map((s, idx) => {
+                  const ativo = slideAtual === idx;
+                  return (
+                    <div
+                      key={s.titulo}
+                      aria-hidden={!ativo}
+                      className={`[grid-area:1/1] grid grid-cols-1 md:grid-cols-12 gap-6 items-center ${ativo ? "" : "invisible"}`}
                     >
-                      {slide.cta.texto}
-                      <ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
-                    </Link>
-                  </div>
-                </div>
+                      <div className="md:col-span-7 flex flex-col gap-3 text-center md:text-left">
+                        <span className="inline-flex items-center justify-center md:justify-start gap-1.5 text-sm font-semibold text-white/90">
+                          <s.Icone size={16} strokeWidth={1.75} aria-hidden="true" />
+                          {s.rotulo}
+                        </span>
+                        <h2 className="text-2xl sm:text-4xl font-bold tracking-tight leading-tight">{s.titulo}</h2>
+                        <p className="text-base text-white/90 leading-relaxed max-w-xl mx-auto md:mx-0">{s.texto}</p>
+                        <div className="mt-2">
+                          <Link
+                            href={logado ? s.cta.href : "/cadastro"}
+                            className="inline-flex items-center gap-2 bg-superficie text-petroleo font-semibold rounded-controle px-4 py-2.5 min-h-[44px] hover:bg-petroleo-50 transition focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
+                          >
+                            {s.cta.texto}
+                            <ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="flex items-center justify-center gap-1">

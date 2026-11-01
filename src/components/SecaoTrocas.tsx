@@ -167,16 +167,29 @@ export default function SecaoTrocas({ produtos = [], favoritos = [], logado = fa
     <section id="trocas" className="py-12 bg-superficie border-t border-borda scroll-mt-32">
       {/* Manifesto */}
       <div className="max-w-6xl mx-auto px-4 mb-10">
-        <div className="bg-troca-50 rounded-card p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="relative isolate overflow-hidden bg-petroleo-900 rounded-card p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* Foto de fundo (CC0, crédito em public/hero/creditos.json) sob degradê para o texto branco */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/hero/trocas.webp"
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            className="absolute inset-0 -z-10 w-full h-full object-cover"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 -z-10 bg-petroleo-900/80 lg:bg-transparent lg:bg-linear-to-r lg:from-petroleo-900 lg:via-petroleo-900/85 lg:to-petroleo-900/40"
+          />
           <div className="lg:col-span-7 flex flex-col items-start gap-3">
             <span className="inline-flex items-center gap-1.5 rounded-pill text-xs font-semibold px-2.5 py-1 bg-superficie text-troca-texto">
               <Repeat size={14} strokeWidth={1.75} aria-hidden="true" />
               Modo Trocar
             </span>
-            <h2 className="text-2xl sm:text-4xl font-bold text-petroleo tracking-tight leading-tight">
+            <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
               Não compre novo. Deixa Circular.
             </h2>
-            <p className="text-tinta-suave text-base leading-relaxed">
+            <p className="text-white/90 text-base leading-relaxed">
               Livros que você já usou, apostilas de matérias cursadas, calculadoras e jalecos têm valor para quem
               está começando o semestre. Trocando, você libera espaço e ajuda a comunidade do seu campus.
             </p>
