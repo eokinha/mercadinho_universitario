@@ -70,6 +70,7 @@ src/
 │   ├── compartilhar.ts   # Link do QR code da loja (?c=código&utm_source=qr) e leitura do next do login
 │   ├── guias-email.ts    # Provedor (Outlook/Gmail) e passo a passo do e-mail por domínio de faculdade
 │   ├── faq.ts            # Perguntas e respostas do /ajuda (revisar ao mudar regra de negócio)
+│   ├── faculdades.ts     # Logo da faculdade na Navbar (por domínio; arquivos em public/faculdades/) e nome curto
 │   └── validacoes.ts     # CPF, telefone, e-mail acadêmico
 └── types/
     └── index.ts          # Interfaces TypeScript
@@ -223,7 +224,8 @@ cria as RPCs da página do anúncio.
 ### Campus
 - Cada aluno fica no campus do próprio e-mail: o domínio define `usuarios.instituicoes_id` no cadastro, sem seletor nem filtro
 - Cadastro só com domínio de faculdade participante; para abrir uma faculdade nova, cadastrar a instituição com os `dominios`
-- Home, listagem e busca mostram só o campus do aluno; a Navbar exibe o campus fixo
+- Home, listagem e busca mostram só o campus do aluno; a Navbar exibe o campus fixo como "Circular | logo da faculdade"
+  (`logoDaFaculdade` em `src/lib/faculdades.ts`; sem logo cadastrado, mostra o nome curto). Busca no centro, Anunciar e conta à direita
 - Perfil de outro campus (link compartilhado) abre só leitura: sem WhatsApp nem favoritar; denunciar continua liberado
 - QR code da loja: qualquer aluno que abre um perfil público compartilha a loja (PNG, copiar link, compartilhar);
   o dono vê "Compartilhar minha loja", os demais "Compartilhar loja" ao lado do WhatsApp. Visitante que escaneia

@@ -514,6 +514,7 @@ export async function getResumoUsuarioNavbar(
   nome: string;
   instituicoes_id: number | null;
   instituicao_nome: string | null;
+  instituicao_dominios: string[];
   loja_id: number | null;
 } | null> {
   const usuario = await getMeuUsuario(client);
@@ -522,7 +523,7 @@ export async function getResumoUsuarioNavbar(
   const [{ data: loja, error }, { data: instituicao, error: erroInstituicao }] = await Promise.all([
     client.from("lojas").select("id").eq("usuario_id", usuario.id).maybeSingle(),
     usuario.instituicoes_id
-      ? client.from("instituicoes").select("nome").eq("id", usuario.instituicoes_id).maybeSingle()
+      ? client.from("instituicoes").select("nome, dominios").eq("id", usuario.instituicoes_id).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
   ]);
 
@@ -534,6 +535,7 @@ export async function getResumoUsuarioNavbar(
     nome: usuario.nome || "",
     instituicoes_id: usuario.instituicoes_id ? Number(usuario.instituicoes_id) : null,
     instituicao_nome: (instituicao as { nome: string } | null)?.nome ?? null,
+    instituicao_dominios: (instituicao as { dominios: string[] | null } | null)?.dominios ?? [],
     loja_id: loja?.id ?? null,
   };
 }

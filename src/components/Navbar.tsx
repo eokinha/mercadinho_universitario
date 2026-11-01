@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { getResumoUsuarioNavbar } from "@/lib/queries";
 import { PAGINAS_PAINEL } from "@/lib/painel-routes";
 import Logo from "@/components/Logo";
+import { logoDaFaculdade, nomeCurtoFaculdade } from "@/lib/faculdades";
 import { Flag, GraduationCap, Image as ImageIcon, LogOut, Plus, ShieldCheck, Store, UserRound } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
@@ -18,6 +19,7 @@ export default function Navbar() {
 
   // Campus fixo do aluno (vem do domínio do e-mail; não há seletor)
   const [campusNome, setCampusNome] = useState<string | null>(null);
+  const [campusLogo, setCampusLogo] = useState<string | null>(null);
   const [lojaId, setLojaId] = useState<number | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
@@ -32,6 +34,7 @@ export default function Navbar() {
         setIsAdmin(data.is_admin);
         setNomeUsuario(data.nome);
         setCampusNome(data.instituicao_nome);
+        setCampusLogo(logoDaFaculdade(data.instituicao_dominios));
         setLojaId(data.loja_id);
 
         // Sem campus (e-mail de faculdade não participante): onboarding explica e oferece a troca
@@ -63,6 +66,7 @@ export default function Navbar() {
         setIsAdmin(false);
         setNomeUsuario("");
         setCampusNome(null);
+        setCampusLogo(null);
         setLojaId(null);
       }
     });
@@ -101,51 +105,56 @@ export default function Navbar() {
 
   return (
     <header className="bg-superficie border-b border-borda sticky top-0 z-30">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2 sm:gap-4">
-        {/* Logo */}
-        <Link
-          href="/"
-          aria-label="Circular — página inicial"
-          className="shrink-0 rounded-controle focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
-        >
-          <span className="hidden sm:block">
-            <Logo />
-          </span>
-          <span className="sm:hidden">
-            <Logo variante="simbolo" />
-          </span>
-        </Link>
+      {/* Até lg: linha flexível (a busca ocupa o meio). A partir de lg: três colunas, busca centralizada na página */}
+      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2 sm:gap-4 lg:grid lg:grid-cols-[1fr_minmax(0,36rem)_1fr]">
+        {/* Circular | logo da faculdade do aluno */}
+        <div className="flex items-center gap-3 min-w-0 shrink-0">
+          <Link
+            href="/"
+            aria-label="Circular — página inicial"
+            className="shrink-0 rounded-controle focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+          >
+            <span className="hidden sm:block">
+              <Logo />
+            </span>
+            <span className="sm:hidden">
+              <Logo variante="simbolo" />
+            </span>
+          </Link>
 
-        {/* Barra central: busca no catálogo do campus + campus fixo (só logados) */}
+          {user && campusNome && (
+            <div title={`Seu campus: ${campusNome}`} className="hidden md:flex items-center gap-3 min-w-0">
+              <span className="h-7 border-l border-borda" aria-hidden="true" />
+              {campusLogo ? (
+                <img src={campusLogo} alt={`Seu campus: ${campusNome}`} className="h-7 w-auto max-w-[140px] object-contain" />
+              ) : (
+                <span className="text-sm font-semibold text-tinta-suave truncate max-w-[160px]">
+                  <span className="sr-only">Seu campus: </span>
+                  {nomeCurtoFaculdade(campusNome)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Busca no catálogo do campus (só logados) */}
         {user ? (
-          <div className="flex-1 min-w-0 flex items-center justify-center gap-2 max-w-xl sm:mx-2">
-            <form onSubmit={handleSubmit} className="flex-1 min-w-0" role="search">
-              <input
-                type="search"
-                value={termo}
-                onChange={(e) => setTermo(e.target.value)}
-                placeholder={campusNome ? "Buscar no seu campus" : "Buscar"}
-                aria-label="Buscar anúncios do seu campus"
-                className="w-full rounded-pill border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 px-4 py-2 min-h-[44px] text-sm text-tinta placeholder:text-tinta-sutil transition bg-superficie"
-              />
-            </form>
-
-            {campusNome && (
-              <span
-                title={`Seu campus: ${campusNome}`}
-                className="hidden md:inline-flex shrink-0 items-center gap-1.5 min-h-[44px] px-3 rounded-pill bg-petroleo-50 text-petroleo text-xs font-semibold max-w-[190px]"
-              >
-                <GraduationCap size={16} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
-                <span className="truncate">{campusNome}</span>
-              </span>
-            )}
-          </div>
+          <form onSubmit={handleSubmit} className="flex-1 min-w-0 w-full" role="search">
+            <input
+              type="search"
+              value={termo}
+              onChange={(e) => setTermo(e.target.value)}
+              placeholder={campusNome ? "Buscar no seu campus" : "Buscar"}
+              aria-label="Buscar anúncios do seu campus"
+              className="w-full rounded-pill border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 px-4 py-2 min-h-[44px] text-sm text-tinta placeholder:text-tinta-sutil transition bg-superficie"
+            />
+          </form>
         ) : (
           <div className="flex-1" />
         )}
 
         {/* Ações e Menu do Usuário */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center justify-end gap-2 sm:gap-3 shrink-0">
           {user && (
             <Link
               href="/anunciar"
