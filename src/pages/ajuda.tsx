@@ -38,7 +38,7 @@ export default function AjudaPage({ instituicoes }: Props) {
   return (
     <>
       <Head>
-        <title>Ajuda | Circular</title>
+        <title>Ajuda • Circular</title>
         <meta name="description" content="Dúvidas sobre cadastro, e-mail da faculdade, senha, compras e anúncios no Circular." />
       </Head>
 

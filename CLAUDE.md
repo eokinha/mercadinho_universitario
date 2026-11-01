@@ -71,6 +71,7 @@ src/
 │   ├── guias-email.ts    # Provedor (Outlook/Gmail) e passo a passo do e-mail por domínio de faculdade
 │   ├── faq.ts            # Perguntas e respostas do /ajuda (revisar ao mudar regra de negócio)
 │   ├── faculdades.ts     # Logo da faculdade na Navbar (por domínio; arquivos em public/faculdades/) e nome curto
+│   ├── titulos.ts        # Título da aba por rota (padrão no _app; página com título dinâmico sobrescreve)
 │   └── validacoes.ts     # CPF, telefone, e-mail acadêmico
 └── types/
     └── index.ts          # Interfaces TypeScript
@@ -293,6 +294,10 @@ cria as RPCs da página do anúncio.
 ### Testes
 - `npm test` roda `node --test` em `src/lib/__tests__/*.test.ts` (sem dependências extras)
 - Funções puras de `src/lib` (validações, formatação) devem ter teste; imports nos testes usam extensão `.ts`
+
+### Títulos das páginas
+- Rota nova ganha título em `src/lib/titulos.ts`; título dinâmico vai no `<Head>` da página
+- `<title>` sempre com um texto só: `{`${nome} • Circular`}` (misturar `{nome} • Circular` vira vários filhos e o navegador mostra a URL)
 
 ### Componentes
 - Props sempre tipadas com `interface Props`

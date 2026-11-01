@@ -93,7 +93,7 @@ export default function PainelEstudante({
   return (
     <>
       <Head>
-        <title>{PAGINAS_PAINEL[abaAtiva].title} • Circular</title>
+        <title>{`${PAGINAS_PAINEL[abaAtiva].title} • Circular`}</title>
       </Head>
 
       <div className="min-h-screen bg-pagina pb-16">
