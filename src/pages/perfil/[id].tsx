@@ -309,7 +309,7 @@ export default function PerfilPublicoPage({
                     produto={produto}
                     largura="fluida"
                     favoritado={favoritos.includes(produto.id)}
-                    podeFavoritar={mesmoCampus}
+                    podeFavoritar={mesmoCampus && !ehDono}
                   />
                 ))}
               </div>

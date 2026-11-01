@@ -323,7 +323,7 @@ export default function AnuncioPage({ leitura, favoritos }: Props) {
                   produto={produto}
                   largura="fluida"
                   favoritado={favoritos.includes(produto.id)}
-                  podeFavoritar={mesmoCampus}
+                  podeFavoritar={mesmoCampus && !ehDono}
                 />
               ))}
             </div>
