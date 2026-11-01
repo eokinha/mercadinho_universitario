@@ -314,3 +314,5 @@ em `src/styles/globals.css`; não use hex soltos nem as cores padrão do Tailwin
 - Selo de verificado: `src/components/SeloVerificado.tsx`
 - Ícone de categoria: `iconeParaCategoria` em `src/lib/icones-categoria.ts` (a coluna `categorias.icone` guarda emoji e não é exibida)
 - Todas as lojas seguem a identidade do site (não há cor por loja)
+- Hero da home (`HeroSection`): cada slide tem foto de fundo em `public/hero/` (WebP 1600px, CC0; créditos em
+  `public/hero/creditos.json`) sob degradê `petroleo-900` para o texto branco ficar legível

@@ -28,6 +28,7 @@ const SLIDES = [
     texto: "Só alunos com matrícula verificada anunciam. Combine a entrega no seu campus, direto com o colega.",
     cta: { href: "/listagem", texto: "Explorar anúncios" },
     Icone: ShieldCheck,
+    imagem: "/hero/negocie.webp",
   },
   {
     rotulo: "Economia comunitária",
@@ -35,6 +36,7 @@ const SLIDES = [
     texto: "Livros, calculadoras, jalecos e materiais de curso circulam entre colegas em vez de ficarem parados.",
     cta: { href: "/anunciar", texto: "Anunciar um item" },
     Icone: ShoppingBag,
+    imagem: "/hero/circule.webp",
   },
   {
     rotulo: "Modo Trocar",
@@ -42,6 +44,7 @@ const SLIDES = [
     texto: "Anuncie o que você tem e diga o que procura. Se houver diferença em dinheiro, vocês combinam entre si.",
     cta: { href: "#trocas", texto: "Ver trocas" },
     Icone: Repeat,
+    imagem: "/hero/troque.webp",
   },
 ];
 
@@ -209,50 +212,69 @@ export default function HeroSection({ categorias = [], logado = false }: Props) 
             <ChevronRight size={20} strokeWidth={1.75} aria-hidden="true" />
           </button>
 
-          <div
-            className="w-full bg-petroleo-900 text-white rounded-card p-6 sm:p-10 min-h-[260px] flex flex-col justify-between gap-6"
-            aria-live="polite"
-          >
-            <div key={slideAtual} className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-              <div className="md:col-span-8 flex flex-col gap-3 text-center md:text-left">
-                <span className="text-sm font-semibold text-white/80">{slide.rotulo}</span>
-                <h2 className="text-2xl sm:text-4xl font-bold tracking-tight leading-tight">{slide.titulo}</h2>
-                <p className="text-base text-white/80 leading-relaxed max-w-xl mx-auto md:mx-0">{slide.texto}</p>
-                <div className="mt-2">
-                  <Link
-                    href={ctaHref}
-                    className="inline-flex items-center gap-2 bg-superficie text-petroleo font-semibold rounded-controle px-4 py-2.5 min-h-[44px] hover:bg-petroleo-50 transition focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
+          <div className="relative w-full bg-petroleo-900 text-white rounded-card overflow-hidden isolate">
+            {/* Fotos de fundo (CC0, créditos em public/hero/creditos.json): todas montadas para trocar com fade */}
+            {SLIDES.map((s, idx) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={s.imagem}
+                src={s.imagem}
+                alt=""
+                aria-hidden="true"
+                fetchPriority={idx === 0 ? "high" : "low"}
+                className={`absolute inset-0 -z-10 w-full h-full object-cover transition-opacity duration-700 motion-reduce:transition-none ${
+                  slideAtual === idx ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            ))}
+            {/* Degradê para o texto branco ficar legível sobre qualquer foto */}
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 -z-10 bg-petroleo-900/75 md:bg-transparent md:bg-linear-to-r md:from-petroleo-900 md:via-petroleo-900/85 md:to-petroleo-900/20"
+            />
+
+            <div
+              className="w-full p-6 sm:p-10 min-h-[300px] sm:min-h-[340px] flex flex-col justify-between gap-6"
+              aria-live="polite"
+            >
+              <div key={slideAtual} className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                <div className="md:col-span-7 flex flex-col gap-3 text-center md:text-left">
+                  <span className="inline-flex items-center justify-center md:justify-start gap-1.5 text-sm font-semibold text-white/90">
+                    <slide.Icone size={16} strokeWidth={1.75} aria-hidden="true" />
+                    {slide.rotulo}
+                  </span>
+                  <h2 className="text-2xl sm:text-4xl font-bold tracking-tight leading-tight">{slide.titulo}</h2>
+                  <p className="text-base text-white/90 leading-relaxed max-w-xl mx-auto md:mx-0">{slide.texto}</p>
+                  <div className="mt-2">
+                    <Link
+                      href={ctaHref}
+                      className="inline-flex items-center gap-2 bg-superficie text-petroleo font-semibold rounded-controle px-4 py-2.5 min-h-[44px] hover:bg-petroleo-50 transition focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
+                    >
+                      {slide.cta.texto}
+                      <ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-1">
+                {SLIDES.map((s, idx) => (
+                  <button
+                    key={s.titulo}
+                    type="button"
+                    onClick={() => setSlideAtual(idx)}
+                    aria-label={`Ir para o slide ${idx + 1}`}
+                    aria-current={slideAtual === idx}
+                    className="h-11 px-1 flex items-center focus-visible:outline-2 focus-visible:outline-white"
                   >
-                    {slide.cta.texto}
-                    <ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
-                  </Link>
-                </div>
+                    <span
+                      className={`block h-1 rounded-pill transition-all duration-300 ${
+                        slideAtual === idx ? "w-8 bg-white" : "w-6 bg-white/40"
+                      }`}
+                    />
+                  </button>
+                ))}
               </div>
-
-              <div className="hidden md:flex md:col-span-4 justify-center">
-                <div className="w-32 h-32 rounded-pill bg-petroleo flex items-center justify-center">
-                  <slide.Icone size={56} strokeWidth={1.75} aria-hidden="true" />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-center gap-1">
-              {SLIDES.map((s, idx) => (
-                <button
-                  key={s.titulo}
-                  type="button"
-                  onClick={() => setSlideAtual(idx)}
-                  aria-label={`Ir para o slide ${idx + 1}`}
-                  aria-current={slideAtual === idx}
-                  className="h-11 px-1 flex items-center focus-visible:outline-2 focus-visible:outline-white"
-                >
-                  <span
-                    className={`block h-1 rounded-pill transition-all duration-300 ${
-                      slideAtual === idx ? "w-8 bg-white" : "w-6 bg-white/40"
-                    }`}
-                  />
-                </button>
-              ))}
             </div>
           </div>
         </div>
