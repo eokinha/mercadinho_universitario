@@ -31,7 +31,7 @@ const SLIDES = [
     imagem: "/hero/negocie.webp",
   },
   {
-    rotulo: "Economia comunitária",
+    rotulo: "Economia no Campus",
     titulo: "O que você não usa, outro aluno precisa",
     texto: "Livros, calculadoras, jalecos e materiais de curso circulam entre colegas em vez de ficarem parados.",
     cta: { href: "/anunciar", texto: "Anunciar um item" },
