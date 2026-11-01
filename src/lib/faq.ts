@@ -149,6 +149,22 @@ export const FAQ: SecaoFaq[] = [
         ],
       },
       {
+        id: "perguntas-no-anuncio",
+        pergunta: "Posso tirar dúvidas antes de chamar o vendedor?",
+        resposta: [
+          "Sim. Na página do anúncio, escreva sua pergunta em Perguntas ao vendedor. O vendedor responde ali mesmo e todos os alunos do campus veem a resposta.",
+          "Perguntas e respostas passam por uma moderação automática antes de aparecer. Não escreva telefone nem dados pessoais: o contato é pelo botão Tenho interesse.",
+        ],
+      },
+      {
+        id: "avaliar-vendedor",
+        pergunta: "Como funciona a avaliação do vendedor?",
+        resposta: [
+          "Depois de chamar um vendedor no WhatsApp pelo Circular, você pode dar uma nota de 1 a 5 no perfil dele, com comentário opcional. Cada aluno avalia um vendedor uma vez e pode atualizar a nota depois.",
+          "A nota sem comentário vale na hora. O comentário passa pela moderação automática; o que for ofensivo ou suspeito não é publicado.",
+        ],
+      },
+      {
         id: "negociar-com-seguranca",
         pergunta: "Como negociar com segurança?",
         resposta: [

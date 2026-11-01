@@ -17,6 +17,9 @@ em que a build roda (Production, Preview, Development):
 
 - `NEXT_PUBLIC_SUPABASE_URL` — URL do projeto (ex.: `https://xxxxx.supabase.co`)
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — ou, na ausência, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `VETTLY_API_KEY` e `VETTLY_POLICY_ID` — moderação de perguntas e avaliações (só servidor; sem elas tudo fica em análise)
+- `MODERACAO_SEGREDO` — segredo que as rotas `/api` mandam para `aplicar_moderacao`; o banco guarda só o SHA-256
+  em `privado.config` (chave `moderacao_segredo_sha256`). Trocar o segredo = gravar o novo hash lá e a variável na Vercel
 
 E-mails do Supabase Auth (recuperação de senha, confirmação) saem pelo SMTP do Resend,
 configurado no painel do Supabase (Authentication → SMTP), não pelo código.
@@ -44,14 +47,16 @@ src/
 │   ├── ajuda.tsx         # FAQ público (conteúdo em lib/faq.ts; âncora por pergunta, ex.: /ajuda#nao-chegou)
 │   ├── lojas/[slug].tsx  # Perfil público da loja
 │   ├── perfil/[id].tsx   # Perfil público do estudante
-│   ├── anuncio/[id].tsx  # Página do anúncio (/anuncio/{id}-{nome}; nome errado redireciona para o certo)
+│   ├── anuncio/[id].tsx  # Página do anúncio (/anuncio/{id}-{nome}; nome errado redireciona para o certo) + perguntas
+│   ├── api/              # perguntas, respostas, avaliacoes: gravam pela RPC e moderam na Vettly (src/lib/moderacao.ts)
 │   ├── painel/           # Painel do estudante (index, anuncios, favoritos, perfil)
 │   ├── minha-loja/       # Rotas antigas: só redirecionam para /painel e /anunciar
 │   └── admin/
 │       ├── verificacoes.tsx  # Moderação de matrículas (somente admin)
 │       ├── lojas.tsx         # Status das lojas e produtos impulsionados (somente admin)
 │       ├── imagens.tsx       # Upload de avatar/capa/imagens (somente admin)
-│       └── denuncias.tsx     # Fila de denúncias (somente admin)
+│       ├── denuncias.tsx     # Fila de denúncias (somente admin)
+│       └── comentarios.tsx   # Perguntas/avaliações que a Vettly não aprovou (somente admin)
 ├── components/           # Navbar, Footer, HeroSection, CardProduto (link para a página do anúncio),
 │                         # BotaoContato (WhatsApp via RPC), BotaoDenunciar,
 │                         # ConfiraEmail (pós-cadastro/senha), GuiaEmail + AjudaEmailFaculdade (tutorial do e-mail),
@@ -72,6 +77,7 @@ src/
 │   ├── faq.ts            # Perguntas e respostas do /ajuda (revisar ao mudar regra de negócio)
 │   ├── faculdades.ts     # Logo da faculdade na Navbar (por domínio; arquivos em public/faculdades/) e nome curto
 │   ├── titulos.ts        # Título da aba por rota (padrão no _app; página com título dinâmico sobrescreve)
+│   ├── moderacao.ts      # Chamada à Vettly e gravação do resultado (só servidor) · api-rotas.ts: POST JSON e erros
 │   └── validacoes.ts     # CPF, telefone, e-mail acadêmico
 └── types/
     └── index.ts          # Interfaces TypeScript
@@ -98,6 +104,10 @@ favoritos      — id (uuid), usuario_id, produto_id, criado_em
 interesses     — id, loja_id, produto_id, usuario_id, criado_em (clique em "Tenho interesse"; só via RPC)
 denuncias      — id, denunciante_id, loja_id, produto_id, alvo_descricao, motivo, detalhes, status (aberta|resolvida|descartada),
                  criado_em (só via RPC)
+perguntas      — id, produto_id, autor_id, texto, status (pendente|aprovado|recusado), moderacao_id, resposta, resposta_status,
+                 respondida_em, criado_em (só via RPC)
+avaliacoes     — id, loja_id, autor_id, nota (1–5), comentario, status, moderacao_id, criado_em, atualizado_em;
+                 UNIQUE (loja_id, autor_id) (só via RPC)
 ```
 
 Relações:
@@ -115,11 +125,12 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `23`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `24`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`; a `18` é o endurecimento
 pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limites e URLs de imagem);
 a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20` cria o código do QR code da loja, a `21` libera esse código a qualquer aluno logado, a `22`
-cria as RPCs da página do anúncio e a `23` separa nome pessoal e nome de exibição (ver "Nome do aluno").
+cria as RPCs da página do anúncio, a `23` separa nome pessoal e nome de exibição (ver "Nome do aluno") e a `24`
+cria perguntas nos anúncios e avaliação do vendedor com moderação externa (ver "Perguntas e avaliações").
 
 ### Segurança (RLS e triggers)
 
@@ -179,6 +190,11 @@ cria as RPCs da página do anúncio e a `23` separa nome pessoal e nome de exibi
   - `admin_listar_usuarios()` / `admin_moderar_matricula(p_usuario_id, p_status)` / `admin_definir_status_usuario(p_usuario_id, p_status)`
   - `admin_listar_lojas()` / `admin_moderar_loja(p_loja_id, p_status)` / `admin_definir_destaque(p_produto_id, p_destaque)`
   - `admin_listar_denuncias()` / `admin_resolver_denuncia(p_denuncia_id, p_status)` — todas as `admin_*` exigem `is_admin()`
+  - `perguntas_do_anuncio(p_produto_id)` → `getPerguntasDoAnuncio` · `avaliacoes_do_vendedor(p_loja_id)` → `getAvaliacoesDoVendedor`
+  - `criar_pergunta` / `responder_pergunta` / `avaliar_vendedor`: chamadas só pelas rotas `/api` (o cliente usa
+    `enviarPergunta`/`enviarResposta`/`enviarAvaliacao`, que fazem `fetch` nelas)
+  - `aplicar_moderacao(p_segredo, …)`: grava a decisão da Vettly; exige `MODERACAO_SEGREDO` (nunca chamar do navegador)
+  - `admin_listar_moderacao()` / `admin_moderar_conteudo(p_tipo, p_id, p_aprovado)` → `/admin/comentarios`
 - Cadastro só com e-mail de faculdade participante também no banco: `handle_new_user` rejeita o signup se
   `email_cadastro_permitido()` falhar (= domínio em `instituicoes.dominios`; espelho de `validarEmailUniversitario`).
 - Limites de texto/formato são `CHECK` no banco, espelhados em `LIMITES_TEXTO` (`src/lib/validacoes.ts`) como `maxLength`.
@@ -256,6 +272,18 @@ cria as RPCs da página do anúncio e a `23` separa nome pessoal e nome de exibi
 - **Nome público** (`lojas.nome`): calculado pelo trigger `definir_nome_publico_loja` = nome de exibição ou nome + sobrenome.
   O app lê sempre `lojas.nome` (cards, anúncio, perfil, QR); nunca gravar direto (sem grant)
 - Textos para o aluno falam em "perfil", não em "loja" (a tabela continua `lojas`)
+
+### Perguntas e avaliações (migração 24)
+- **Perguntas**: aluno do mesmo campus pergunta no anúncio disponível (até 20 por dia); só o dono responde, uma vez
+  (se a resposta for recusada, pode escrever outra). Pergunta e resposta nascem `pendente`
+- **Avaliação**: nota de 1 a 5 no perfil do vendedor, com comentário opcional; uma por aluno e vendedor (reenviar atualiza).
+  Só quem tem registro em `interesses` com aquele vendedor (clicou em "Tenho interesse") e não é o dono.
+  Sem comentário a nota vale na hora; com comentário, espera a moderação. Média só com avaliações aprovadas
+- **Moderação**: a rota `/api` grava pela RPC, manda o texto à Vettly (`POST /v1/check`, idioma `pt`) e chama
+  `aplicar_moderacao`. `allow` aprova, `block` recusa; falha, chave ausente ou conteúdo só sinalizado fica `pendente`
+  na fila de `/admin/comentarios`, onde o admin aprova ou recusa. Autor vê o status do que enviou; os outros só o aprovado
+- A Vettly recebe só o texto (sem nome, e-mail ou telefone); está citada na Política de Privacidade
+- Conteúdo de aluno bloqueado some das listas e da média
 
 ### Produtos
 - Apenas o dono da loja (ou admin) gerencia seus produtos

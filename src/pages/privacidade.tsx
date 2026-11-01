@@ -32,7 +32,7 @@ export default function PrivacidadePage() {
               <li>Confirmar que você é aluno de uma instituição atendida.</li>
               <li>Mostrar seus anúncios e seu perfil para outros alunos.</li>
               <li>Permitir que alunos logados falem com você pelo WhatsApp.</li>
-              <li>Moderar denúncias e manter a comunidade segura.</li>
+              <li>Moderar denúncias, perguntas e avaliações e manter a comunidade segura.</li>
               <li>Medir o uso do serviço de forma agregada.</li>
             </ul>
           </section>
@@ -41,7 +41,7 @@ export default function PrivacidadePage() {
             <h2 className="text-lg font-bold text-petroleo mb-2">3. O que fica público</h2>
             <p>
               Seu nome, instituição, selo de verificado, fotos, descrição e anúncios aparecem para quem visita o
-              catálogo. Seu WhatsApp só é mostrado para alunos com conta, quando eles pedem para falar com você.
+              catálogo, assim como as perguntas e avaliações que você publicar (com seu nome público). Seu WhatsApp só é mostrado para alunos com conta, quando eles pedem para falar com você.
               E-mail, matrícula, CPF e telefone de cadastro nunca ficam públicos.
             </p>
           </section>
@@ -50,7 +50,9 @@ export default function PrivacidadePage() {
             <h2 className="text-lg font-bold text-petroleo mb-2">4. Com quem compartilhamos</h2>
             <p>
               Não vendemos seus dados. Usamos fornecedores para hospedar o site, o banco de dados e o envio de e-mails,
-              que tratam os dados só para prestar esse serviço.
+              que tratam os dados só para prestar esse serviço. O texto de perguntas, respostas e comentários de
+              avaliação é enviado a um serviço de moderação automática (Vettly), sem seu nome, e-mail ou telefone,
+              só para checar se segue as regras antes de publicar.
             </p>
           </section>
 

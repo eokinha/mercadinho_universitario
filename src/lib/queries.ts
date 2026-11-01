@@ -4,6 +4,7 @@ import type {
   AnuncioLeitura,
   Categoria,
   CategoriaComFilhos,
+  ConteudoModeracao,
   DenunciaModeracao,
   DenunciaStatus,
   Instituicao,
@@ -18,9 +19,14 @@ import type {
   ProdutoStatus,
   PerfilLeitura,
   PerfilPublico,
+  PerguntaAnuncio,
   LojaDoAnuncio,
+  ResultadoModeracao,
   ResumoAnuncioCompartilhado,
+  ResumoAvaliacoes,
   ResumoLojaCompartilhada,
+  StatusModeracao,
+  TipoConteudoModerado,
   Usuario,
   UsuarioModeracao,
   UsuarioStatus,
@@ -752,5 +758,82 @@ export async function resolverDenuncia(
   client: SupabaseClient = defaultClient
 ): Promise<void> {
   const { error } = await client.rpc("admin_resolver_denuncia", { p_denuncia_id: denunciaId, p_status: status });
+  if (error) throw error;
+}
+
+// ---------------------------------------------------------------------------
+// PERGUNTAS E AVALIAÇÕES (migração 24)
+// Leitura por RPC; envio pelas rotas /api, que chamam a moderação da Vettly no servidor
+// ---------------------------------------------------------------------------
+
+export async function getPerguntasDoAnuncio(
+  produtoId: number,
+  client: SupabaseClient = defaultClient
+): Promise<PerguntaAnuncio[]> {
+  const { data, error } = await client.rpc("perguntas_do_anuncio", { p_produto_id: produtoId });
+  if (error) throw error;
+  return ((data ?? []) as PerguntaAnuncio[]).map((p) => ({ ...p, id: Number(p.id) }));
+}
+
+export async function getAvaliacoesDoVendedor(
+  lojaId: number,
+  client: SupabaseClient = defaultClient
+): Promise<ResumoAvaliacoes | null> {
+  const { data, error } = await client.rpc("avaliacoes_do_vendedor", { p_loja_id: lojaId });
+  if (error) throw error;
+  if (!data) return null;
+  const raw = data as ResumoAvaliacoes;
+  return {
+    media: raw.media === null ? null : Number(raw.media),
+    total: Number(raw.total ?? 0),
+    pode_avaliar: Boolean(raw.pode_avaliar),
+    minha: raw.minha ?? null,
+    avaliacoes: (raw.avaliacoes ?? []).map((a) => ({ ...a, id: Number(a.id) })),
+  };
+}
+
+// Erro das rotas /api: mensagem amigável em `message` e o SQLSTATE em `code` (42501 = sem login)
+async function enviarParaModeracao(url: string, corpo: Record<string, unknown>): Promise<ResultadoModeracao> {
+  const resposta = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(corpo),
+  });
+  const json = await resposta.json().catch(() => ({}));
+  if (!resposta.ok) {
+    throw Object.assign(new Error(json.erro || "Não foi possível enviar. Tente de novo."), {
+      code: json.codigo as string | undefined,
+    });
+  }
+  return json as ResultadoModeracao;
+}
+
+export function enviarPergunta(produtoId: number, texto: string): Promise<ResultadoModeracao> {
+  return enviarParaModeracao("/api/perguntas", { produtoId, texto });
+}
+
+export function enviarResposta(perguntaId: number, texto: string): Promise<ResultadoModeracao> {
+  return enviarParaModeracao("/api/respostas", { perguntaId, texto });
+}
+
+export function enviarAvaliacao(lojaId: number, nota: number, comentario: string): Promise<ResultadoModeracao> {
+  return enviarParaModeracao("/api/avaliacoes", { lojaId, nota, comentario });
+}
+
+export async function getConteudoParaModeracao(
+  client: SupabaseClient = defaultClient
+): Promise<ConteudoModeracao[]> {
+  const { data, error } = await client.rpc("admin_listar_moderacao");
+  if (error) throw error;
+  return ((data ?? []) as ConteudoModeracao[]).map((c) => ({ ...c, id: Number(c.id) }));
+}
+
+export async function moderarConteudo(
+  tipo: TipoConteudoModerado,
+  id: number,
+  status: Exclude<StatusModeracao, "pendente">,
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const { error } = await client.rpc("admin_moderar_conteudo", { p_tipo: tipo, p_id: id, p_aprovado: status === "aprovado" });
   if (error) throw error;
 }

@@ -239,3 +239,56 @@ export interface ResumoAnuncioCompartilhado {
   loja_nome: string;
   instituicao_nome: string | null;
 }
+
+// Perguntas nos anúncios e avaliação do vendedor (migração 24; moderação pela Vettly)
+export type StatusModeracao = "pendente" | "aprovado" | "recusado";
+
+export interface PerguntaAnuncio {
+  id: number;
+  texto: string;
+  autor_nome: string | null;
+  criado_em: string;
+  minha: boolean; // o aluno logado fez a pergunta (vê o status dela)
+  status: StatusModeracao;
+  resposta: string | null; // aprovada, ou a do próprio dono em qualquer status
+  resposta_status: StatusModeracao | null;
+  respondida_em: string | null;
+}
+
+export interface AvaliacaoVendedor {
+  id: number;
+  nota: number;
+  comentario: string | null;
+  autor_nome: string | null;
+  criado_em: string;
+}
+
+export interface ResumoAvaliacoes {
+  media: number | null;
+  total: number;
+  pode_avaliar: boolean; // já chamou o vendedor no WhatsApp pelo Circular e não é o dono
+  minha: { nota: number; comentario: string | null; status: StatusModeracao } | null;
+  avaliacoes: AvaliacaoVendedor[]; // publicadas, sem a do próprio aluno
+}
+
+// Resultado de enviar pergunta, resposta ou avaliação pelas rotas /api
+export interface ResultadoModeracao {
+  id: number;
+  status: StatusModeracao;
+  mensagem: string;
+}
+
+export type TipoConteudoModerado = "pergunta" | "resposta" | "avaliacao";
+
+export interface ConteudoModeracao {
+  tipo: TipoConteudoModerado;
+  id: number;
+  texto: string | null;
+  status: StatusModeracao;
+  criado_em: string;
+  autor_nome: string | null;
+  autor_email: string | null;
+  contexto: string;
+  nota: number | null;
+  link: string;
+}
