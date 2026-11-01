@@ -492,6 +492,21 @@ export async function getMeuUsuario(
   return (data as Usuario | null) ?? null;
 }
 
+// Nome pessoal do aluno logado. O nome público (lojas.nome) é recalculado pelo banco (migração 23)
+export async function atualizarMeuNome(
+  usuarioId: number,
+  nome: string,
+  sobrenome: string,
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const { error } = await client
+    .from("usuarios")
+    .update({ nome: nome.trim(), sobrenome: sobrenome.trim() || null })
+    .eq("id", usuarioId);
+
+  if (error) throw error;
+}
+
 // O campus não entra aqui: vem do domínio do e-mail (migração 19)
 export async function solicitarVerificacaoMatricula(
   usuarioId: number,

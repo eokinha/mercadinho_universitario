@@ -97,3 +97,21 @@ test("handleRedeSocial aceita só @ válido (nunca domínio ou caminho)", () => 
   assert.equal(handleRedeSocial(null), null);
   assert.equal(handleRedeSocial("a".repeat(31)), null);
 });
+
+test("problemaNomeExibicao aceita vazio e marcas comuns", async () => {
+  const { problemaNomeExibicao } = await import("../validacoes.ts");
+  assert.equal(problemaNomeExibicao(""), null);
+  assert.equal(problemaNomeExibicao("   "), null);
+  assert.equal(problemaNomeExibicao("Bia Doces"), null);
+  assert.equal(problemaNomeExibicao("MK Labs - Soluções em Tecnologia"), null);
+});
+
+test("problemaNomeExibicao recusa curto, longo e termos reservados (com ou sem acento)", async () => {
+  const { problemaNomeExibicao } = await import("../validacoes.ts");
+  assert.match(problemaNomeExibicao("A") ?? "", /2 caracteres/);
+  assert.match(problemaNomeExibicao("a".repeat(61)) ?? "", /60 caracteres/);
+  assert.match(problemaNomeExibicao("Equipe Circular") ?? "", /reservado/);
+  assert.match(problemaNomeExibicao("Suporte Técnico") ?? "", /reservado/);
+  assert.match(problemaNomeExibicao("Moderação do campus") ?? "", /reservado/);
+  assert.match(problemaNomeExibicao("ADMINISTRADOR") ?? "", /reservado/);
+});

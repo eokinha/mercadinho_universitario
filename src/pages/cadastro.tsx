@@ -8,7 +8,14 @@ import Logo from "@/components/Logo";
 import { createServerClient, supabase } from "@/lib/supabase";
 import { getInstituicoes } from "@/lib/queries";
 import { MENSAGEM_SENHA_VAZADA, senhaVazada } from "@/lib/senha-vazada";
-import { DICA_SENHA, instituicaoDoEmail, problemaSenha, SENHA_TAMANHO_MINIMO, validarEmail } from "@/lib/validacoes";
+import {
+  DICA_SENHA,
+  instituicaoDoEmail,
+  LIMITES_TEXTO,
+  problemaSenha,
+  SENHA_TAMANHO_MINIMO,
+  validarEmail,
+} from "@/lib/validacoes";
 import type { Instituicao } from "@/types";
 
 interface Props {
@@ -187,6 +194,7 @@ export default function CadastroPage({ instituicoes }: Props) {
               <input
                 type="text"
                 required
+                maxLength={LIMITES_TEXTO.usuarioNome}
                 className={inputClass}
                 value={formData.nome}
                 onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
@@ -197,6 +205,7 @@ export default function CadastroPage({ instituicoes }: Props) {
               <input
                 type="text"
                 required
+                maxLength={LIMITES_TEXTO.usuarioSobrenome}
                 className={inputClass}
                 value={formData.sobrenome}
                 onChange={(e) => setFormData({ ...formData, sobrenome: e.target.value })}

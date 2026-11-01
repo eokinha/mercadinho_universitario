@@ -27,7 +27,7 @@ import type { AnuncioLeitura } from "@/types";
 
 interface Props {
   leitura: AnuncioLeitura;
-  favoritos: number[]; // ids favoritados, para os cards de "Mais da loja"
+  favoritos: number[]; // ids favoritados, para os cards de "Mais de {nome}"
 }
 
 const FOCO = "focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2";
@@ -88,7 +88,7 @@ function AnuncioIndisponivel({ nome, loja }: { nome: string; loja: { slug: strin
               href={`/perfil/${loja.slug}`}
               className={`bg-acao hover:bg-acao-hover text-white rounded-controle px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center text-sm font-semibold transition ${FOCO}`}
             >
-              Ver a loja de {loja.nome}
+              Ver o perfil de {loja.nome}
             </Link>
           )}
           <Link
@@ -150,7 +150,7 @@ export default function AnuncioPage({ leitura, favoritos }: Props) {
           className={`inline-flex items-center gap-1 min-h-[44px] text-sm font-semibold text-petroleo hover:underline rounded-controle mb-2 ${FOCO}`}
         >
           <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
-          {loja.slug ? `Loja de ${loja.nome}` : "Voltar aos anúncios"}
+          {loja.slug ? `Perfil de ${loja.nome}` : "Voltar aos anúncios"}
         </Link>
 
         {ehDono && !disponivel && (

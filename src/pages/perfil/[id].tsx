@@ -89,9 +89,8 @@ export default function PerfilPublicoPage({
   const [busca, setBusca] = useState("");
   const instagram = handleRedeSocial(perfil?.instagram_url);
 
-  const nomeExibicao = perfil.usuario_nome 
-    ? `${perfil.usuario_nome} ${perfil.usuario_sobrenome || ""}`.trim()
-    : perfil.nome;
+  // Nome público: nome de exibição do aluno ou, sem ele, nome + sobrenome (calculado pelo banco)
+  const nomeExibicao = perfil.nome;
 
   const dataRegistro = perfil.usuario_criado_em || perfil.criado_em;
 

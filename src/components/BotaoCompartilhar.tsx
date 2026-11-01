@@ -13,7 +13,7 @@ interface Props {
   tipo: "loja" | "anuncio";
   codigo: string;
   nomeLoja: string;
-  ehDono: boolean; // muda só os textos ("minha loja" / "a loja de X")
+  ehDono: boolean; // muda só os textos ("meu perfil" / "o perfil de X")
   slug?: string; // obrigatório para tipo "loja"
   anuncio?: AnuncioCompartilhado; // obrigatório para tipo "anuncio"
 }
@@ -109,8 +109,8 @@ export default function BotaoCompartilhar({ tipo, codigo, nomeLoja, ehDono, slug
   const [link, setLink] = useState("");
 
   const ehAnuncio = tipo === "anuncio" && anuncio;
-  const rotulo = ehAnuncio ? "Compartilhar anúncio" : ehDono ? "Compartilhar minha loja" : "Compartilhar loja";
-  const tituloModal = ehAnuncio ? "Compartilhar anúncio" : ehDono ? "QR code da sua loja" : `Compartilhar a loja de ${nomeLoja}`;
+  const rotulo = ehAnuncio ? "Compartilhar anúncio" : ehDono ? "Compartilhar meu perfil" : "Compartilhar perfil";
+  const tituloModal = ehAnuncio ? "Compartilhar anúncio" : ehDono ? "QR code do seu perfil" : `Compartilhar o perfil de ${nomeLoja}`;
   const descricao = ehAnuncio
     ? "Mande o link ou o QR code. Quem abrir vê o anúncio depois de entrar com o e-mail da faculdade."
     : ehDono
@@ -136,7 +136,7 @@ export default function BotaoCompartilhar({ tipo, codigo, nomeLoja, ehDono, slug
         await gerarCartao(
           ehAnuncio
             ? { url, titulo: anuncio.nome, legenda: `${anuncio.precoTexto} · ${nomeLoja}`, foto: anuncio.imagemUrl }
-            : { url, titulo: nomeLoja, legenda: `${ehDono ? "Minha loja" : "Loja"} no Circular · Deixa Circular.`, foto: null }
+            : { url, titulo: nomeLoja, legenda: "Anúncios no Circular · Deixa Circular.", foto: null }
         )
       );
     } catch {
@@ -171,8 +171,8 @@ export default function BotaoCompartilhar({ tipo, codigo, nomeLoja, ehDono, slug
     const texto = ehAnuncio
       ? `Olha esse anúncio no Circular: ${anuncio.nome} (${anuncio.precoTexto})`
       : ehDono
-        ? `Confira minha loja no Circular: ${nomeLoja}`
-        : `Confira a loja de ${nomeLoja} no Circular`;
+        ? `Confira meus anúncios no Circular: ${nomeLoja}`
+        : `Confira os anúncios de ${nomeLoja} no Circular`;
     if (navigator.share) {
       try {
         await navigator.share({ title: nomeBase, text: texto, url: link });

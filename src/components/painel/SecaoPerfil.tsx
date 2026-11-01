@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
+  atualizarMeuNome,
   excluirMinhaConta,
   solicitarTrocaEmail,
   solicitarVerificacaoMatricula,
@@ -11,7 +12,7 @@ import { normalizarTelefone } from "@/lib/contato";
 import { removerImagensDaConta, uploadImagemLoja } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import SeloVerificado from "@/components/SeloVerificado";
-import { instituicaoDoEmail, LIMITES_TEXTO, validarEmail } from "@/lib/validacoes";
+import { instituicaoDoEmail, LIMITES_TEXTO, problemaNomeExibicao, validarEmail } from "@/lib/validacoes";
 import type { Instituicao, Loja, Usuario } from "@/types";
 import {
   Check,
@@ -35,6 +36,7 @@ interface Props {
   matriculaStatus: MatriculaStatus;
   produtoIds: number[];
   onLojaAtualizada: (alteracoes: Partial<Loja>) => void;
+  onNomeAtualizado: (nome: string, sobrenome: string) => void;
   onMatriculaStatus: (status: MatriculaStatus) => void;
 }
 
@@ -55,6 +57,7 @@ export default function SecaoPerfil({
   matriculaStatus,
   produtoIds,
   onLojaAtualizada,
+  onNomeAtualizado,
   onMatriculaStatus,
 }: Props) {
   const [excluindoConta, setExcluindoConta] = useState(false);
@@ -128,7 +131,11 @@ export default function SecaoPerfil({
   }
 
   // Estados de edição de perfil
-  const [nome, setNome] = useState(loja.nome);
+  // Nome pessoal (cadastro) e nome de exibição opcional; o nome público é um ou outro
+  const [nomePessoal, setNomePessoal] = useState(usuario?.nome || "");
+  const [sobrenome, setSobrenome] = useState(usuario?.sobrenome || "");
+  const [nomeExibicao, setNomeExibicao] = useState(loja.nome_exibicao || "");
+  const nomePublico = nomeExibicao.trim() || `${nomePessoal.trim()} ${sobrenome.trim()}`.trim() || loja.nome;
   const [descricao, setDescricao] = useState(loja.descricao || "");
   const [whatsapp, setWhatsapp] = useState(loja.whatsapp || loja.contato || "");
   const [locais, setLocais] = useState<string[]>(loja.locais_entrega || []);
@@ -233,15 +240,31 @@ export default function SecaoPerfil({
   // Salvar alterações no perfil
   async function handleSalvarPerfil(e: React.FormEvent) {
     e.preventDefault();
-    setSalvandoPerfil(true);
     setMensagemPerfil(null);
+    if (usuario && !nomePessoal.trim()) {
+      setMensagemPerfil({ tipo: "erro", texto: "Informe seu nome." });
+      return;
+    }
+    const problemaExibicao = problemaNomeExibicao(nomeExibicao);
+    if (problemaExibicao) {
+      setMensagemPerfil({ tipo: "erro", texto: problemaExibicao });
+      return;
+    }
+    setSalvandoPerfil(true);
 
     // lojas.contato guarda só dígitos (DDI + DDD + número)
     const contato = normalizarTelefone(whatsapp);
 
     try {
+      const nomeMudou =
+        usuario && (nomePessoal.trim() !== usuario.nome || sobrenome.trim() !== (usuario.sobrenome || ""));
+      if (usuario && nomeMudou) {
+        await atualizarMeuNome(usuario.id, nomePessoal, sobrenome);
+        onNomeAtualizado(nomePessoal.trim(), sobrenome.trim());
+      }
+
       await updateLoja(loja.id, {
-        nome: nome.trim(),
+        nome_exibicao: nomeExibicao.trim() || null,
         descricao: descricao.trim(),
         whatsapp: whatsapp.trim(),
         contato,
@@ -249,7 +272,8 @@ export default function SecaoPerfil({
       });
 
       onLojaAtualizada({
-        nome: nome.trim(),
+        nome: nomePublico,
+        nome_exibicao: nomeExibicao.trim() || null,
         descricao: descricao.trim(),
         whatsapp: whatsapp.trim(),
         contato,
@@ -306,7 +330,7 @@ export default function SecaoPerfil({
                 />
               ) : (
                 <span className="text-2xl font-bold text-tinta-sutil">
-                  {nome.charAt(0).toUpperCase()}
+                  {nomePublico.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
@@ -329,20 +353,61 @@ export default function SecaoPerfil({
           </div>
         </div>
 
-        {/* Nome de Exibição */}
+        {/* Nome pessoal: identidade da conta (a equipe do Circular sempre vê) */}
+        {usuario && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="perfil-nome" className="block text-sm font-semibold text-tinta mb-1">
+                Nome *
+              </label>
+              <input
+                id="perfil-nome"
+                type="text"
+                required
+                value={nomePessoal}
+                maxLength={LIMITES_TEXTO.usuarioNome}
+                onChange={(e) => setNomePessoal(e.target.value)}
+                autoComplete="given-name"
+                className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie"
+              />
+            </div>
+            <div>
+              <label htmlFor="perfil-sobrenome" className="block text-sm font-semibold text-tinta mb-1">
+                Sobrenome
+              </label>
+              <input
+                id="perfil-sobrenome"
+                type="text"
+                value={sobrenome}
+                maxLength={LIMITES_TEXTO.usuarioSobrenome}
+                onChange={(e) => setSobrenome(e.target.value)}
+                autoComplete="family-name"
+                className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Nome de exibição: marca opcional; se preenchido, substitui o nome pessoal no site */}
         <div>
-          <label className="block text-sm font-semibold text-tinta mb-1">
-            Nome de Exibição *
+          <label htmlFor="perfil-nome-exibicao" className="block text-sm font-semibold text-tinta mb-1">
+            Nome de exibição <span className="font-normal text-tinta-suave">(opcional)</span>
           </label>
           <input
+            id="perfil-nome-exibicao"
             type="text"
-            required
-            value={nome}
-            maxLength={LIMITES_TEXTO.lojaNome}
-            onChange={(e) => setNome(e.target.value)}
-            placeholder="Seu nome"
+            value={nomeExibicao}
+            maxLength={LIMITES_TEXTO.nomeExibicao}
+            onChange={(e) => setNomeExibicao(e.target.value)}
+            placeholder="Ex.: Bia Doces, Monitoria de Cálculo"
+            aria-describedby="perfil-nome-exibicao-ajuda"
             className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie"
           />
+          <p id="perfil-nome-exibicao-ajuda" className="text-xs text-tinta-suave mt-1.5">
+            Para quem vende com uma marca. Se preenchido, aparece no lugar do seu nome nos anúncios e no perfil;
+            seu nome continua visível só para a equipe do Circular. Quem falar com você pelo WhatsApp vê o seu
+            perfil de lá. Os outros alunos vão ver: <strong className="text-tinta">{nomePublico}</strong>
+          </p>
         </div>
 
         {/* WhatsApp */}

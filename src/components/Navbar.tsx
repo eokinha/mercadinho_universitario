@@ -190,8 +190,9 @@ export default function Navbar() {
                       <p className="text-sm font-semibold text-tinta truncate">
                         {nomeUsuario || user.email}
                       </p>
+                      {/* Só no celular: do md em diante o logo da faculdade já aparece no cabeçalho */}
                       {campusNome && (
-                        <p className="text-xs text-tinta-suave truncate flex items-center gap-1 mt-0.5">
+                        <p className="md:hidden text-xs text-tinta-suave truncate flex items-center gap-1 mt-0.5">
                           <GraduationCap size={14} strokeWidth={1.75} aria-hidden="true" />
                           <span>{campusNome}</span>
                         </p>

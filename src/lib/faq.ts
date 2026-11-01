@@ -188,12 +188,22 @@ export const FAQ: SecaoFaq[] = [
         ],
       },
       {
-        id: "qr-code-loja",
-        pergunta: "Como divulgo minha loja com QR code?",
+        id: "nome-de-exibicao",
+        pergunta: "Posso anunciar com o nome de uma marca em vez do meu nome?",
         resposta: [
-          "Abra o seu perfil público e toque em \"Compartilhar minha loja\". Dá para baixar o QR code em imagem, copiar o link ou mandar direto pelo WhatsApp.",
-          "Viu a loja de um colega e quer indicar? No perfil dele, toque em \"Compartilhar loja\": é o mesmo QR code e o mesmo link.",
-          "Quem escanear precisa entrar com o e-mail da faculdade para ver seus anúncios. Colegas do seu campus podem falar com você; alunos de outro campus só veem a loja.",
+          "Pode. Em Painel → Meu perfil, preencha \"Nome de exibição\" (ex.: Bia Doces). Ele aparece no lugar do seu nome nos anúncios, no perfil e no QR code.",
+          "Seu nome e sobrenome continuam na conta e a equipe do Circular sempre vê quem é o aluno por trás do perfil. Quem falar com você pelo WhatsApp vê o seu perfil de lá.",
+          "Não vale usar termos que imitem a equipe do site, como Circular, Admin, Suporte ou Oficial. Para voltar a aparecer com seu nome, é só apagar o campo.",
+        ],
+        links: [{ href: "/painel/perfil", texto: "Editar meu perfil" }],
+      },
+      {
+        id: "qr-code-loja",
+        pergunta: "Como divulgo meu perfil com QR code?",
+        resposta: [
+          "Abra o seu perfil público e toque em \"Compartilhar meu perfil\". Dá para baixar o QR code em imagem, copiar o link ou mandar direto pelo WhatsApp.",
+          "Viu o perfil de um colega e quer indicar? Toque em \"Compartilhar perfil\": é o mesmo QR code e o mesmo link.",
+          "Quem escanear precisa entrar com o e-mail da faculdade para ver seus anúncios. Colegas do seu campus podem falar com você; alunos de outro campus só veem o perfil.",
         ],
         links: [{ href: "/painel", texto: "Ir para o painel" }],
       },

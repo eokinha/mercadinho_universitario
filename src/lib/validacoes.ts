@@ -45,6 +45,9 @@ export function validarEmail(email: string): boolean {
 // Espelho dos CHECKs da migração 18 (lojas/produtos/usuarios). Mudar os dois juntos.
 export const LIMITES_TEXTO = {
   lojaNome: 80,
+  nomeExibicao: 60,
+  usuarioNome: 40,
+  usuarioSobrenome: 60,
   lojaDescricao: 1000,
   whatsapp: 20,
   produtoNome: 120,
@@ -103,5 +106,23 @@ export function problemaSenha(senha: string): string | null {
   if (!/[a-z]/.test(senha)) return "A senha precisa ter pelo menos uma letra minúscula.";
   if (!/[A-Z]/.test(senha)) return "A senha precisa ter pelo menos uma letra maiúscula.";
   if (!/[0-9]/.test(senha)) return "A senha precisa ter pelo menos um número.";
+  return null;
+}
+
+// Nome de exibição (marca opcional): espelho de nome_exibicao_valido (migração 23). Mudar os dois juntos.
+// Vazio é válido (usa o nome pessoal). Devolve o problema ou null.
+export const TERMOS_RESERVADOS_NOME = ["circular", "admin", "modera", "suporte", "oficial", "equipe"] as const;
+
+export function problemaNomeExibicao(nome: string): string | null {
+  const texto = nome.trim();
+  if (!texto) return null;
+  if (texto.length < 2) return "O nome de exibição precisa ter pelo menos 2 caracteres.";
+  if (texto.length > LIMITES_TEXTO.nomeExibicao) {
+    return `O nome de exibição pode ter até ${LIMITES_TEXTO.nomeExibicao} caracteres.`;
+  }
+  const semAcento = texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (TERMOS_RESERVADOS_NOME.some((termo) => semAcento.includes(termo))) {
+    return "Esse nome usa um termo reservado à equipe do Circular (como Circular, Admin, Suporte ou Oficial).";
+  }
   return null;
 }

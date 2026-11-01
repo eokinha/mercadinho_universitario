@@ -155,7 +155,7 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
     const novoStatus: UsuarioStatus = usuario.status === "bloqueado" ? "ativo" : "bloqueado";
     if (
       novoStatus === "bloqueado" &&
-      !confirm(`Bloquear ${usuario.nome}? A loja é reprovada e os anúncios saem do ar.`)
+      !confirm(`Bloquear ${usuario.nome}? O perfil e os anúncios saem do ar.`)
     ) return;
 
     setProcessandoId(usuario.id);
@@ -167,7 +167,7 @@ export default function AdminVerificacoesPage({ usuariosIniciais }: Props) {
         tipo: "sucesso",
         texto: novoStatus === "bloqueado"
           ? `${usuario.nome} foi bloqueado.`
-          : `${usuario.nome} foi desbloqueado. A loja fica pausada até o aluno reativar.`,
+          : `${usuario.nome} foi desbloqueado. O perfil volta ao ar; os anúncios ficam pausados até o aluno reativar.`,
       });
     } catch (err) {
       setNotificacao({ tipo: "erro", texto: (err as { message?: string })?.message || "Erro ao alterar o bloqueio." });

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Head from "next/head";
-import { atualizarStatusProduto, deletarProduto, renovarProduto } from "@/lib/queries";
+import { atualizarStatusProduto, deletarProduto, renovarProduto, updateLoja } from "@/lib/queries";
 import { removerImagensProduto } from "@/lib/storage";
 import type { PainelProps } from "@/lib/painel-data";
 import { PAGINAS_PAINEL, type AbaPainel } from "@/lib/painel-routes";
@@ -37,6 +37,8 @@ export default function PainelEstudante({
   const [loja, setLoja] = useState<Loja>(lojaInicial);
   const [produtos, setProdutos] = useState<Produto[]>(produtosIniciais);
   const [favoritos, setFavoritos] = useState<ProdutoListagem[]>(favoritosIniciais);
+  const [usuario, setUsuario] = useState(usuarioInicial);
+  const [reativandoPerfil, setReativandoPerfil] = useState(false);
   const [matriculaStatus, setMatriculaStatus] = useState<Usuario["matricula_status"]>(
     usuarioInicial?.matricula_status || "pendente"
   );
@@ -85,6 +87,19 @@ export default function PainelEstudante({
     }
   }
 
+  // Perfil pausado (só o dono volta para ativo; reprovado é do admin)
+  async function handleReativarPerfil() {
+    setReativandoPerfil(true);
+    try {
+      await updateLoja(loja.id, { status: "ativo" });
+      setLoja((prev) => ({ ...prev, status: "ativo" }));
+    } catch (err) {
+      alert((err as { message?: string })?.message || "Não foi possível reativar o perfil.");
+    } finally {
+      setReativandoPerfil(false);
+    }
+  }
+
   // O card já desmarcou no banco: só tira da lista
   function handleFavoritoRemovido(produtoId: number) {
     setFavoritos((prev) => prev.filter((p) => p.id !== produtoId));
@@ -97,6 +112,42 @@ export default function PainelEstudante({
       </Head>
 
       <div className="min-h-screen bg-pagina pb-16">
+        {/* Perfil fora do ar: sem isso o aluno não percebe que ninguém vê o perfil nem os anúncios */}
+        {loja.status !== "ativo" && (
+          <div role="status" className="bg-doacao-50 border-b border-borda">
+            <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-tinta">
+              <TriangleAlert size={18} strokeWidth={1.75} className="text-doacao shrink-0" aria-hidden="true" />
+              <p className="flex-1">
+                {loja.status === "pausado" ? (
+                  <>
+                    <strong className="font-semibold">Seu perfil está pausado.</strong> Os outros alunos não veem seu
+                    perfil nem seus anúncios.
+                  </>
+                ) : (
+                  <>
+                    <strong className="font-semibold">Seu perfil está fora do ar pela moderação.</strong> Se acha que é
+                    um engano, fale com a equipe pela{" "}
+                    <Link href="/ajuda" className="text-petroleo font-semibold underline">
+                      ajuda
+                    </Link>
+                    .
+                  </>
+                )}
+              </p>
+              {loja.status === "pausado" && (
+                <button
+                  type="button"
+                  onClick={handleReativarPerfil}
+                  disabled={reativandoPerfil}
+                  className="bg-superficie text-petroleo border border-borda-controle hover:border-petroleo rounded-controle transition px-4 py-2 min-h-[44px] text-sm font-semibold shrink-0 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+                >
+                  {reativandoPerfil ? "Reativando..." : "Reativar perfil"}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Cabeçalho do Painel */}
         <div className="bg-superficie border-b border-borda">
           <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
@@ -321,12 +372,13 @@ export default function PainelEstudante({
           {abaAtiva === "perfil" && (
             <SecaoPerfil
               loja={loja}
-              usuario={usuarioInicial}
+              usuario={usuario}
               userEmail={userEmail}
               instituicoes={instituicoes}
               matriculaStatus={matriculaStatus}
               produtoIds={produtos.map((p) => p.id)}
               onLojaAtualizada={(alteracoes) => setLoja((prev) => ({ ...prev, ...alteracoes }))}
+              onNomeAtualizado={(nome, sobrenome) => setUsuario((prev) => (prev ? { ...prev, nome, sobrenome } : prev))}
               onMatriculaStatus={setMatriculaStatus}
             />
           )}

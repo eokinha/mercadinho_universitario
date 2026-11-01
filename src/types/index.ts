@@ -35,7 +35,8 @@ export type LojaStatus = "pendente" | "ativo" | "pausado" | "reprovado";
 export interface Loja {
   id: number;
   usuario_id: number;
-  nome: string;
+  nome: string; // nome público: calculado pelo banco (nome_exibicao ou nome + sobrenome); não gravar
+  nome_exibicao: string | null; // marca opcional do aluno (migração 23)
   descricao: string;
   contato: string;
   status: LojaStatus;
@@ -165,8 +166,6 @@ export interface GrupoCategoria {
 export type OrdenacaoProdutos = "recentes" | "preco_asc" | "preco_desc";
 
 export interface PerfilPublico extends LojaPublica {
-  usuario_nome?: string;
-  usuario_sobrenome?: string;
   usuario_criado_em?: string;
   matricula_status?: "pendente" | "verificado" | "rejeitado";
   instituicao_nome?: string;

@@ -40,9 +40,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     const campus = loja.instituicao_nome ? `, do campus ${loja.instituicao_nome}` : "";
     return {
       props: {
-        avisoCompartilhado: `Entre com o e-mail da sua faculdade para ver a loja de ${loja.loja_nome}${campus}.`,
+        avisoCompartilhado: `Entre com o e-mail da sua faculdade para ver o perfil de ${loja.loja_nome}${campus}.`,
         previa: {
-          titulo: `Loja de ${loja.loja_nome} no Circular`,
+          titulo: `${loja.loja_nome} no Circular`,
           descricao: `Anúncios de alunos${campus ? ` do campus ${loja.instituicao_nome}` : " do campus"}. Deixa Circular.`,
           imagem: null,
         },

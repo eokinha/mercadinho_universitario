@@ -89,7 +89,7 @@ instituicoes   — id, nome, cnpj (opcional), dominios (text[] — domínios de 
 usuarios       — id, auth_id (uuid → auth.users), nome, sobrenome, email, password (legado, não usar), telefone, cpf, matricula,
                  matricula_validada (bool), matricula_status (pendente|verificado|rejeitado), instituicoes_id,
                  status (ativo|bloqueado), is_admin (bool), criado_em, termos_aceitos_em
-lojas          — id, usuario_id (UNIQUE), nome, descricao, contato, status (pendente|ativo|pausado|reprovado), criado_em, avatar_url, capa_url,
+lojas          — id, usuario_id (UNIQUE), nome (nome público, calculado), nome_exibicao (marca opcional), descricao, contato, status (pendente|ativo|pausado|reprovado), criado_em, avatar_url, capa_url,
                  slug, instagram_url, tiktok_url, whatsapp, locais_entrega (text[])
 produtos       — id, loja_id, nome, descricao, preco (numeric), imagem_url, status (ativo|pausado|vendido), criado_em, categoria_id,
                  destaque (bool — impulsionado na home, só admin), aceita_troca (bool), renovado_em, vendido_em
@@ -115,21 +115,22 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `22`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `23`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`; a `18` é o endurecimento
 pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limites e URLs de imagem);
-a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20` cria o código do QR code da loja, a `21` libera esse código a qualquer aluno logado e a `22`
-cria as RPCs da página do anúncio.
+a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20` cria o código do QR code da loja, a `21` libera esse código a qualquer aluno logado, a `22`
+cria as RPCs da página do anúncio e a `23` separa nome pessoal e nome de exibição (ver "Nome do aluno").
 
 ### Segurança (RLS e triggers)
 
 - **Colunas pessoais** (`email`, `cpf`, `telefone`, `matricula`, `password`) não são
   legíveis via `select` pela API. Logado e visitante leem de `usuarios` só
-  `id, nome, sobrenome, instituicoes_id, matricula_status, matricula_validada, criado_em`
+  `id, instituicoes_id, matricula_status, matricula_validada, criado_em` (nome e sobrenome só pela RPC `meu_usuario()`
+  e pelas RPCs de admin, desde a migração 23)
   (`auth_id`, `status` e `is_admin` só pelas RPCs `meu_usuario()`/`is_admin()`).
   Linhas: a própria ou de quem tem anúncio ativo (`usuario_publico()`).
 - **Grants mínimos (migração 18)**: `anon`/`authenticated` só têm os privilégios de coluna que o app usa
-  (ex.: `usuarios` só `UPDATE` de `matricula, matricula_status, matricula_validada, instituicoes_id`;
+  (ex.: `usuarios` só `UPDATE` de `nome, sobrenome, matricula, matricula_status, matricula_validada`; `lojas` sem `nome` no `UPDATE`;
   `produtos` sem `destaque`/`loja_id` no `UPDATE`; `categorias`/`instituicoes` só `SELECT`).
   Coluna nova que o cliente precise ler/gravar exige `GRANT` explícito na migração.
   Função de trigger `SECURITY INVOKER` não pode ler colunas ocultas de `usuarios`: use `meu_usuario()`.
@@ -243,7 +244,18 @@ cria as RPCs da página do anúncio.
 - Criada automaticamente no cadastro com `status = 'ativo'`; o aluno não cria nem apaga loja
 - Status possíveis: `pendente | ativo | pausado | reprovado`; só `ativo` aparece no catálogo
 - Vendedor alterna entre `ativo` e `pausado`; reprovar/reativar é do admin
-- Bloquear aluno (admin) reprova a loja e pausa os anúncios; desbloquear deixa a loja `pausado`
+- Bloquear aluno (admin) reprova a loja e pausa os anúncios; desbloquear volta a loja para `ativo` (anúncios seguem pausados)
+- Perfil `pausado` ou `reprovado` mostra aviso no painel; `pausado` tem o botão "Reativar perfil"
+
+### Nome do aluno (migração 23)
+- **Nome pessoal** (`usuarios.nome`/`sobrenome`): identidade da conta, vem do cadastro e o aluno corrige no painel
+  (`atualizarMeuNome`). Outros alunos não leem; a equipe vê nas telas de admin
+- **Nome de exibição** (`lojas.nome_exibicao`, opcional): marca do aluno (ex.: "Bia Doces"), para quem empreende sem
+  aparecer com o próprio nome. Regra `nome_exibicao_valido` (2 a 60 caracteres, sem Circular/Admin/Modera…/Suporte/Oficial/Equipe),
+  espelhada em `problemaNomeExibicao` (`src/lib/validacoes.ts`) — mudar os dois juntos
+- **Nome público** (`lojas.nome`): calculado pelo trigger `definir_nome_publico_loja` = nome de exibição ou nome + sobrenome.
+  O app lê sempre `lojas.nome` (cards, anúncio, perfil, QR); nunca gravar direto (sem grant)
+- Textos para o aluno falam em "perfil", não em "loja" (a tabela continua `lojas`)
 
 ### Produtos
 - Apenas o dono da loja (ou admin) gerencia seus produtos

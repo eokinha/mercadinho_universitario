@@ -68,6 +68,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       id: 1,
       usuario_id: 1,
       nome: "Estudante Demo",
+      nome_exibicao: null,
       descricao: "Desapegando de livros e materiais no campus",
       contato: "(31) 99999-0000",
       whatsapp: "(31) 99999-0000",
