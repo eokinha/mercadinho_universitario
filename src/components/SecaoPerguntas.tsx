@@ -13,6 +13,8 @@ interface Props {
 
 const FOCO = "focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2";
 const BOTAO_SECUNDARIO = `min-h-[44px] px-4 rounded-controle border border-borda-controle bg-superficie text-petroleo text-sm font-semibold hover:border-petroleo transition disabled:opacity-50 ${FOCO}`;
+// Quantas perguntas aparecem antes do "Ver mais"
+const LIMITE_INICIAL = 3;
 const CAMPO = `w-full px-3 py-2 rounded-controle border border-borda-controle bg-superficie text-sm text-tinta resize-y ${FOCO}`;
 
 function formatarData(iso: string | null): string {
@@ -45,6 +47,11 @@ function FormResposta({ pergunta, onRespondida }: { pergunta: PerguntaAnuncio; o
     setErro(null);
     try {
       const r = await enviarResposta(pergunta.id, texto);
+      // Recusada pela moderação: nada foi gravado; o motivo aparece e o texto fica para revisar
+      if (r.status === "recusado" || r.id === null) {
+        setErro(r.mensagem);
+        return;
+      }
       onRespondida({ ...pergunta, resposta: texto.trim(), resposta_status: r.status, respondida_em: new Date().toISOString() });
     } catch (err) {
       setErro((err as Error).message);
@@ -97,6 +104,9 @@ export default function SecaoPerguntas({ produtoId, perguntasIniciais, ehDono, p
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [mostrarTodas, setMostrarTodas] = useState(false);
+  const visiveis = mostrarTodas ? perguntas : perguntas.slice(0, LIMITE_INICIAL);
+  const ocultas = perguntas.length - visiveis.length;
 
   async function handlePerguntar(e: React.FormEvent) {
     e.preventDefault();
@@ -105,9 +115,15 @@ export default function SecaoPerguntas({ produtoId, perguntasIniciais, ehDono, p
     setAviso(null);
     try {
       const r = await enviarPergunta(produtoId, texto);
+      // Recusada pela moderação: nada foi gravado; o motivo aparece e o texto fica para revisar
+      if (r.status === "recusado" || r.id === null) {
+        setErro(r.mensagem);
+        return;
+      }
+      const id = r.id;
       setPerguntas((prev) => [
         {
-          id: r.id,
+          id,
           texto: texto.trim(),
           autor_nome: "Você",
           criado_em: new Date().toISOString(),
@@ -178,7 +194,7 @@ export default function SecaoPerguntas({ produtoId, perguntasIniciais, ehDono, p
         </p>
       ) : (
         <ul className="mt-4 flex flex-col gap-3">
-          {perguntas.map((p) => (
+          {visiveis.map((p) => (
             <li key={p.id} className="bg-superficie border border-borda rounded-card p-4 flex flex-col gap-3">
               <div className="flex flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -206,6 +222,17 @@ export default function SecaoPerguntas({ produtoId, perguntasIniciais, ehDono, p
             </li>
           ))}
         </ul>
+      )}
+
+      {perguntas.length > LIMITE_INICIAL && (
+        <button
+          type="button"
+          onClick={() => setMostrarTodas(!mostrarTodas)}
+          aria-expanded={mostrarTodas}
+          className={`mt-3 ${BOTAO_SECUNDARIO}`}
+        >
+          {mostrarTodas ? "Ver menos" : `Ver mais ${ocultas} ${ocultas === 1 ? "pergunta" : "perguntas"}`}
+        </button>
       )}
     </section>
   );

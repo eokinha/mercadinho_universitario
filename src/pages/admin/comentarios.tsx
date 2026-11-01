@@ -12,8 +12,8 @@ interface Props {
   itensIniciais: ConteudoModeracao[];
 }
 
-// Fila de perguntas, respostas e comentários de avaliação que a Vettly não aprovou na hora
-// (falhou, sinalizou ou recusou nos últimos 30 dias). Só admin (middleware + RPC).
+// Fila de perguntas, respostas e comentários de avaliação que a Vettly não decidiu (falhou ou só sinalizou)
+// e os recusados pela equipe nos últimos 30 dias. O que a Vettly recusa não é gravado. Só admin (middleware + RPC).
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const serverSupabase = createServerClient(ctx);
   const {
@@ -97,8 +97,8 @@ export default function AdminComentariosPage({ itensIniciais }: Props) {
         <div className="max-w-6xl mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold text-petroleo tracking-tight">Perguntas e avaliações</h1>
           <p className="text-sm text-tinta-suave mt-1 mb-6">
-            A moderação automática (Vettly) aprova ou recusa na hora. Aqui ficam os que ela não decidiu (falha ou
-            conteúdo sinalizado) e os recusados dos últimos 30 dias, para revisão.
+            A moderação automática (Vettly) aprova na hora, e o que ela recusa nem chega a ser salvo. Aqui ficam os
+            que ela não decidiu (falha ou conteúdo sinalizado) e os que a equipe recusou nos últimos 30 dias.
           </p>
 
           <div role="tablist" aria-label="Status da moderação" className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">

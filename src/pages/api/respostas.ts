@@ -1,7 +1,8 @@
-// POST /api/respostas { perguntaId, texto }: o dono do anúncio responde (RPC responder_pergunta) e a resposta vai para a moderação
+// POST /api/respostas { perguntaId, texto }: o dono do anúncio responde. Modera na Vettly antes de gravar
+// (RPC responder_pergunta); resposta recusada não é gravada e o dono pode escrever outra.
 import type { NextApiRequest, NextApiResponse } from "next";
-import { aceitaPostJson, responderErroBanco } from "@/lib/api-rotas";
-import { mensagemModeracao, registrarModeracao, textoValido } from "@/lib/moderacao";
+import { aceitaPostJson, exigirLogin, responderErroBanco } from "@/lib/api-rotas";
+import { mensagemModeracao, moderarTexto, publicarAprovado, textoValido } from "@/lib/moderacao";
 import { createApiClient } from "@/lib/supabase";
 import { LIMITES_TEXTO } from "@/lib/validacoes";
 
@@ -14,9 +15,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const supabase = createApiClient(req, res);
+  if (!(await exigirLogin(supabase, res))) return;
+
+  const moderacao = await moderarTexto(texto);
+  if (moderacao.decisao === "recusado") {
+    return res.status(200).json({ id: null, status: "recusado", mensagem: mensagemModeracao("resposta", "recusado", moderacao.motivos) });
+  }
+
   const { error } = await supabase.rpc("responder_pergunta", { p_pergunta_id: perguntaId, p_texto: texto });
   if (error) return responderErroBanco(res, error);
 
-  const status = await registrarModeracao(supabase, "resposta", perguntaId, texto);
-  return res.status(200).json({ id: perguntaId, status, mensagem: mensagemModeracao("resposta", status) });
+  const status = await publicarAprovado(supabase, "resposta", perguntaId, moderacao);
+  return res.status(200).json({ id: perguntaId, status, mensagem: mensagemModeracao("resposta", status, moderacao.motivos) });
 }

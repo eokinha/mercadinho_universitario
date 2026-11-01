@@ -14,6 +14,8 @@ interface Props {
 
 const FOCO = "focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2";
 const BOTAO_SECUNDARIO = `min-h-[44px] px-4 rounded-controle border border-borda-controle bg-superficie text-petroleo text-sm font-semibold hover:border-petroleo transition disabled:opacity-50 ${FOCO}`;
+// Quantas avaliações aparecem antes do "Ver mais"
+const LIMITE_INICIAL = 3;
 const ROTULOS_NOTA = ["", "Ruim", "Regular", "Boa", "Muito boa", "Excelente"];
 
 function formatarData(iso: string): string {
@@ -28,6 +30,9 @@ export default function SecaoAvaliacoes({ lojaId, nomeVendedor, resumoInicial, e
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [mostrarTodas, setMostrarTodas] = useState(false);
+  const visiveis = mostrarTodas ? resumo.avaliacoes : resumo.avaliacoes.slice(0, LIMITE_INICIAL);
+  const ocultas = resumo.avaliacoes.length - visiveis.length;
 
   async function handleAvaliar(e: React.FormEvent) {
     e.preventDefault();
@@ -36,6 +41,11 @@ export default function SecaoAvaliacoes({ lojaId, nomeVendedor, resumoInicial, e
     setAviso(null);
     try {
       const r = await enviarAvaliacao(lojaId, nota, comentario);
+      // Comentário recusado pela moderação: nada foi gravado (a avaliação anterior continua como estava)
+      if (r.status === "recusado") {
+        setErro(r.mensagem);
+        return;
+      }
       setResumo((prev) => ({ ...prev, minha: { nota, comentario: comentario.trim() || null, status: r.status } }));
       setAviso(r.mensagem);
     } catch (err) {
@@ -137,7 +147,7 @@ export default function SecaoAvaliacoes({ lojaId, nomeVendedor, resumoInicial, e
 
       {resumo.avaliacoes.length > 0 && (
         <ul className="mt-4 flex flex-col gap-3">
-          {resumo.avaliacoes.map((a) => (
+          {visiveis.map((a) => (
             <li key={a.id} className="bg-superficie border border-borda rounded-card p-4 flex flex-col gap-1.5">
               <div className="flex flex-wrap items-center gap-2">
                 <Estrelas nota={a.nota} tamanho={14} />
@@ -149,6 +159,16 @@ export default function SecaoAvaliacoes({ lojaId, nomeVendedor, resumoInicial, e
             </li>
           ))}
         </ul>
+      )}
+      {resumo.avaliacoes.length > LIMITE_INICIAL && (
+        <button
+          type="button"
+          onClick={() => setMostrarTodas(!mostrarTodas)}
+          aria-expanded={mostrarTodas}
+          className={`mt-3 ${BOTAO_SECUNDARIO}`}
+        >
+          {mostrarTodas ? "Ver menos" : `Ver mais ${ocultas} ${ocultas === 1 ? "avaliação" : "avaliações"}`}
+        </button>
       )}
     </section>
   );

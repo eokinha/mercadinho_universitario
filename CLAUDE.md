@@ -279,9 +279,12 @@ cria perguntas nos anúncios e avaliação do vendedor com moderação externa (
 - **Avaliação**: nota de 1 a 5 no perfil do vendedor, com comentário opcional; uma por aluno e vendedor (reenviar atualiza).
   Só quem tem registro em `interesses` com aquele vendedor (clicou em "Tenho interesse") e não é o dono.
   Sem comentário a nota vale na hora; com comentário, espera a moderação. Média só com avaliações aprovadas
-- **Moderação**: a rota `/api` grava pela RPC, manda o texto à Vettly (`POST /v1/check`, idioma `pt`) e chama
-  `aplicar_moderacao`. `allow` aprova, `block` recusa; falha, chave ausente ou conteúdo só sinalizado fica `pendente`
-  na fila de `/admin/comentarios`, onde o admin aprova ou recusa. Autor vê o status do que enviou; os outros só o aprovado
+- **Moderação**: a rota `/api` manda o texto à Vettly (`POST /v1/check`, idioma `pt`, política `marketplace`) **antes** de gravar.
+  `block` recusa e **nada é gravado** (avaliação anterior do aluno fica como estava); `allow` grava pela RPC e publica com
+  `aplicar_moderacao`; falha, chave ausente ou `flag` grava `pendente` na fila de `/admin/comentarios`.
+  A mensagem ao aluno traz o motivo (categorias com `triggered` → `motivosEmTexto` em `src/lib/moderacao.ts`;
+  categoria nova da política precisa de texto lá). Autor vê o status do que enviou; os outros só o aprovado
+- Comentários: perguntas e avaliações mostram 3 e o resto no "Ver mais"
 - A Vettly recebe só o texto (sem nome, e-mail ou telefone); está citada na Política de Privacidade
 - Conteúdo de aluno bloqueado some das listas e da média
 

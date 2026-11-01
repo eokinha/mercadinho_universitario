@@ -273,7 +273,7 @@ export interface ResumoAvaliacoes {
 
 // Resultado de enviar pergunta, resposta ou avaliação pelas rotas /api
 export interface ResultadoModeracao {
-  id: number;
+  id: number | null; // null quando a moderação recusou (nada é gravado)
   status: StatusModeracao;
   mensagem: string;
 }
