@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronLeft, ChevronRight, Heart, LayoutGrid, Repeat, ShieldCheck, ShoppingBag } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Heart, LayoutGrid, Repeat, ShieldCheck, ShoppingBag, Store } from "lucide-react";
 import { iconeParaCategoria } from "@/lib/icones-categoria";
 import type { Categoria } from "@/types";
 
@@ -45,6 +45,14 @@ const SLIDES = [
     cta: { href: "#trocas", texto: "Ver trocas" },
     Icone: Repeat,
     imagem: "/hero/troque.webp",
+  },
+  {
+    rotulo: "Empreenda no campus",
+    titulo: "Transforme seu talento em renda",
+    texto: "Faz doce, arte, aula particular ou conserto de notebook? Seu perfil no Circular já é sua loja: anuncie produtos e serviços para quem estuda com você.",
+    cta: { href: "/anunciar", texto: "Anunciar meu negócio" },
+    Icone: Store,
+    imagem: "/hero/empreenda.webp",
   },
 ];
 
