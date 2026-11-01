@@ -37,6 +37,7 @@ Fonte da verdade visual do projeto. Siga estas regras em toda tela nova ou alter
 - **Tag de modo:** `rounded-pill text-xs font-semibold px-2.5 py-1` com o par `-50`/texto escuro do modo.
 - **Selo verificado:** ShieldCheck + "Verificado" em `text-petroleo`, sempre ao lado do nome. Use `src/components/SeloVerificado.tsx`.
 - **Card de anúncio:** `bg-superficie border border-borda rounded-card hover:shadow-hover`; foto, tag, nome, preço, aluno (curso · semestre · selo).
+- **Card de impulsionado (home):** `CardProduto variante="destaque"`; foto de fundo cobrindo o card (3:4), degradê `from-petroleo-900` de baixo para cima, texto branco, tag "Impulsionado" em `bg-acao`. Só no carrossel de impulsionados.
 - **Anunciar:** começa por "O que você quer fazer com este item?" (Vender / Trocar / Doar); formulário se adapta.
 
 ## Acessibilidade

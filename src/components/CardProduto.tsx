@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { ChevronRight, Heart, ImageOff, Repeat, ShoppingBag } from "lucide-react";
+import { ChevronRight, Heart, ImageOff, Repeat, ShieldCheck, ShoppingBag, Sparkles } from "lucide-react";
 import AvisoFavorito, { type TipoAvisoFavorito } from "@/components/AvisoFavorito";
 import SeloVerificado from "@/components/SeloVerificado";
 import { caminhoAnuncio } from "@/lib/compartilhar";
@@ -10,6 +10,7 @@ import type { ProdutoListagem } from "@/types";
 interface Props {
   produto: ProdutoListagem;
   largura?: "fixa" | "fluida";
+  variante?: "padrao" | "destaque"; // destaque: foto de fundo com texto por cima (impulsionados da home)
   favoritado?: boolean; // estado inicial (ids vindos de getMeusFavoritosIds na página)
   podeFavoritar?: boolean; // false em anúncio de outro campus: o banco não aceita
   onFavoritoAlterado?: (produtoId: number, favoritado: boolean) => void;
@@ -27,6 +28,7 @@ function formatarPreco(valor: number): string {
 export default function CardProduto({
   produto,
   largura = "fixa",
+  variante = "padrao",
   favoritado = false,
   podeFavoritar = true,
   onFavoritoAlterado,
@@ -64,6 +66,93 @@ export default function CardProduto({
     }
   }
 
+  const botaoFavorito = podeFavoritar && (
+    <button
+      type="button"
+      onClick={handleFavoritar}
+      disabled={salvando}
+      aria-label={favorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+      aria-pressed={favorito}
+      className="absolute top-2 right-2 w-11 h-11 rounded-pill bg-superficie/90 flex items-center justify-center text-tinta-suave hover:text-perigo transition z-10 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+    >
+      <Heart size={18} strokeWidth={1.75} aria-hidden="true" className={favorito ? "fill-perigo text-perigo" : ""} />
+    </button>
+  );
+
+  // Impulsionados da home: foto de fundo ocupando o card, degradê escuro e texto branco por cima
+  if (variante === "destaque") {
+    return (
+      <article className="w-60 sm:w-64 shrink-0 snap-start group relative aspect-[3/4] rounded-card overflow-hidden bg-petroleo-900 hover:shadow-hover transition duration-200">
+        <Link
+          href={href}
+          aria-label={produto.nome}
+          className="absolute inset-0 rounded-card focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:-outline-offset-2"
+        >
+          {produto.imagem_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={produto.imagem_url}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover transition duration-500 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            />
+          ) : (
+            <span className="absolute inset-0 flex items-center justify-center text-white/40">
+              <ImageOff size={40} strokeWidth={1.75} aria-hidden="true" />
+            </span>
+          )}
+          <span className="absolute inset-0 bg-linear-to-t from-petroleo-900 via-petroleo-900/50 to-transparent" aria-hidden="true" />
+
+          <span className="absolute inset-x-0 bottom-0 p-4 pb-14 flex flex-col gap-1.5 text-white">
+            <span className="flex flex-wrap gap-1.5">
+              {aceitaTroca && (
+                <span className="rounded-pill text-xs font-semibold px-2.5 py-1 bg-troca-50 text-troca-texto inline-flex items-center gap-1">
+                  <Repeat size={14} strokeWidth={1.75} aria-hidden="true" />
+                  {soTroca ? "Trocar" : "Aceita troca"}
+                </span>
+              )}
+            </span>
+            <span className="font-semibold text-base leading-snug line-clamp-2">{produto.nome}</span>
+            <span className="font-bold text-2xl tracking-tight">
+              {soTroca ? "Só troca" : formatarPreco(produto.preco)}
+            </span>
+          </span>
+        </Link>
+
+        <span className="absolute top-3 left-3 rounded-pill text-xs font-semibold px-2.5 py-1 bg-acao text-white inline-flex items-center gap-1 pointer-events-none">
+          <Sparkles size={14} strokeWidth={1.75} aria-hidden="true" />
+          Impulsionado
+        </span>
+        {botaoFavorito}
+
+        <Link
+          href={`/perfil/${produto.loja_id}`}
+          aria-label={`Ver perfil de ${produto.loja_nome}`}
+          className="absolute inset-x-0 bottom-0 px-4 py-2.5 min-h-[44px] flex items-center gap-2 border-t border-white/15 text-white/90 hover:bg-white/10 transition focus-visible:outline-2 focus-visible:outline-white focus-visible:-outline-offset-2"
+        >
+          <span className="w-6 h-6 rounded-pill bg-white/20 shrink-0 overflow-hidden">
+            {produto.loja_avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={produto.loja_avatar_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="w-full h-full flex items-center justify-center text-xs font-bold">
+                {produto.loja_nome.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </span>
+          <span className="flex-1 min-w-0 text-xs truncate">{produto.loja_nome}</span>
+          {produto.loja_verificada && (
+            <span className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold">
+              <ShieldCheck size={14} strokeWidth={1.75} aria-hidden="true" />
+              Verificado
+            </span>
+          )}
+        </Link>
+
+        <AvisoFavorito aviso={aviso} chave={chaveAviso} onSumir={limparAviso} />
+      </article>
+    );
+  }
+
   return (
     <article
       className={`${larguraClasses} group bg-superficie border border-borda rounded-card overflow-hidden hover:shadow-hover transition duration-200 flex flex-col`}
@@ -90,23 +179,7 @@ export default function CardProduto({
           </div>
         </Link>
 
-        {podeFavoritar && (
-          <button
-            type="button"
-            onClick={handleFavoritar}
-            disabled={salvando}
-            aria-label={favorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-            aria-pressed={favorito}
-            className="absolute top-2 right-2 w-11 h-11 rounded-pill bg-superficie/90 flex items-center justify-center text-tinta-suave hover:text-perigo transition z-10 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
-          >
-            <Heart
-              size={18}
-              strokeWidth={1.75}
-              aria-hidden="true"
-              className={favorito ? "fill-perigo text-perigo" : ""}
-            />
-          </button>
-        )}
+        {botaoFavorito}
         <AvisoFavorito aviso={aviso} chave={chaveAviso} onSumir={limparAviso} />
       </div>
 

@@ -52,7 +52,7 @@ src/
 │       ├── lojas.tsx         # Status das lojas e produtos impulsionados (somente admin)
 │       ├── imagens.tsx       # Upload de avatar/capa/imagens (somente admin)
 │       └── denuncias.tsx     # Fila de denúncias (somente admin)
-├── components/           # Navbar, Footer, HeroSection, CardProduto (link para a página do anúncio),
+├── components/           # Navbar, Footer, HeroSection, CardProduto (link para a página do anúncio; variante "destaque" com foto de fundo nos impulsionados),
 │                         # BotaoContato (WhatsApp via RPC), BotaoDenunciar,
 │                         # ConfiraEmail (pós-cadastro/senha), GuiaEmail + AjudaEmailFaculdade (tutorial do e-mail),
 │                         # BotaoCompartilhar (QR code e link de loja ou anúncio, para qualquer aluno logado)

@@ -236,7 +236,7 @@ export default function Home({ produtos, produtosTroca, categorias, logado, camp
                   <CardProduto
                     key={produto.id}
                     produto={produto}
-                    largura="fixa"
+                    variante="destaque"
                     favoritado={favoritos.includes(produto.id)}
                   />
                 ))}
