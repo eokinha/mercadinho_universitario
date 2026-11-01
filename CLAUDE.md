@@ -210,7 +210,7 @@ cria as RPCs da página do anúncio e a `23` separa nome pessoal e nome de exibi
 ## Regras de negócio
 
 ### Atores
-- **Visitante** — vê só a home de apresentação (como funciona + faculdades participantes); catálogo exige login
+- **Visitante** — vê só a home de apresentação (hero + como funciona); catálogo exige login
 - **Estudante** — usuário cadastrado; ganha uma loja (perfil vendedor) no cadastro
 - **Vendedor** — estudante com `matricula_validada = true`, conta `ativo` e WhatsApp no perfil; pode publicar anúncios
 - **Administrador** — valida matrículas, bloqueia alunos, modera lojas e denúncias, define impulsionados e gerencia imagens

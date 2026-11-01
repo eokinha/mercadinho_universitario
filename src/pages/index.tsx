@@ -5,7 +5,7 @@ import CardProduto from "@/components/CardProduto";
 import HeroSection from "@/components/HeroSection";
 import SecaoTrocas from "@/components/SecaoTrocas";
 import { createServerClient } from "@/lib/supabase";
-import { getCategorias, getInstituicoes, getMeusFavoritosIds, getProdutosFiltrados, getResumoUsuarioNavbar } from "@/lib/queries";
+import { getCategorias, getMeusFavoritosIds, getProdutosFiltrados, getResumoUsuarioNavbar } from "@/lib/queries";
 import type { Categoria, ProdutoListagem } from "@/types";
 import { ChevronLeft, ChevronRight, GraduationCap, MailCheck, ShieldCheck, ShoppingBag } from "lucide-react";
 
@@ -15,7 +15,6 @@ interface Props {
   categorias: Categoria[];
   logado: boolean;
   campusNome: string | null;
-  faculdades: string[];
   favoritos: number[];
 }
 
@@ -25,19 +24,15 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const categorias = await getCategorias(supabase).catch(() => []);
-
-  // Visitante não vê catálogo (migração 19): só a apresentação e as faculdades participantes
+  // Visitante não vê catálogo (migração 19): só a apresentação
   if (!user) {
-    const instituicoes = await getInstituicoes(supabase).catch(() => []);
     return {
       props: {
         produtos: [],
         produtosTroca: [],
-        categorias,
+        categorias: [], // a barra de categorias só aparece para logado
         logado: false,
         campusNome: null,
-        faculdades: instituicoes.filter((i) => (i.dominios ?? []).length > 0).map((i) => i.nome),
         favoritos: [],
       },
     };
@@ -46,7 +41,8 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const resumo = await getResumoUsuarioNavbar(supabase).catch(() => null);
   const campus_id = resumo?.instituicoes_id ?? undefined;
 
-  const [produtos, produtosTroca, favoritos] = await Promise.all([
+  const [categorias, produtos, produtosTroca, favoritos] = await Promise.all([
+    getCategorias(supabase).catch(() => []),
     getProdutosFiltrados({ apenasDestaque: true, ...(campus_id && { campus_id }) }, supabase).catch(() => []),
     getProdutosFiltrados({ ordenar: "recentes", apenasTroca: true, ...(campus_id && { campus_id }) }, supabase).catch(
       () => []
@@ -61,7 +57,6 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       categorias,
       logado: true,
       campusNome: resumo?.instituicao_nome ?? null,
-      faculdades: [],
       favoritos,
     },
   };
@@ -85,7 +80,7 @@ const PASSOS = [
   },
 ];
 
-function ApresentacaoVisitante({ faculdades }: { faculdades: string[] }) {
+function ApresentacaoVisitante() {
   return (
     <section className="py-10">
       <div className="max-w-6xl mx-auto px-4">
@@ -99,24 +94,6 @@ function ApresentacaoVisitante({ faculdades }: { faculdades: string[] }) {
             </li>
           ))}
         </ol>
-
-        {faculdades.length > 0 && (
-          <div className="mt-8 bg-superficie border border-borda rounded-card p-5">
-            <h2 className="text-petroleo font-bold">Faculdades no Circular</h2>
-            <p className="text-tinta-suave text-sm mt-1">Use o e-mail institucional de uma delas para entrar.</p>
-            <ul className="mt-4 flex flex-wrap gap-2">
-              {faculdades.map((nome) => (
-                <li
-                  key={nome}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-petroleo-50 text-petroleo rounded-pill"
-                >
-                  <GraduationCap size={14} strokeWidth={1.75} aria-hidden="true" />
-                  {nome}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
 
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
@@ -137,7 +114,7 @@ function ApresentacaoVisitante({ faculdades }: { faculdades: string[] }) {
   );
 }
 
-export default function Home({ produtos, produtosTroca, categorias, logado, campusNome, faculdades, favoritos }: Props) {
+export default function Home({ produtos, produtosTroca, categorias, logado, campusNome, favoritos }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const rolarProdutos = (direcao: "esq" | "dir") => {
@@ -151,7 +128,7 @@ export default function Home({ produtos, produtosTroca, categorias, logado, camp
     return (
       <>
         <HeroSection categorias={categorias} logado={false} />
-        <ApresentacaoVisitante faculdades={faculdades} />
+        <ApresentacaoVisitante />
       </>
     );
   }

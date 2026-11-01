@@ -182,10 +182,6 @@ export default function SecaoTrocas({ produtos = [], favoritos = [], logado = fa
             className="absolute inset-0 -z-10 bg-petroleo-900/80 lg:bg-transparent lg:bg-linear-to-r lg:from-petroleo-900 lg:via-petroleo-900/85 lg:to-petroleo-900/40"
           />
           <div className="lg:col-span-7 flex flex-col items-start gap-3">
-            <span className="inline-flex items-center gap-1.5 rounded-pill text-xs font-semibold px-2.5 py-1 bg-superficie text-troca-texto">
-              <Repeat size={14} strokeWidth={1.75} aria-hidden="true" />
-              Modo Trocar
-            </span>
             <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
               Não compre novo. Deixa Circular.
             </h2>

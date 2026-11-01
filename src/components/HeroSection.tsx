@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronLeft, ChevronRight, Heart, LayoutGrid, Repeat, ShieldCheck, ShoppingBag, Store } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Heart, LayoutGrid, Repeat, ShieldCheck, ShoppingBag } from "lucide-react";
 import { iconeParaCategoria } from "@/lib/icones-categoria";
 import type { Categoria } from "@/types";
 
@@ -23,35 +23,27 @@ const CATEGORIAS_PADRAO = [
 
 const SLIDES = [
   {
-    rotulo: "Deixa Circular.",
     titulo: "Negocie com quem estuda com você",
     texto: "Só alunos com matrícula verificada anunciam. Combine a entrega no seu campus, direto com o colega.",
     cta: { href: "/listagem", texto: "Explorar anúncios" },
-    Icone: ShieldCheck,
     imagem: "/hero/negocie.webp",
   },
   {
-    rotulo: "Economia no Campus",
     titulo: "O que você não usa, outro aluno precisa",
     texto: "Livros, calculadoras, jalecos e materiais de curso circulam entre colegas em vez de ficarem parados.",
     cta: { href: "/anunciar", texto: "Anunciar um item" },
-    Icone: ShoppingBag,
     imagem: "/hero/circule.webp",
   },
   {
-    rotulo: "Modo Trocar",
     titulo: "Troque material com outros alunos",
     texto: "Anuncie o que você tem e diga o que procura. Se houver diferença em dinheiro, vocês combinam entre si.",
     cta: { href: "#trocas", texto: "Ver trocas" },
-    Icone: Repeat,
     imagem: "/hero/troque.webp",
   },
   {
-    rotulo: "Empreenda no campus",
     titulo: "Transforme seu talento em renda",
     texto: "Faz doce, arte, aula particular ou conserto de notebook? Seu perfil no Circular já é sua loja: anuncie produtos e serviços para quem estuda com você.",
     cta: { href: "/anunciar", texto: "Anunciar meu negócio" },
-    Icone: Store,
     imagem: "/hero/empreenda.webp",
   },
 ];
@@ -97,105 +89,107 @@ export default function HeroSection({ categorias = [], logado = false }: Props) 
 
   return (
     <div className="w-full bg-pagina pb-4">
-      {/* Barra de categorias */}
-      <section className="bg-superficie border-b border-borda sticky top-[69px] z-20">
-        <div className="max-w-6xl mx-auto px-4 flex items-center gap-2 h-14 relative">
-          <div className="relative shrink-0" ref={menuRef}>
-            <button
-              type="button"
-              onClick={() => setMenuCategoriasAberto(!menuCategoriasAberto)}
-              aria-expanded={menuCategoriasAberto}
-              className={`flex items-center gap-2 px-3 min-h-[44px] rounded-controle text-sm font-semibold text-tinta hover:bg-pagina transition ${FOCO}`}
-            >
-              <LayoutGrid size={18} strokeWidth={1.75} className="text-petroleo" aria-hidden="true" />
-              <span>Categorias</span>
-              <ChevronDown
-                size={16}
-                strokeWidth={1.75}
-                aria-hidden="true"
-                className={`text-tinta-sutil transition-transform duration-200 ${menuCategoriasAberto ? "rotate-180" : ""}`}
-              />
-            </button>
+      {/* Barra de categorias: só para logado (visitante não acessa o catálogo) */}
+      {logado && (
+        <section className="bg-superficie border-b border-borda sticky top-[69px] z-20">
+          <div className="max-w-6xl mx-auto px-4 flex items-center gap-2 h-14 relative">
+            <div className="relative shrink-0" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuCategoriasAberto(!menuCategoriasAberto)}
+                aria-expanded={menuCategoriasAberto}
+                className={`flex items-center gap-2 px-3 min-h-[44px] rounded-controle text-sm font-semibold text-tinta hover:bg-pagina transition ${FOCO}`}
+              >
+                <LayoutGrid size={18} strokeWidth={1.75} className="text-petroleo" aria-hidden="true" />
+                <span>Categorias</span>
+                <ChevronDown
+                  size={16}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                  className={`text-tinta-sutil transition-transform duration-200 ${menuCategoriasAberto ? "rotate-180" : ""}`}
+                />
+              </button>
 
-            {menuCategoriasAberto && (
-              <div className="absolute left-0 mt-2 w-64 bg-superficie border border-borda rounded-card shadow-flutuante py-2 z-50">
-                <div className="max-h-72 overflow-y-auto py-1">
-                  <Link
-                    href="/listagem"
-                    onClick={() => setMenuCategoriasAberto(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-tinta hover:bg-petroleo-50 hover:text-petroleo transition"
-                  >
-                    <ShoppingBag size={18} strokeWidth={1.75} aria-hidden="true" />
-                    Ver tudo
-                  </Link>
-                  <Link
-                    href="#trocas"
-                    onClick={() => setMenuCategoriasAberto(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-tinta hover:bg-troca-50 hover:text-troca-texto transition"
-                  >
-                    <Repeat size={18} strokeWidth={1.75} aria-hidden="true" />
-                    Trocas
-                  </Link>
-                  {listaAbas.map(({ id, nome, Icone }) => (
+              {menuCategoriasAberto && (
+                <div className="absolute left-0 mt-2 w-64 bg-superficie border border-borda rounded-card shadow-flutuante py-2 z-50">
+                  <div className="max-h-72 overflow-y-auto py-1">
                     <Link
-                      key={id}
-                      href={`/listagem?categoria=${id}`}
+                      href="/listagem"
                       onClick={() => setMenuCategoriasAberto(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-tinta hover:bg-petroleo-50 hover:text-petroleo transition"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-tinta hover:bg-petroleo-50 hover:text-petroleo transition"
                     >
-                      <Icone size={18} strokeWidth={1.75} aria-hidden="true" />
-                      {nome}
+                      <ShoppingBag size={18} strokeWidth={1.75} aria-hidden="true" />
+                      Ver tudo
                     </Link>
-                  ))}
+                    <Link
+                      href="#trocas"
+                      onClick={() => setMenuCategoriasAberto(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-tinta hover:bg-troca-50 hover:text-troca-texto transition"
+                    >
+                      <Repeat size={18} strokeWidth={1.75} aria-hidden="true" />
+                      Trocas
+                    </Link>
+                    {listaAbas.map(({ id, nome, Icone }) => (
+                      <Link
+                        key={id}
+                        href={`/listagem?categoria=${id}`}
+                        onClick={() => setMenuCategoriasAberto(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-tinta hover:bg-petroleo-50 hover:text-petroleo transition"
+                      >
+                        <Icone size={18} strokeWidth={1.75} aria-hidden="true" />
+                        {nome}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          <Link
-            href="/painel/favoritos"
-            className={`hidden sm:flex items-center gap-1.5 px-3 min-h-[44px] rounded-controle text-sm font-semibold text-tinta hover:bg-pagina transition shrink-0 ${FOCO}`}
-          >
-            <Heart size={18} strokeWidth={1.75} className="text-perigo" aria-hidden="true" />
-            Favoritos
-          </Link>
-
-          <div className="w-px h-6 bg-borda shrink-0 mx-1 hidden sm:block" />
-
-          <div
-            ref={scrollCategoriasRef}
-            className="flex-1 flex items-center gap-6 overflow-x-auto no-scrollbar scroll-smooth pl-2"
-          >
             <Link
-              href="#trocas"
-              className="flex items-center gap-1.5 py-4 border-b-2 border-transparent hover:border-troca text-troca-texto text-sm font-semibold shrink-0 whitespace-nowrap transition-colors"
+              href="/painel/favoritos"
+              className={`hidden sm:flex items-center gap-1.5 px-3 min-h-[44px] rounded-controle text-sm font-semibold text-tinta hover:bg-pagina transition shrink-0 ${FOCO}`}
             >
-              <Repeat size={16} strokeWidth={1.75} aria-hidden="true" />
-              Trocas
+              <Heart size={18} strokeWidth={1.75} className="text-perigo" aria-hidden="true" />
+              Favoritos
             </Link>
 
-            {listaAbas.map(({ id, nome, Icone }) => (
-              <Link
-                key={id}
-                href={`/listagem?categoria=${id}`}
-                className="flex items-center gap-1.5 py-4 border-b-2 border-transparent hover:border-petroleo text-tinta-suave text-sm shrink-0 whitespace-nowrap transition-colors"
-              >
-                <Icone size={16} strokeWidth={1.75} aria-hidden="true" />
-                {nome}
-              </Link>
-            ))}
-          </div>
+            <div className="w-px h-6 bg-borda shrink-0 mx-1 hidden sm:block" />
 
-          <button
-            type="button"
-            onClick={rolarCategorias}
-            aria-label="Mostrar mais categorias"
-            className={`w-11 h-11 rounded-pill border border-borda-controle bg-superficie hover:border-petroleo flex items-center justify-center text-tinta-suave shrink-0 transition ${FOCO}`}
-          >
-            <ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
-          </button>
-        </div>
-      </section>
+            <div
+              ref={scrollCategoriasRef}
+              className="flex-1 flex items-center gap-6 overflow-x-auto no-scrollbar scroll-smooth pl-2"
+            >
+              <Link
+                href="#trocas"
+                className="flex items-center gap-1.5 py-4 border-b-2 border-transparent hover:border-troca text-troca-texto text-sm font-semibold shrink-0 whitespace-nowrap transition-colors"
+              >
+                <Repeat size={16} strokeWidth={1.75} aria-hidden="true" />
+                Trocas
+              </Link>
+
+              {listaAbas.map(({ id, nome, Icone }) => (
+                <Link
+                  key={id}
+                  href={`/listagem?categoria=${id}`}
+                  className="flex items-center gap-1.5 py-4 border-b-2 border-transparent hover:border-petroleo text-tinta-suave text-sm shrink-0 whitespace-nowrap transition-colors"
+                >
+                  <Icone size={16} strokeWidth={1.75} aria-hidden="true" />
+                  {nome}
+                </Link>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={rolarCategorias}
+              aria-label="Mostrar mais categorias"
+              className={`w-11 h-11 rounded-pill border border-borda-controle bg-superficie hover:border-petroleo flex items-center justify-center text-tinta-suave shrink-0 transition ${FOCO}`}
+            >
+              <ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-4 pt-6 pb-4">
@@ -252,10 +246,6 @@ export default function HeroSection({ categorias = [], logado = false }: Props) 
                       className={`[grid-area:1/1] grid grid-cols-1 md:grid-cols-12 gap-6 items-center ${ativo ? "" : "invisible"}`}
                     >
                       <div className="md:col-span-7 flex flex-col gap-3 text-center md:text-left">
-                        <span className="inline-flex items-center justify-center md:justify-start gap-1.5 text-sm font-semibold text-white/90">
-                          <s.Icone size={16} strokeWidth={1.75} aria-hidden="true" />
-                          {s.rotulo}
-                        </span>
                         <h2 className="text-2xl sm:text-4xl font-bold tracking-tight leading-tight">{s.titulo}</h2>
                         <p className="text-base text-white/90 leading-relaxed max-w-xl mx-auto md:mx-0">{s.texto}</p>
                         <div className="mt-2">
