@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import {
   atualizarMeuNome,
   excluirMinhaConta,
@@ -540,13 +539,7 @@ export default function SecaoPerfil({
         </div>
 
         {/* Botão Salvar */}
-        <div className="pt-4 border-t border-borda flex items-center justify-between">
-          <Link
-            href={`/perfil/${loja.id}`}
-            className="text-sm font-semibold text-petroleo hover:underline"
-          >
-            Ver meu perfil público
-          </Link>
+        <div className="pt-4 border-t border-borda flex items-center justify-end">
 
           <button
             type="submit"

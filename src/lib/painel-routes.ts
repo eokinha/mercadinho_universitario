@@ -25,8 +25,8 @@ export const PAGINAS_PAINEL = {
   perfil: {
     id: "perfil",
     href: "/painel/perfil",
-    label: "Meu perfil",
-    title: "Meu perfil",
+    label: "Meus dados",
+    title: "Meus dados",
     icon: User,
   },
 } as const;

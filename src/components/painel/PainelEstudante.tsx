@@ -15,7 +15,6 @@ import type { Loja, Produto, ProdutoListagem, ProdutoStatus, Usuario } from "@/t
 import {
   CircleCheck,
   Clock,
-  ExternalLink,
   Heart,
   Package,
   Plus,
@@ -223,15 +222,6 @@ export default function PainelEstudante({
                       </Link>
                     )}
                   </div>
-                  <div className="mt-1.5 flex items-center gap-3 text-xs text-tinta-suave">
-                    <Link
-                      href={`/perfil/${loja.id}`}
-                      className="text-petroleo font-semibold flex items-center gap-1 hover:underline"
-                    >
-                      Ver meu perfil público
-                      <ExternalLink size={14} strokeWidth={1.75} aria-hidden="true" />
-                    </Link>
-                  </div>
                 </div>
               </div>
 
@@ -347,7 +337,7 @@ export default function PainelEstudante({
                   className="bg-superficie border border-borda rounded-card p-5 transition hover:shadow-hover"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-bold text-tinta">Meu perfil</span>
+                    <span className="text-sm font-bold text-tinta">Meus dados</span>
                     <User size={20} strokeWidth={1.75} className="text-petroleo" aria-hidden="true" />
                   </div>
                   <strong className="block text-lg font-bold text-tinta mt-4">
@@ -357,7 +347,7 @@ export default function PainelEstudante({
                         ? "Verificação em análise"
                         : "Verificação pendente"}
                   </strong>
-                  <span className="text-xs text-tinta-suave mt-2 block">Atualize seus dados e seu perfil público</span>
+                  <span className="text-xs text-tinta-suave mt-2 block">Nome, foto, capa, contato e e-mail da conta</span>
                 </Link>
               </div>
 
@@ -399,7 +389,6 @@ export default function PainelEstudante({
           {abaAtiva === "anuncios" && (
             <SecaoAnuncios
               produtos={produtos}
-              lojaId={loja.id}
               onStatus={handleStatus}
               onRenovar={handleRenovar}
               onExcluir={handleExcluir}

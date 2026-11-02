@@ -2,11 +2,11 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Camera, CircleCheck, Package, Pause, Pencil, Play, RefreshCw, Repeat, Trash2 } from "lucide-react";
 import { anuncioExpirado, DIAS_VALIDADE_ANUNCIO } from "@/lib/anuncios";
+import { caminhoAnuncio } from "@/lib/compartilhar";
 import type { Produto, ProdutoStatus } from "@/types";
 
 interface Props {
   produtos: Produto[];
-  lojaId: number;
   onStatus: (produto: Produto, status: ProdutoStatus) => void;
   onRenovar: (produto: Produto) => void;
   onExcluir: (produtoId: number) => void;
@@ -27,7 +27,7 @@ const ROTULO_STATUS: Record<ProdutoStatus, { texto: string; classe: string }> = 
   vendido: { texto: "Vendido", classe: "bg-troca-50 text-troca-texto" },
 };
 
-export default function SecaoAnuncios({ produtos, lojaId, onStatus, onRenovar, onExcluir }: Props) {
+export default function SecaoAnuncios({ produtos, onStatus, onRenovar, onExcluir }: Props) {
   const [filtroStatus, setFiltroStatus] = useState<Filtro>("todos");
 
   const porStatus = useMemo(
@@ -184,7 +184,7 @@ export default function SecaoAnuncios({ produtos, lojaId, onStatus, onRenovar, o
 
                     {ativo && !expirado && (
                       <Link
-                        href={`/perfil/${lojaId}`}
+                        href={caminhoAnuncio(produto.id, produto.nome)}
                         className={`min-h-[44px] inline-flex items-center text-sm font-semibold text-petroleo hover:underline rounded-controle ${FOCO}`}
                       >
                         Ver anúncio

@@ -261,7 +261,7 @@ pela moderação de contas (ver "Moderação de contas").
 - `/mensagens` exige login (middleware leva ao `/login?aviso=mensagens&next=…`)
 - `/minha-loja`, `/painel`, `/anunciar` exigem login; `/admin` exige `is_admin`
 - Anunciar exige matrícula validada (checado na página e no banco)
-- Cadastro exige aceitar Termos de Uso e Política de Privacidade; o aluno pode excluir a conta no painel (Perfil)
+- Cadastro exige aceitar Termos de Uso e Política de Privacidade; o aluno pode excluir a conta no painel (Meus dados)
 - Matrícula verificada automaticamente pelo e-mail confirmado (o domínio está em `instituicoes.dominios`);
   a equipe não aprova matrícula; modera contas em `/admin/contas`
 
@@ -277,7 +277,7 @@ pela moderação de contas (ver "Moderação de contas").
 - Cada anúncio tem página própria: `/anuncio/{id}-{nome}` (`caminhoAnuncio` em `src/lib/compartilhar.ts`); os cards levam a ela.
   De outro campus, só leitura. O link compartilhado leva o código da loja: o login mostra o item e põe `og:*` com foto,
   nome e preço para a prévia do WhatsApp (o WhatsApp segue o redirecionamento do middleware até o login)
-- Trocar de campus = trocar o e-mail no painel (Perfil → E-mail e campus); confirmado o novo e-mail
+- Trocar de campus = trocar o e-mail no painel (Meus dados → E-mail e campus); confirmado o novo e-mail
   (template `db/emails/trocar-email.html`), o campus muda e os anúncios ativos são pausados
 - Conta antiga com domínio desconhecido mantém o campus que tinha; sem campus, o onboarding pede a troca de e-mail
 

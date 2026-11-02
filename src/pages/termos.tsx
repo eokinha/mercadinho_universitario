@@ -94,7 +94,7 @@ export default function TermosPage() {
           <section>
             <h2 className="text-lg font-bold text-petroleo mb-2">7. Sua conta</h2>
             <p>
-              Você pode excluir sua conta a qualquer momento no painel, em Perfil. Seus dados são tratados conforme a{" "}
+              Você pode excluir sua conta a qualquer momento no painel, em Meus dados. Seus dados são tratados conforme a{" "}
               <Link href="/privacidade" className="text-petroleo font-semibold hover:underline">
                 Política de Privacidade
               </Link>
