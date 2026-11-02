@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import Head from "next/head";
+import { useConfirmacao } from "@/components/ModalConfirmacao";
 import Link from "next/link";
 import type { GetServerSideProps } from "next";
 import { createServerClient } from "@/lib/supabase";
@@ -65,6 +66,7 @@ export default function AdminDenunciasPage({ denunciasIniciais }: Props) {
   const [filtro, setFiltro] = useState<DenunciaStatus>("aberta");
   const [processando, setProcessando] = useState<number | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const { confirmar, modalConfirmacao } = useConfirmacao();
   // Cópias de conversas abertas pelo admin (cada abertura fica registrada no banco)
   const [conversas, setConversas] = useState<Record<number, ConversaDenunciada>>({});
 
@@ -75,7 +77,13 @@ export default function AdminDenunciasPage({ denunciasIniciais }: Props) {
   async function handleRemoverComentario(denuncia: DenunciaModeracao) {
     const id = denuncia.alvo_tipo === "avaliacao" ? denuncia.avaliacao_id : denuncia.pergunta_id;
     if (!id || denuncia.alvo_tipo === "anuncio" || denuncia.alvo_tipo === "perfil" || denuncia.alvo_tipo === "mensagem") return;
-    if (!confirm("Remover este comentário do site? O autor não é avisado.")) return;
+    const ok = await confirmar({
+      titulo: "Remover comentário?",
+      mensagem: "O comentário sai do site e a denúncia fica resolvida. O autor não é avisado.",
+      rotuloConfirmar: "Remover comentário",
+      perigo: true,
+    });
+    if (!ok) return;
     setProcessando(denuncia.id);
     setErro(null);
     try {
@@ -289,6 +297,7 @@ export default function AdminDenunciasPage({ denunciasIniciais }: Props) {
           )}
         </div>
       </div>
+      {modalConfirmacao}
     </>
   );
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { Ban, ChevronLeft, Ellipsis, Flag, RotateCw, Send, ShieldCheck, Trash2, UserX } from "lucide-react";
 import BotaoDenunciar from "@/components/BotaoDenunciar";
+import { useConfirmacao } from "@/components/ModalConfirmacao";
 import { caminhoAnuncio } from "@/lib/compartilhar";
 import { horarioMensagem, mesclarMensagens, rotuloDia, ultimoIdConfirmado, type MensagemTela } from "@/lib/chat";
 import { assinarConversa } from "@/lib/chat-realtime";
@@ -58,7 +59,7 @@ export default function ConversaChat({ inicial }: Props) {
   const [texto, setTexto] = useState("");
   const [erroEnvio, setErroEnvio] = useState<string | null>(null);
   const [menuAberto, setMenuAberto] = useState(false);
-  const [confirmandoApagar, setConfirmandoApagar] = useState(false);
+  const { confirmar, modalConfirmacao } = useConfirmacao();
   const [denunciando, setDenunciando] = useState<number | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
 
@@ -208,6 +209,17 @@ export default function ConversaChat({ inicial }: Props) {
   async function handleBloquear(bloquear: boolean) {
     setMenuAberto(false);
     setErroAcao(null);
+    if (
+      bloquear &&
+      !(await confirmar({
+        titulo: "Bloquear conversa?",
+        mensagem: `Nem você nem ${inicial.outro.nome} poderão enviar mensagens aqui. Você pode desbloquear depois.`,
+        rotuloConfirmar: "Bloquear",
+        perigo: true,
+      }))
+    ) {
+      return;
+    }
     try {
       await bloquearConversa(conversaId, bloquear);
       setBloqueio({ bloqueada: bloquear, porMim: bloquear });
@@ -217,7 +229,15 @@ export default function ConversaChat({ inicial }: Props) {
   }
 
   async function handleApagar() {
+    setMenuAberto(false);
     setErroAcao(null);
+    const ok = await confirmar({
+      titulo: "Apagar conversa?",
+      mensagem: "Ela sai da sua lista, mas a outra pessoa continua com a conversa. Se chegar mensagem nova, ela volta.",
+      rotuloConfirmar: "Apagar conversa",
+      perigo: true,
+    });
+    if (!ok) return;
     try {
       await ocultarConversa(conversaId);
       router.push("/mensagens");
@@ -233,6 +253,7 @@ export default function ConversaChat({ inicial }: Props) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
+      {modalConfirmacao}
       {/* Cabeçalho: quem é, sobre qual anúncio e o menu da conversa */}
       <div className="border-b border-borda px-3 sm:px-4 py-2.5 flex items-center gap-3">
         <Link
@@ -281,10 +302,7 @@ export default function ConversaChat({ inicial }: Props) {
         <div className="relative shrink-0">
           <button
             type="button"
-            onClick={() => {
-              setMenuAberto((v) => !v);
-              setConfirmandoApagar(false);
-            }}
+            onClick={() => setMenuAberto((v) => !v)}
             aria-label="Opções da conversa"
             aria-expanded={menuAberto}
             className={`w-11 h-11 inline-flex items-center justify-center rounded-controle text-tinta-suave hover:text-petroleo ${FOCO}`}
@@ -303,28 +321,14 @@ export default function ConversaChat({ inicial }: Props) {
                   {bloqueio.porMim ? "Desbloquear conversa" : "Bloquear conversa"}
                 </button>
               )}
-              {confirmandoApagar ? (
-                <div className="px-4 py-2.5 text-sm">
-                  <p className="text-tinta">Apagar da sua lista? A outra pessoa continua com a conversa.</p>
-                  <div className="flex gap-2 mt-2">
-                    <button type="button" onClick={handleApagar} className={`min-h-[40px] px-3 rounded-controle border border-perigo text-perigo font-semibold ${FOCO}`}>
-                      Apagar
-                    </button>
-                    <button type="button" onClick={() => setConfirmandoApagar(false)} className={`min-h-[40px] px-3 ${BOTAO_SECUNDARIO}`}>
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setConfirmandoApagar(true)}
-                  className="flex items-center gap-2.5 w-full text-left px-4 py-2.5 text-sm text-perigo hover:bg-perigo-50"
-                >
-                  <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
-                  Apagar conversa
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleApagar}
+                className="flex items-center gap-2.5 w-full text-left px-4 py-2.5 text-sm text-perigo hover:bg-perigo-50"
+              >
+                <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
+                Apagar conversa
+              </button>
             </div>
           )}
         </div>

@@ -10,6 +10,7 @@ import {
 } from "@/lib/queries";
 import { normalizarTelefone } from "@/lib/contato";
 import { removerImagensDaConta, uploadImagemLoja } from "@/lib/storage";
+import { useConfirmacao } from "@/components/ModalConfirmacao";
 import { supabase } from "@/lib/supabase";
 import SeloVerificado from "@/components/SeloVerificado";
 import { instituicaoDoEmail, LIMITES_TEXTO, problemaNomeExibicao, validarEmail } from "@/lib/validacoes";
@@ -62,6 +63,7 @@ export default function SecaoPerfil({
 }: Props) {
   const [excluindoConta, setExcluindoConta] = useState(false);
   const [erroExclusao, setErroExclusao] = useState<string | null>(null);
+  const { confirmar, modalConfirmacao } = useConfirmacao();
   const [matriculaInput, setMatriculaInput] = useState(usuario?.matricula || "");
   const [verificandoInstantaneo, setVerificandoInstantaneo] = useState(false);
   const [enviandoMatricula, setEnviandoMatricula] = useState(false);
@@ -99,10 +101,13 @@ export default function SecaoPerfil({
     const mudaCampus = campusNovoEmail.id !== usuario?.instituicoes_id;
     if (
       mudaCampus &&
-      !window.confirm(
-        `Seu campus vai mudar para ${campusNovoEmail.nome} depois que você confirmar o novo e-mail. ` +
-          "Seus anúncios ativos serão pausados para você revisar. Continuar?"
-      )
+      !(await confirmar({
+        titulo: "Mudar de campus?",
+        mensagem:
+          `Seu campus vai mudar para ${campusNovoEmail.nome} depois que você confirmar o novo e-mail. ` +
+          "Seus anúncios ativos serão pausados para você revisar.",
+        rotuloConfirmar: "Trocar e-mail",
+      }))
     ) {
       return;
     }
@@ -222,7 +227,13 @@ export default function SecaoPerfil({
   }
 
   async function handleExcluirConta() {
-    if (!confirm("Excluir sua conta apaga seu perfil, seus anúncios e seus favoritos. Não dá para desfazer. Continuar?")) return;
+    const ok = await confirmar({
+      titulo: "Excluir sua conta?",
+      mensagem: "Isso apaga seu perfil, seus anúncios e seus favoritos. Não dá para desfazer.",
+      rotuloConfirmar: "Excluir conta",
+      perigo: true,
+    });
+    if (!ok) return;
     setExcluindoConta(true);
     setErroExclusao(null);
     try {
@@ -710,6 +721,7 @@ export default function SecaoPerfil({
           {excluindoConta ? "Excluindo…" : "Excluir minha conta"}
         </button>
       </div>
+      {modalConfirmacao}
     </div>
   );
 }

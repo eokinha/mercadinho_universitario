@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MessageCircleQuestion, Trash2 } from "lucide-react";
 import BotaoDenunciar from "@/components/BotaoDenunciar";
+import { useConfirmacao } from "@/components/ModalConfirmacao";
 import { enviarPergunta, enviarResposta, excluirMeuComentario } from "@/lib/queries";
 import { LIMITES_TEXTO } from "@/lib/validacoes";
 import type { PerguntaAnuncio, StatusModeracao } from "@/types";
@@ -153,10 +154,24 @@ export default function SecaoPerguntas({ produtoId, perguntasIniciais, ehDono, p
   // Autor apaga a própria pergunta (a resposta vai junto); o dono apaga a própria resposta
   const [apagando, setApagando] = useState<number | null>(null);
   const [erroLista, setErroLista] = useState<string | null>(null);
+  const { confirmar, modalConfirmacao } = useConfirmacao();
   async function handleApagar(p: PerguntaAnuncio, tipo: "pergunta" | "resposta") {
-    const aviso =
-      tipo === "pergunta" ? "Apagar sua pergunta? A resposta do vendedor também some." : "Apagar sua resposta? A pergunta volta a ficar sem resposta.";
-    if (!confirm(aviso)) return;
+    const ok = await confirmar(
+      tipo === "pergunta"
+        ? {
+            titulo: "Apagar sua pergunta?",
+            mensagem: "A resposta do vendedor também some.",
+            rotuloConfirmar: "Apagar pergunta",
+            perigo: true,
+          }
+        : {
+            titulo: "Apagar sua resposta?",
+            mensagem: "A pergunta volta a ficar sem resposta.",
+            rotuloConfirmar: "Apagar resposta",
+            perigo: true,
+          }
+    );
+    if (!ok) return;
     setApagando(p.id);
     setErroLista(null);
     try {
@@ -284,6 +299,7 @@ export default function SecaoPerguntas({ produtoId, perguntasIniciais, ehDono, p
           {mostrarTodas ? "Ver menos" : `Ver mais ${ocultas} ${ocultas === 1 ? "pergunta" : "perguntas"}`}
         </button>
       )}
+      {modalConfirmacao}
     </section>
   );
 }
