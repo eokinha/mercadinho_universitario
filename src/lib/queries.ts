@@ -537,12 +537,13 @@ export async function getResumoUsuarioNavbar(
   instituicao_nome: string | null;
   instituicao_dominios: string[];
   loja_id: number | null;
+  avatar_url: string | null;
 } | null> {
   const usuario = await getMeuUsuario(client);
   if (!usuario) return null;
 
   const [{ data: loja, error }, { data: instituicao, error: erroInstituicao }] = await Promise.all([
-    client.from("lojas").select("id").eq("usuario_id", usuario.id).maybeSingle(),
+    client.from("lojas").select("id, avatar_url").eq("usuario_id", usuario.id).maybeSingle(),
     usuario.instituicoes_id
       ? client.from("instituicoes").select("nome, dominios").eq("id", usuario.instituicoes_id).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
@@ -558,6 +559,7 @@ export async function getResumoUsuarioNavbar(
     instituicao_nome: (instituicao as { nome: string } | null)?.nome ?? null,
     instituicao_dominios: (instituicao as { dominios: string[] | null } | null)?.dominios ?? [],
     loja_id: loja?.id ?? null,
+    avatar_url: loja?.avatar_url ?? null,
   };
 }
 
