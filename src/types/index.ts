@@ -134,6 +134,9 @@ export interface LojaModeracao {
 export type MotivoDenuncia = "proibido" | "golpe" | "ofensivo" | "falso" | "outro";
 export type DenunciaStatus = "aberta" | "resolvida" | "descartada";
 
+// Tipo do que foi denunciado (migração 25): anúncio e perfil ou um comentário
+export type AlvoDenuncia = "anuncio" | "perfil" | "pergunta" | "resposta" | "avaliacao";
+
 export interface DenunciaModeracao {
   id: number;
   motivo: MotivoDenuncia;
@@ -145,6 +148,12 @@ export interface DenunciaModeracao {
   produto_id: number | null;
   denunciante_nome: string | null;
   denunciante_email: string | null;
+  alvo_tipo: AlvoDenuncia;
+  pergunta_id: number | null;
+  avaliacao_id: number | null;
+  conteudo: string | null; // cópia do comentário denunciado (fica mesmo se o autor apagar)
+  link: string | null;
+  comentario_no_ar: boolean | null; // null para anúncio/perfil
 }
 
 export interface ProdutoModeracao {
@@ -267,7 +276,7 @@ export interface ResumoAvaliacoes {
   media: number | null;
   total: number;
   pode_avaliar: boolean; // já chamou o vendedor no WhatsApp pelo Circular e não é o dono
-  minha: { nota: number; comentario: string | null; status: StatusModeracao } | null;
+  minha: { id: number; nota: number; comentario: string | null; status: StatusModeracao } | null;
   avaliacoes: AvaliacaoVendedor[]; // publicadas, sem a do próprio aluno
 }
 

@@ -749,7 +749,12 @@ export async function getDenunciasParaModeracao(
 ): Promise<DenunciaModeracao[]> {
   const { data, error } = await client.rpc("admin_listar_denuncias");
   if (error) throw error;
-  return ((data ?? []) as DenunciaModeracao[]).map((d) => ({ ...d, id: Number(d.id) }));
+  return ((data ?? []) as DenunciaModeracao[]).map((d) => ({
+    ...d,
+    id: Number(d.id),
+    pergunta_id: d.pergunta_id === null ? null : Number(d.pergunta_id),
+    avaliacao_id: d.avaliacao_id === null ? null : Number(d.avaliacao_id),
+  }));
 }
 
 export async function resolverDenuncia(
@@ -787,7 +792,7 @@ export async function getAvaliacoesDoVendedor(
     media: raw.media === null ? null : Number(raw.media),
     total: Number(raw.total ?? 0),
     pode_avaliar: Boolean(raw.pode_avaliar),
-    minha: raw.minha ?? null,
+    minha: raw.minha ? { ...raw.minha, id: Number(raw.minha.id) } : null,
     avaliacoes: (raw.avaliacoes ?? []).map((a) => ({ ...a, id: Number(a.id) })),
   };
 }
@@ -835,5 +840,28 @@ export async function moderarConteudo(
   client: SupabaseClient = defaultClient
 ): Promise<void> {
   const { error } = await client.rpc("admin_moderar_conteudo", { p_tipo: tipo, p_id: id, p_aprovado: status === "aprovado" });
+  if (error) throw error;
+}
+
+// Autor apaga a própria pergunta (com a resposta) ou avaliação; o dono do anúncio apaga a própria resposta (migração 25)
+export async function excluirMeuComentario(
+  tipo: TipoConteudoModerado,
+  id: number,
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const { error } = await client.rpc("excluir_meu_comentario", { p_tipo: tipo, p_id: id });
+  if (error) throw error;
+}
+
+export async function denunciarComentario(
+  dados: { tipo: TipoConteudoModerado; id: number; motivo: MotivoDenuncia; detalhes?: string },
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const { error } = await client.rpc("denunciar_comentario", {
+    p_tipo: dados.tipo,
+    p_id: dados.id,
+    p_motivo: dados.motivo,
+    p_detalhes: dados.detalhes?.trim() || null,
+  });
   if (error) throw error;
 }

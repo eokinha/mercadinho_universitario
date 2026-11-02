@@ -162,6 +162,7 @@ export const FAQ: SecaoFaq[] = [
         resposta: [
           "Depois de chamar um vendedor no WhatsApp pelo Circular, você pode dar uma nota de 1 a 5 no perfil dele, com comentário opcional. Cada aluno avalia um vendedor uma vez e pode atualizar a nota depois.",
           "A nota sem comentário vale na hora. O comentário passa pela moderação automática; o que for ofensivo ou suspeito não é publicado.",
+          "Você pode apagar sua pergunta ou avaliação quando quiser. Viu um comentário ofensivo ou suspeito de outra pessoa? Toque em Denunciar embaixo dele.",
         ],
       },
       {

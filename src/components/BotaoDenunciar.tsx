@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { Flag } from "lucide-react";
-import { denunciar } from "@/lib/queries";
+import { denunciar, denunciarComentario } from "@/lib/queries";
 import { urlLogin } from "@/lib/avisos-login";
-import type { MotivoDenuncia } from "@/types";
+import type { MotivoDenuncia, TipoConteudoModerado } from "@/types";
 
 interface Props {
-  lojaId: number;
+  lojaId?: number;
   produtoId?: number;
+  comentario?: { tipo: TipoConteudoModerado; id: number }; // denuncia uma pergunta, resposta ou avaliação
 }
 
 const MOTIVOS: { valor: MotivoDenuncia; rotulo: string }[] = [
@@ -20,10 +21,10 @@ const MOTIVOS: { valor: MotivoDenuncia; rotulo: string }[] = [
 
 const FOCO = "focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2";
 
-export default function BotaoDenunciar({ lojaId, produtoId }: Props) {
+export default function BotaoDenunciar({ lojaId, produtoId, comentario }: Props) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
-  const [motivo, setMotivo] = useState<MotivoDenuncia>("proibido");
+  const [motivo, setMotivo] = useState<MotivoDenuncia>(comentario ? "ofensivo" : "proibido");
   const [detalhes, setDetalhes] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
@@ -34,7 +35,11 @@ export default function BotaoDenunciar({ lojaId, produtoId }: Props) {
     setEnviando(true);
     setErro(null);
     try {
-      await denunciar({ lojaId, produtoId, motivo, detalhes });
+      if (comentario) {
+        await denunciarComentario({ tipo: comentario.tipo, id: comentario.id, motivo, detalhes });
+      } else if (lojaId) {
+        await denunciar({ lojaId, produtoId, motivo, detalhes });
+      }
       setEnviado(true);
     } catch (err) {
       if ((err as { code?: string })?.code === "42501") {
@@ -63,7 +68,7 @@ export default function BotaoDenunciar({ lojaId, produtoId }: Props) {
         className={`self-start min-h-[44px] inline-flex items-center gap-1.5 text-sm font-semibold text-perigo hover:underline rounded-controle ${FOCO}`}
       >
         <Flag size={16} strokeWidth={1.75} aria-hidden="true" />
-        {produtoId ? "Denunciar anúncio" : "Denunciar perfil"}
+        {comentario ? "Denunciar" : produtoId ? "Denunciar anúncio" : "Denunciar perfil"}
       </button>
     );
   }

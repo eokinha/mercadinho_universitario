@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { MessageCircleQuestion } from "lucide-react";
-import { enviarPergunta, enviarResposta } from "@/lib/queries";
+import { MessageCircleQuestion, Trash2 } from "lucide-react";
+import BotaoDenunciar from "@/components/BotaoDenunciar";
+import { enviarPergunta, enviarResposta, excluirMeuComentario } from "@/lib/queries";
 import { LIMITES_TEXTO } from "@/lib/validacoes";
 import type { PerguntaAnuncio, StatusModeracao } from "@/types";
 
@@ -13,6 +14,7 @@ interface Props {
 
 const FOCO = "focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2";
 const BOTAO_SECUNDARIO = `min-h-[44px] px-4 rounded-controle border border-borda-controle bg-superficie text-petroleo text-sm font-semibold hover:border-petroleo transition disabled:opacity-50 ${FOCO}`;
+const BOTAO_APAGAR = `self-start min-h-[44px] inline-flex items-center gap-1.5 text-sm font-semibold text-tinta-suave hover:text-perigo hover:underline rounded-controle disabled:opacity-50 ${FOCO}`;
 // Quantas perguntas aparecem antes do "Ver mais"
 const LIMITE_INICIAL = 3;
 const CAMPO = `w-full px-3 py-2 rounded-controle border border-borda-controle bg-superficie text-sm text-tinta resize-y ${FOCO}`;
@@ -148,6 +150,29 @@ export default function SecaoPerguntas({ produtoId, perguntasIniciais, ehDono, p
     setPerguntas((prev) => prev.map((p) => (p.id === atualizada.id ? atualizada : p)));
   }
 
+  // Autor apaga a própria pergunta (a resposta vai junto); o dono apaga a própria resposta
+  const [apagando, setApagando] = useState<number | null>(null);
+  const [erroLista, setErroLista] = useState<string | null>(null);
+  async function handleApagar(p: PerguntaAnuncio, tipo: "pergunta" | "resposta") {
+    const aviso =
+      tipo === "pergunta" ? "Apagar sua pergunta? A resposta do vendedor também some." : "Apagar sua resposta? A pergunta volta a ficar sem resposta.";
+    if (!confirm(aviso)) return;
+    setApagando(p.id);
+    setErroLista(null);
+    try {
+      await excluirMeuComentario(tipo, p.id);
+      if (tipo === "pergunta") {
+        setPerguntas((prev) => prev.filter((x) => x.id !== p.id));
+      } else {
+        atualizarPergunta({ ...p, resposta: null, resposta_status: null, respondida_em: null });
+      }
+    } catch (err) {
+      setErroLista((err as { message?: string })?.message || "Não foi possível apagar. Tente de novo.");
+    } finally {
+      setApagando(null);
+    }
+  }
+
   return (
     <section className="mt-10" aria-labelledby="perguntas-anuncio">
       <h2 id="perguntas-anuncio" className="text-petroleo text-xl font-bold flex items-center gap-2">
@@ -188,6 +213,12 @@ export default function SecaoPerguntas({ produtoId, perguntasIniciais, ehDono, p
         </form>
       )}
 
+      {erroLista && (
+        <p role="alert" className="mt-4 text-perigo text-sm">
+          {erroLista}
+        </p>
+      )}
+
       {perguntas.length === 0 ? (
         <p className="mt-4 text-sm text-tinta-suave">
           {ehDono ? "Quando alguém perguntar sobre este anúncio, você responde aqui." : "Ainda não há perguntas sobre este anúncio."}
@@ -213,11 +244,30 @@ export default function SecaoPerguntas({ produtoId, perguntasIniciais, ehDono, p
                     {ehDono && p.resposta_status && <SeloStatus status={p.resposta_status} tipo="Resposta" />}
                   </div>
                   <p className="text-sm text-tinta whitespace-pre-line">{p.resposta}</p>
+                  {ehDono ? (
+                    <button type="button" disabled={apagando === p.id} onClick={() => handleApagar(p, "resposta")} className={BOTAO_APAGAR}>
+                      <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />
+                      Apagar resposta
+                    </button>
+                  ) : (
+                    p.resposta_status === "aprovado" && (
+                      <BotaoDenunciar key={`r-${p.id}`} comentario={{ tipo: "resposta", id: p.id }} />
+                    )
+                  )}
                 </div>
               )}
 
               {ehDono && p.status === "aprovado" && (!p.resposta_status || p.resposta_status === "recusado") && (
                 <FormResposta pergunta={p} onRespondida={atualizarPergunta} />
+              )}
+
+              {p.minha ? (
+                <button type="button" disabled={apagando === p.id} onClick={() => handleApagar(p, "pergunta")} className={BOTAO_APAGAR}>
+                  <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />
+                  Apagar pergunta
+                </button>
+              ) : (
+                p.status === "aprovado" && <BotaoDenunciar key={`p-${p.id}`} comentario={{ tipo: "pergunta", id: p.id }} />
               )}
             </li>
           ))}

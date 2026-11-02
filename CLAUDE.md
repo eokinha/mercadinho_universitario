@@ -55,7 +55,7 @@ src/
 │       ├── verificacoes.tsx  # Moderação de matrículas (somente admin)
 │       ├── lojas.tsx         # Status das lojas e produtos impulsionados (somente admin)
 │       ├── imagens.tsx       # Upload de avatar/capa/imagens (somente admin)
-│       ├── denuncias.tsx     # Fila de denúncias (somente admin)
+│       ├── denuncias.tsx     # Fila de denúncias: abas Anúncios e perfis / Comentários (somente admin)
 │       └── comentarios.tsx   # Perguntas/avaliações que a Vettly não aprovou (somente admin)
 ├── components/           # Navbar, Footer, HeroSection, CardProduto (link para a página do anúncio),
 │                         # BotaoContato (WhatsApp via RPC), BotaoDenunciar,
@@ -102,7 +102,8 @@ produtos       — id, loja_id, nome, descricao, preco (numeric), imagem_url, st
 categorias     — id, nome, parent_id (2 níveis), icone
 favoritos      — id (uuid), usuario_id, produto_id, criado_em
 interesses     — id, loja_id, produto_id, usuario_id, criado_em (clique em "Tenho interesse"; só via RPC)
-denuncias      — id, denunciante_id, loja_id, produto_id, alvo_descricao, motivo, detalhes, status (aberta|resolvida|descartada),
+denuncias      — id, denunciante_id, loja_id, produto_id, alvo_tipo (anuncio|perfil|pergunta|resposta|avaliacao), pergunta_id,
+                 avaliacao_id, conteudo (cópia do comentário), alvo_descricao, motivo, detalhes, status (aberta|resolvida|descartada),
                  criado_em (só via RPC)
 perguntas      — id, produto_id, autor_id, texto, status (pendente|aprovado|recusado), moderacao_id, resposta, resposta_status,
                  respondida_em, criado_em (só via RPC)
@@ -125,12 +126,13 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `24`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `25`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`; a `18` é o endurecimento
 pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limites e URLs de imagem);
 a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20` cria o código do QR code da loja, a `21` libera esse código a qualquer aluno logado, a `22`
 cria as RPCs da página do anúncio, a `23` separa nome pessoal e nome de exibição (ver "Nome do aluno") e a `24`
-cria perguntas nos anúncios e avaliação do vendedor com moderação externa (ver "Perguntas e avaliações").
+cria perguntas nos anúncios e avaliação do vendedor com moderação externa (ver "Perguntas e avaliações"); a `25`
+deixa o autor apagar o próprio comentário e cria a denúncia de comentários.
 
 ### Segurança (RLS e triggers)
 
@@ -195,6 +197,9 @@ cria perguntas nos anúncios e avaliação do vendedor com moderação externa (
     `enviarPergunta`/`enviarResposta`/`enviarAvaliacao`, que fazem `fetch` nelas)
   - `aplicar_moderacao(p_segredo, …)`: grava a decisão da Vettly; exige `MODERACAO_SEGREDO` (nunca chamar do navegador)
   - `admin_listar_moderacao()` / `admin_moderar_conteudo(p_tipo, p_id, p_aprovado)` → `/admin/comentarios`
+    (e o "Remover comentário" de `/admin/denuncias`)
+  - `excluir_meu_comentario(p_tipo, p_id)` → `excluirMeuComentario` · `denunciar_comentario(p_tipo, p_id, p_motivo, p_detalhes)`
+    → `denunciarComentario` (pelo `BotaoDenunciar` com a prop `comentario`)
 - Cadastro só com e-mail de faculdade participante também no banco: `handle_new_user` rejeita o signup se
   `email_cadastro_permitido()` falhar (= domínio em `instituicoes.dominios`; espelho de `validarEmailUniversitario`).
 - Limites de texto/formato são `CHECK` no banco, espelhados em `LIMITES_TEXTO` (`src/lib/validacoes.ts`) como `maxLength`.
@@ -285,6 +290,11 @@ cria perguntas nos anúncios e avaliação do vendedor com moderação externa (
   A mensagem ao aluno traz o motivo (categorias com `triggered` → `motivosEmTexto` em `src/lib/moderacao.ts`;
   categoria nova da política precisa de texto lá). Autor vê o status do que enviou; os outros só o aprovado
 - Comentários: perguntas e avaliações mostram 3 e o resto no "Ver mais"
+- **Apagar**: o autor apaga a própria pergunta (a resposta vai junto) ou avaliação; o dono do anúncio apaga a própria resposta
+- **Denunciar comentário** (migração 25): qualquer aluno logado denuncia pergunta, resposta ou avaliação publicada de outra
+  pessoa (uma denúncia aberta por comentário; limite de 10 denúncias por dia junto com anúncios/perfis). A denúncia guarda
+  uma cópia do texto, que continua na fila mesmo se o autor apagar. Em `/admin/denuncias`, aba Comentários, "Remover
+  comentário" tira do site (fica `recusado`) e resolve a denúncia
 - A Vettly recebe só o texto (sem nome, e-mail ou telefone); está citada na Política de Privacidade
 - Conteúdo de aluno bloqueado some das listas e da média
 

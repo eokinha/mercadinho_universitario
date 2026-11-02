@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Star } from "lucide-react";
+import { useRouter } from "next/router";
+import { Star, Trash2 } from "lucide-react";
+import BotaoDenunciar from "@/components/BotaoDenunciar";
 import Estrelas, { formatarNota } from "@/components/Estrelas";
-import { enviarAvaliacao } from "@/lib/queries";
+import { enviarAvaliacao, excluirMeuComentario } from "@/lib/queries";
 import { LIMITES_TEXTO } from "@/lib/validacoes";
 import type { ResumoAvaliacoes } from "@/types";
 
@@ -34,6 +36,28 @@ export default function SecaoAvaliacoes({ lojaId, nomeVendedor, resumoInicial, e
   const visiveis = mostrarTodas ? resumo.avaliacoes : resumo.avaliacoes.slice(0, LIMITE_INICIAL);
   const ocultas = resumo.avaliacoes.length - visiveis.length;
 
+  const router = useRouter();
+  const [apagando, setApagando] = useState(false);
+
+  // Apaga a própria avaliação e recarrega a página para a média e o total ficarem certos
+  async function handleApagar() {
+    if (!resumo.minha || !confirm("Apagar sua avaliação? A nota sai da média do vendedor.")) return;
+    setApagando(true);
+    setErro(null);
+    setAviso(null);
+    try {
+      await excluirMeuComentario("avaliacao", resumo.minha.id);
+      setNota(0);
+      setComentario("");
+      setResumo((prev) => ({ ...prev, minha: null }));
+      router.replace(router.asPath, undefined, { scroll: false });
+    } catch (err) {
+      setErro((err as { message?: string })?.message || "Não foi possível apagar. Tente de novo.");
+    } finally {
+      setApagando(false);
+    }
+  }
+
   async function handleAvaliar(e: React.FormEvent) {
     e.preventDefault();
     setEnviando(true);
@@ -46,7 +70,8 @@ export default function SecaoAvaliacoes({ lojaId, nomeVendedor, resumoInicial, e
         setErro(r.mensagem);
         return;
       }
-      setResumo((prev) => ({ ...prev, minha: { nota, comentario: comentario.trim() || null, status: r.status } }));
+      const id = r.id ?? resumo.minha?.id ?? 0;
+      setResumo((prev) => ({ ...prev, minha: { id, nota, comentario: comentario.trim() || null, status: r.status } }));
       setAviso(r.mensagem);
     } catch (err) {
       setErro((err as Error).message);
@@ -133,9 +158,22 @@ export default function SecaoAvaliacoes({ lojaId, nomeVendedor, resumoInicial, e
               {aviso}
             </p>
           )}
-          <button type="submit" disabled={enviando || nota === 0} className={`self-end ${BOTAO_SECUNDARIO}`}>
-            {enviando ? "Enviando…" : resumo.minha ? "Atualizar avaliação" : "Enviar avaliação"}
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            {resumo.minha && (
+              <button
+                type="button"
+                onClick={handleApagar}
+                disabled={apagando}
+                className={`min-h-[44px] inline-flex items-center gap-1.5 text-sm font-semibold text-tinta-suave hover:text-perigo hover:underline rounded-controle disabled:opacity-50 ${FOCO}`}
+              >
+                <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />
+                Apagar minha avaliação
+              </button>
+            )}
+            <button type="submit" disabled={enviando || nota === 0} className={BOTAO_SECUNDARIO}>
+              {enviando ? "Enviando…" : resumo.minha ? "Atualizar avaliação" : "Enviar avaliação"}
+            </button>
+          </div>
         </form>
       ) : (
         !ehDono && (
@@ -156,6 +194,7 @@ export default function SecaoAvaliacoes({ lojaId, nomeVendedor, resumoInicial, e
                 </span>
               </div>
               {a.comentario && <p className="text-sm text-tinta whitespace-pre-line">{a.comentario}</p>}
+              <BotaoDenunciar key={`a-${a.id}`} comentario={{ tipo: "avaliacao", id: a.id }} />
             </li>
           ))}
         </ul>
