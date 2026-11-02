@@ -296,10 +296,6 @@ export default function AnunciarPage({ loja, categorias, produto }: Props) {
               <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
               Voltar ao painel
             </Link>
-
-            <span className="text-sm text-tinta-suave">
-              Anunciando como <strong className="text-tinta">{loja.nome}</strong>
-            </span>
           </div>
 
           <div className="bg-superficie border border-borda rounded-card p-6 sm:p-8">

@@ -21,6 +21,7 @@ export default function Navbar() {
   const [campusNome, setCampusNome] = useState<string | null>(null);
   const [campusLogo, setCampusLogo] = useState<string | null>(null);
   const [lojaId, setLojaId] = useState<number | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -36,6 +37,7 @@ export default function Navbar() {
         setCampusNome(data.instituicao_nome);
         setCampusLogo(logoDaFaculdade(data.instituicao_dominios));
         setLojaId(data.loja_id);
+        setAvatarUrl(data.avatar_url);
 
         // Sem campus (e-mail de faculdade não participante): onboarding explica e oferece a troca
         const isAuthPage =
@@ -68,6 +70,7 @@ export default function Navbar() {
         setCampusNome(null);
         setCampusLogo(null);
         setLojaId(null);
+        setAvatarUrl(null);
       }
     });
 
@@ -170,15 +173,28 @@ export default function Navbar() {
           <div className="relative shrink-0" ref={menuRef}>
             {user ? (
               <>
+                {/* Foto | Nome (o nome some no celular para caber a busca) */}
                 <button
                   type="button"
                   onClick={() => setMenuAberto(!menuAberto)}
                   aria-label="Menu da conta"
-                  className="w-11 h-11 rounded-pill border border-borda-controle hover:border-petroleo transition bg-petroleo-50 flex items-center justify-center overflow-hidden focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+                  aria-expanded={menuAberto}
+                  className="flex items-center gap-2 min-h-[44px] rounded-pill border border-borda-controle hover:border-petroleo transition bg-superficie p-0.5 sm:pr-3 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
                 >
-                  <span className="text-sm font-bold text-petroleo">
-                    {(nomeUsuario || user.email || "?").charAt(0).toUpperCase()}
+                  <span className="w-10 h-10 rounded-pill bg-petroleo-50 flex items-center justify-center overflow-hidden shrink-0">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-sm font-bold text-petroleo" aria-hidden="true">
+                        {(nomeUsuario || user.email || "?").charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </span>
+                  {nomeUsuario && (
+                    <span className="hidden sm:block text-sm font-semibold text-tinta truncate max-w-[120px]">
+                      {nomeUsuario}
+                    </span>
+                  )}
                 </button>
 
                 {menuAberto && (
