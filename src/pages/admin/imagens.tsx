@@ -114,11 +114,11 @@ export default function AdminImagensPage({ lojas, produtos }: Props) {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href="/admin/verificacoes"
+            href="/admin/contas"
             className="text-xs font-bold text-white bg-troca px-4 py-2 rounded-controle transition flex items-center gap-1.5"
           >
             <ShieldCheck size={16} strokeWidth={1.75} aria-hidden="true" />
-            <span>Moderar Matrículas</span>
+            <span>Contas</span>
           </Link>
         </div>
       </header>

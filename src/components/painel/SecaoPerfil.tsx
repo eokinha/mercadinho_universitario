@@ -146,6 +146,7 @@ export default function SecaoPerfil({
   const [locais, setLocais] = useState<string[]>(loja.locais_entrega || []);
   const [salvandoPerfil, setSalvandoPerfil] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [capaUploading, setCapaUploading] = useState(false);
   const [mensagemPerfil, setMensagemPerfil] = useState<{ tipo: "sucesso" | "erro"; texto: string } | null>(null);
 
   // Handlers de Verificação Acadêmica
@@ -214,6 +215,26 @@ export default function SecaoPerfil({
       });
     } finally {
       setAvatarUploading(false);
+    }
+  }
+
+  // Upload da capa do perfil público
+  async function handleCapaChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite escolher o mesmo arquivo de novo
+    if (!file) return;
+    setCapaUploading(true);
+    try {
+      const url = await uploadImagemLoja(loja.id, "capa", file);
+      onLojaAtualizada({ capa_url: url });
+      setMensagemPerfil({ tipo: "sucesso", texto: "Foto de capa atualizada." });
+    } catch (err) {
+      setMensagemPerfil({
+        tipo: "erro",
+        texto: err instanceof Error ? err.message : "Erro ao enviar imagem.",
+      });
+    } finally {
+      setCapaUploading(false);
     }
   }
 
@@ -366,6 +387,32 @@ export default function SecaoPerfil({
                 Formatos JPG, PNG ou WebP até 3 MB.
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Foto de capa: faixa no topo do perfil público (mesma proporção da prévia) */}
+        <div>
+          <p className="block text-sm font-semibold text-tinta mb-2">Foto de capa</p>
+          <div className="h-28 sm:h-36 w-full rounded-card bg-petroleo-50 border border-borda overflow-hidden">
+            {loja.capa_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={loja.capa_url} alt="Foto de capa atual" className="w-full h-full object-cover" />
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <label className="inline-flex items-center gap-2 px-4 py-2 rounded-controle border border-borda-controle bg-superficie font-semibold text-xs text-tinta cursor-pointer transition has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-petroleo has-[:focus-visible]:outline-offset-2">
+              <span>{capaUploading ? "Enviando..." : loja.capa_url ? "Alterar capa" : "Adicionar capa"}</span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={capaUploading}
+                onChange={handleCapaChange}
+                className="sr-only"
+              />
+            </label>
+            <p className="text-xs text-tinta-sutil">
+              Imagem larga (ex.: 1600 × 500), JPG, PNG ou WebP até 3 MB. Aparece no topo do seu perfil público.
+            </p>
           </div>
         </div>
 

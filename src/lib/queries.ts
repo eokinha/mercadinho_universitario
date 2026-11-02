@@ -33,7 +33,9 @@ import type {
   TipoConteudoModerado,
   Usuario,
   UsuarioModeracao,
-  UsuarioStatus,
+  AcaoModeracaoConta,
+  EventoModeracaoConta,
+  SituacaoConta,
 } from "@/types";
 import { inicioValidade } from "@/lib/anuncios";
 import { type SupabaseClient } from "@supabase/supabase-js";
@@ -614,19 +616,6 @@ export async function verificarMatriculaInstantanea(
   };
 }
 
-export async function moderarMatricula(
-  usuarioId: number,
-  status: "verificado" | "rejeitado",
-  client: SupabaseClient = defaultClient
-): Promise<void> {
-  const { error } = await client.rpc("admin_moderar_matricula", {
-    p_usuario_id: usuarioId,
-    p_status: status,
-  });
-
-  if (error) throw error;
-}
-
 export async function getUsuariosParaModeracao(
   client: SupabaseClient = defaultClient
 ): Promise<UsuarioModeracao[]> {
@@ -641,7 +630,43 @@ export async function getUsuariosParaModeracao(
     instituicao_nome: u.instituicao_nome ?? undefined,
     loja_id: u.loja_id ?? undefined,
     status: u.status || "ativo",
+    anuncios_ativos: Number(u.anuncios_ativos ?? 0),
+    denuncias_abertas: Number(u.denuncias_abertas ?? 0),
   }));
+}
+
+// /admin/contas: suspender (com prazo em dias), bloquear (sem prazo) ou reativar. Devolve o fim da suspensão.
+export async function moderarConta(
+  usuarioId: number,
+  acao: AcaoModeracaoConta,
+  motivo: string | null = null,
+  dias: number | null = null,
+  client: SupabaseClient = defaultClient
+): Promise<string | null> {
+  const { data, error } = await client.rpc("admin_moderar_conta", {
+    p_usuario_id: usuarioId,
+    p_acao: acao,
+    p_motivo: motivo,
+    p_dias: dias,
+  });
+  if (error) throw error;
+  return (data as string | null) ?? null;
+}
+
+export async function getHistoricoConta(
+  usuarioId: number,
+  client: SupabaseClient = defaultClient
+): Promise<EventoModeracaoConta[]> {
+  const { data, error } = await client.rpc("admin_historico_conta", { p_usuario_id: usuarioId });
+  if (error) throw error;
+  return ((data ?? []) as EventoModeracaoConta[]).map((e) => ({ ...e, id: Number(e.id) }));
+}
+
+// Aviso de conta suspensa/bloqueada no painel do próprio aluno
+export async function getMinhaSituacaoConta(client: SupabaseClient = defaultClient): Promise<SituacaoConta | null> {
+  const { data, error } = await client.rpc("minha_situacao_conta");
+  if (error) throw error;
+  return ((data ?? []) as SituacaoConta[])[0] ?? null;
 }
 
 export async function getLojasParaModeracao(
@@ -747,15 +772,6 @@ export async function denunciar(
 // Apaga produtos, loja, usuário e login. Imagens são removidas antes (removerImagensDaConta).
 export async function excluirMinhaConta(client: SupabaseClient = defaultClient): Promise<void> {
   const { error } = await client.rpc("excluir_minha_conta");
-  if (error) throw error;
-}
-
-export async function definirStatusUsuario(
-  usuarioId: number,
-  status: UsuarioStatus,
-  client: SupabaseClient = defaultClient
-): Promise<void> {
-  const { error } = await client.rpc("admin_definir_status_usuario", { p_usuario_id: usuarioId, p_status: status });
   if (error) throw error;
 }
 

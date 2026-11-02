@@ -112,6 +112,31 @@ export interface UsuarioModeracao {
   instituicao_nome?: string;
   loja_id?: number;
   status: UsuarioStatus;
+  is_admin: boolean;
+  criado_em: string | null;
+  bloqueado_ate: string | null; // com status 'bloqueado': suspensão até esta data; sem data, bloqueio sem prazo
+  moderacao_motivo: string | null;
+  anuncios_ativos: number;
+  denuncias_abertas: number;
+}
+
+export type AcaoModeracaoConta = "suspender" | "bloquear" | "reativar";
+
+// Histórico de /admin/contas (admin_historico_conta)
+export interface EventoModeracaoConta {
+  id: number;
+  acao: AcaoModeracaoConta | "fim_suspensao";
+  motivo: string | null;
+  ate: string | null;
+  criado_em: string;
+  admin_nome: string | null; // null = automático (fim da suspensão)
+}
+
+// Aviso do painel do próprio aluno (minha_situacao_conta)
+export interface SituacaoConta {
+  status: UsuarioStatus;
+  bloqueado_ate: string | null;
+  moderacao_motivo: string | null;
 }
 
 export interface LojaModeracao {

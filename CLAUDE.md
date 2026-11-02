@@ -53,7 +53,8 @@ src/
 │   ├── painel/           # Painel do estudante (index, anuncios, favoritos, perfil)
 │   ├── minha-loja/       # Rotas antigas: só redirecionam para /painel e /anunciar
 │   └── admin/
-│       ├── verificacoes.tsx  # Moderação de matrículas (somente admin)
+│       ├── contas.tsx        # Moderação de contas: suspender, bloquear, reativar e histórico (somente admin;
+│       │                     # /admin/verificacoes redireciona para cá)
 │       ├── lojas.tsx         # Status das lojas e produtos impulsionados (somente admin)
 │       ├── imagens.tsx       # Upload de avatar/capa/imagens (somente admin)
 │       ├── denuncias.tsx     # Fila de denúncias: abas Anúncios e perfis / Comentários (somente admin)
@@ -135,14 +136,15 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `26`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `27`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`; a `18` é o endurecimento
 pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limites e URLs de imagem);
 a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20` cria o código do QR code da loja, a `21` libera esse código a qualquer aluno logado, a `22`
 cria as RPCs da página do anúncio, a `23` separa nome pessoal e nome de exibição (ver "Nome do aluno") e a `24`
 cria perguntas nos anúncios e avaliação do vendedor com moderação externa (ver "Perguntas e avaliações"); a `25`
 deixa o autor apagar o próprio comentário e cria a denúncia de comentários; a `26` cria o chat, torna o WhatsApp
-opcional e define a retenção e os registros de acesso (ver "Chat" e "Retenção").
+opcional e define a retenção e os registros de acesso (ver "Chat" e "Retenção"); a `27` troca a aprovação de matrícula
+pela moderação de contas (ver "Moderação de contas").
 
 ### Segurança (RLS e triggers)
 
@@ -199,7 +201,9 @@ opcional e define a retenção e os registros de acesso (ver "Chat" e "Retençã
     foto só com o código da loja dona, para o `/login?aviso=anuncio` e a prévia do WhatsApp)
   - `is_admin()` → usado pelo middleware para liberar `/admin`
   - `denunciar(...)` → `denunciar` (exige login; máx. 10 por dia) · `excluir_minha_conta()` → `excluirMinhaConta`
-  - `admin_listar_usuarios()` / `admin_moderar_matricula(p_usuario_id, p_status)` / `admin_definir_status_usuario(p_usuario_id, p_status)`
+  - `admin_listar_usuarios()` → `getUsuariosParaModeracao` · `admin_moderar_conta(p_usuario_id, p_acao, p_motivo, p_dias)` → `moderarConta`
+    · `admin_historico_conta(p_usuario_id)` → `getHistoricoConta` (`admin_moderar_matricula` segue no banco, sem tela)
+  - `minha_situacao_conta()` → `getMinhaSituacaoConta` (prazo e motivo da suspensão/bloqueio para o aviso do painel)
   - `admin_listar_lojas()` / `admin_moderar_loja(p_loja_id, p_status)` / `admin_definir_destaque(p_produto_id, p_destaque)`
   - `admin_listar_denuncias()` / `admin_resolver_denuncia(p_denuncia_id, p_status)` — todas as `admin_*` exigem `is_admin()`
   - `perguntas_do_anuncio(p_produto_id)` → `getPerguntasDoAnuncio` · `avaliacoes_do_vendedor(p_loja_id)` → `getAvaliacoesDoVendedor`
@@ -259,7 +263,7 @@ opcional e define a retenção e os registros de acesso (ver "Chat" e "Retençã
 - Anunciar exige matrícula validada (checado na página e no banco)
 - Cadastro exige aceitar Termos de Uso e Política de Privacidade; o aluno pode excluir a conta no painel (Perfil)
 - Matrícula verificada automaticamente pelo e-mail confirmado (o domínio está em `instituicoes.dominios`);
-  a análise manual pelo admin continua para quem envia a matrícula
+  a equipe não aprova matrícula; modera contas em `/admin/contas`
 
 ### Campus
 - Cada aluno fica no campus do próprio e-mail: o domínio define `usuarios.instituicoes_id` no cadastro, sem seletor nem filtro
@@ -282,7 +286,16 @@ opcional e define a retenção e os registros de acesso (ver "Chat" e "Retençã
 - Criada automaticamente no cadastro com `status = 'ativo'`; o aluno não cria nem apaga loja
 - Status possíveis: `pendente | ativo | pausado | reprovado`; só `ativo` aparece no catálogo
 - Vendedor alterna entre `ativo` e `pausado`; reprovar/reativar é do admin
-- Bloquear aluno (admin) reprova a loja e pausa os anúncios; desbloquear volta a loja para `ativo` (anúncios seguem pausados)
+- Suspender ou bloquear aluno (admin) reprova a loja e pausa os anúncios; reativar volta a loja para `ativo` (anúncios seguem pausados)
+
+### Moderação de contas (migração 27)
+- `/admin/contas`: lista todas as contas com situação, anúncios ativos e denúncias abertas contra o aluno; filtros e busca
+- **Suspender**: `status = 'bloqueado'` com `usuarios.bloqueado_ate` (1 a 90 dias; a tela oferece `DIAS_SUSPENSAO` de `src/lib/contas.ts`).
+  O pg_cron `circular-fim-suspensoes` (`privado.encerrar_suspensoes()`, de hora em hora) reativa no fim do prazo
+- **Bloquear**: `status = 'bloqueado'` sem prazo, até a equipe reativar. **Reativar**: volta a `ativo`
+- Motivo obrigatório (5 a 300 caracteres, `MOTIVO_MODERACAO`), guardado em `usuarios.moderacao_motivo`: o aluno vê no painel
+- Toda ação vai para `moderacoes_conta` (quem, ação, motivo, prazo); o fim automático entra como `fim_suspensao`
+- Não modera a própria conta nem a de outro admin. `bloqueado_ate`/`moderacao_motivo` não são legíveis por `select`
 - Perfil `pausado` ou `reprovado` mostra aviso no painel; `pausado` tem o botão "Reativar perfil"
 
 ### Nome do aluno (migração 23)

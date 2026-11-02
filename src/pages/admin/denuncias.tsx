@@ -144,32 +144,32 @@ export default function AdminDenunciasPage({ denunciasIniciais }: Props) {
       </Head>
 
       <div className="min-h-screen bg-pagina pb-16">
-        <div className="bg-superficie border-b border-borda sticky top-[69px] z-20">
+        <div className="bg-superficie border-b border-borda md:sticky md:top-[69px] z-20">
           <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
-            <span className="text-sm font-bold text-tinta flex items-center gap-1.5">
+            <span className="text-sm font-bold text-tinta flex items-center gap-1.5 shrink-0">
               <Flag size={16} strokeWidth={1.75} aria-hidden="true" />
               Denúncias
             </span>
-            <div className="flex items-center gap-2">
+            <nav aria-label="Outras telas do admin" className="flex items-center gap-2 overflow-x-auto no-scrollbar min-w-0">
               <Link
                 href="/admin/comentarios"
-                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition"
+                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition shrink-0"
               >
                 Comentários
               </Link>
               <Link
-                href="/admin/verificacoes"
-                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition"
+                href="/admin/contas"
+                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition shrink-0"
               >
-                Matrículas
+                Contas
               </Link>
               <Link
                 href="/admin/lojas"
-                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition"
+                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition shrink-0"
               >
-                Lojas
+                Perfis
               </Link>
-            </div>
+            </nav>
           </div>
         </div>
 
@@ -177,10 +177,10 @@ export default function AdminDenunciasPage({ denunciasIniciais }: Props) {
           <h1 className="text-2xl font-bold text-petroleo tracking-tight">Denúncias</h1>
           <p className="text-sm text-tinta-suave mt-1 mb-6">
             {grupo === "posts"
-              ? "Para tirar algo do ar, reprove a loja em Lojas ou bloqueie o aluno em Matrículas. Depois marque a denúncia como resolvida."
+              ? "Para tirar algo do ar, reprove a loja em Lojas ou suspenda ou bloqueie o aluno em Contas. Depois marque a denúncia como resolvida."
               : grupo === "comentarios"
                 ? "Remover comentário tira a pergunta, resposta ou avaliação do site e resolve a denúncia. O texto denunciado fica guardado aqui."
-                : "A equipe só lê conversas denunciadas, pela cópia feita no momento da denúncia, e cada leitura fica registrada. Para agir, bloqueie o aluno em Matrículas. A cópia é apagada 30 dias depois de a denúncia ser resolvida ou descartada."}
+                : "A equipe só lê conversas denunciadas, pela cópia feita no momento da denúncia, e cada leitura fica registrada. Para agir, suspenda ou bloqueie o aluno em Contas. A cópia é apagada 30 dias depois de a denúncia ser resolvida ou descartada."}
           </p>
 
           <div role="tablist" aria-label="Tipo de denúncia" className="flex gap-2 mb-3 overflow-x-auto no-scrollbar">

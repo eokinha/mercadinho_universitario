@@ -7,9 +7,10 @@ import {
   getProdutosFavoritos,
   getProdutosPrivados,
   getMeuUsuario,
+  getMinhaSituacaoConta,
 } from "@/lib/queries";
 import { ABAS_PAINEL, PAGINAS_PAINEL, type AbaPainel } from "@/lib/painel-routes";
-import type { Instituicao, Loja, Produto, ProdutoListagem, Usuario } from "@/types";
+import type { Instituicao, Loja, Produto, ProdutoListagem, SituacaoConta, Usuario } from "@/types";
 
 export interface PainelProps {
   loja: Loja;
@@ -18,6 +19,7 @@ export interface PainelProps {
   userEmail: string;
   usuarioInicial: Usuario | null;
   instituicoes: Instituicao[];
+  situacaoConta: SituacaoConta | null; // suspensão/bloqueio com prazo e motivo (migração 27)
 }
 
 function redirecionarAbaLegada(ctx: GetServerSidePropsContext): GetServerSidePropsResult<PainelProps> | null {
@@ -110,6 +112,7 @@ export async function getPainelServerSideProps(
         userEmail: "lucas.silva@aluno.ufmg.br",
         usuarioInicial: mockUsuario,
         instituicoes,
+        situacaoConta: null,
       },
     };
   }
@@ -129,6 +132,8 @@ export async function getPainelServerSideProps(
     const favoritosIniciais = await getProdutosFavoritos(loja.usuario_id, serverSupabase);
     const usuarioInicial = await getMeuUsuario(serverSupabase);
     const instituicoes = await getInstituicoes(serverSupabase);
+    // Aviso opcional: se a RPC falhar, o painel abre sem ele
+    const situacaoConta = await getMinhaSituacaoConta(serverSupabase).catch(() => null);
 
     return {
       props: {
@@ -138,6 +143,7 @@ export async function getPainelServerSideProps(
         userEmail: user.email || "",
         usuarioInicial,
         instituicoes,
+        situacaoConta,
       },
     };
   } catch (err) {

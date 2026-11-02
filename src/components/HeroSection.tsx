@@ -91,7 +91,7 @@ export default function HeroSection({ categorias = [], logado = false }: Props) 
     <div className="w-full bg-pagina pb-4">
       {/* Barra de categorias: só para logado (visitante não acessa o catálogo) */}
       {logado && (
-        <section className="bg-superficie border-b border-borda sticky top-[69px] z-20">
+        <section className="bg-superficie border-b border-borda md:sticky md:top-[69px] z-20">
           <div className="max-w-6xl mx-auto px-4 flex items-center gap-2 h-14 relative">
             <div className="relative shrink-0" ref={menuRef}>
               <button

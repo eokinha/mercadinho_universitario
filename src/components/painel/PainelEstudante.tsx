@@ -4,6 +4,7 @@ import Link from "next/link";
 import Head from "next/head";
 import { atualizarStatusProduto, deletarProduto, renovarProduto, updateLoja } from "@/lib/queries";
 import { removerImagensProduto } from "@/lib/storage";
+import { formatarPrazo, situacaoDaConta } from "@/lib/contas";
 import type { PainelProps } from "@/lib/painel-data";
 import { PAGINAS_PAINEL, type AbaPainel } from "@/lib/painel-routes";
 import { useConfirmacao } from "@/components/ModalConfirmacao";
@@ -30,11 +31,13 @@ export default function PainelEstudante({
   userEmail,
   usuarioInicial,
   instituicoes,
+  situacaoConta,
   abaAtiva,
 }: PainelProps & { abaAtiva: AbaPainel }) {
   const router = useRouter();
 
   const [loja, setLoja] = useState<Loja>(lojaInicial);
+  const situacao = situacaoConta ? situacaoDaConta(situacaoConta.status, situacaoConta.bloqueado_ate) : "ativa";
   const [produtos, setProdutos] = useState<Produto[]>(produtosIniciais);
   const [favoritos, setFavoritos] = useState<ProdutoListagem[]>(favoritosIniciais);
   const [usuario, setUsuario] = useState(usuarioInicial);
@@ -135,6 +138,23 @@ export default function PainelEstudante({
                   <>
                     <strong className="font-semibold">Seu perfil está pausado.</strong> Os outros alunos não veem seu
                     perfil nem seus anúncios.
+                  </>
+                ) : situacao !== "ativa" && situacaoConta ? (
+                  <>
+                    <strong className="font-semibold">
+                      {situacao === "suspensa" && situacaoConta.bloqueado_ate
+                        ? `Sua conta está suspensa até ${formatarPrazo(situacaoConta.bloqueado_ate)}.`
+                        : "Sua conta está bloqueada pela equipe do Circular."}
+                    </strong>{" "}
+                    {situacaoConta.moderacao_motivo && <>Motivo: {situacaoConta.moderacao_motivo}. </>}
+                    {situacao === "suspensa"
+                      ? "Até lá, ninguém vê seu perfil nem seus anúncios. Depois o perfil volta sozinho; os anúncios você reativa aqui. "
+                      : "Ninguém vê seu perfil nem seus anúncios. "}
+                    Se acha que é um engano, fale com a equipe pela{" "}
+                    <Link href="/ajuda" className="text-petroleo font-semibold underline">
+                      ajuda
+                    </Link>
+                    .
                   </>
                 ) : (
                   <>

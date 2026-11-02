@@ -140,35 +140,32 @@ export default function AdminLojasPage({ lojasIniciais, produtosIniciais }: Prop
       </Head>
 
       <div className="min-h-screen bg-pagina pb-16">
-        <div className="bg-superficie border-b border-borda sticky top-[69px] z-20">
-          <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link href="/painel" className="text-xs font-semibold text-tinta-suave hover:text-tinta transition">
-                Meu Painel
-              </Link>
-              <span className="text-tinta-sutil">|</span>
-              <span className="text-sm font-bold text-tinta"><Store size={16} strokeWidth={1.75} aria-hidden="true" /> Lojas e Destaques</span>
-            </div>
-            <div className="flex items-center gap-2">
+        <div className="bg-superficie border-b border-borda md:sticky md:top-[69px] z-20">
+          <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+            <span className="text-sm font-bold text-tinta flex items-center gap-1.5 shrink-0">
+              <Store size={16} strokeWidth={1.75} aria-hidden="true" />
+              Perfis
+            </span>
+            <nav aria-label="Outras telas do admin" className="flex items-center gap-2 overflow-x-auto no-scrollbar min-w-0">
               <Link
-                href="/admin/verificacoes"
-                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition"
+                href="/admin/contas"
+                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition shrink-0"
               >
-                Matrículas
+                Contas
               </Link>
               <Link
                 href="/admin/imagens"
-                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition"
+                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition shrink-0"
               >
                 Imagens
               </Link>
               <Link
                 href="/admin/denuncias"
-                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition"
+                className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-controle border border-borda hover:bg-pagina transition shrink-0"
               >
                 Denúncias
               </Link>
-            </div>
+            </nav>
           </div>
         </div>
 
