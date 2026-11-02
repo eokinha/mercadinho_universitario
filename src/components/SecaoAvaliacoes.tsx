@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { Star, Trash2 } from "lucide-react";
+import { useConfirmacao } from "@/components/ModalConfirmacao";
 import BotaoDenunciar from "@/components/BotaoDenunciar";
 import Estrelas, { formatarNota } from "@/components/Estrelas";
 import { enviarAvaliacao, excluirMeuComentario } from "@/lib/queries";
@@ -38,10 +39,18 @@ export default function SecaoAvaliacoes({ lojaId, nomeVendedor, resumoInicial, e
 
   const router = useRouter();
   const [apagando, setApagando] = useState(false);
+  const { confirmar, modalConfirmacao } = useConfirmacao();
 
   // Apaga a própria avaliação e recarrega a página para a média e o total ficarem certos
   async function handleApagar() {
-    if (!resumo.minha || !confirm("Apagar sua avaliação? A nota sai da média do vendedor.")) return;
+    if (!resumo.minha) return;
+    const ok = await confirmar({
+      titulo: "Apagar sua avaliação?",
+      mensagem: "A nota e o comentário saem do perfil e da média do vendedor.",
+      rotuloConfirmar: "Apagar avaliação",
+      perigo: true,
+    });
+    if (!ok) return;
     setApagando(true);
     setErro(null);
     setAviso(null);
@@ -209,6 +218,7 @@ export default function SecaoAvaliacoes({ lojaId, nomeVendedor, resumoInicial, e
           {mostrarTodas ? "Ver menos" : `Ver mais ${ocultas} ${ocultas === 1 ? "avaliação" : "avaliações"}`}
         </button>
       )}
+      {modalConfirmacao}
     </section>
   );
 }

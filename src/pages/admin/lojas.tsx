@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import Head from "next/head";
+import { useConfirmacao } from "@/components/ModalConfirmacao";
 import Link from "next/link";
 import type { GetServerSideProps } from "next";
 import { createServerClient } from "@/lib/supabase";
@@ -56,6 +57,7 @@ function badgeLoja(status: LojaStatus) {
 
 export default function AdminLojasPage({ lojasIniciais, produtosIniciais }: Props) {
   const [aba, setAba] = useState<"lojas" | "produtos">("lojas");
+  const { confirmar, modalConfirmacao } = useConfirmacao();
   const [lojas, setLojas] = useState<LojaModeracao[]>(lojasIniciais);
   const [produtos, setProdutos] = useState<ProdutoModeracao[]>(produtosIniciais);
   const [filtroLoja, setFiltroLoja] = useState<LojaStatus | "todos">("todos");
@@ -89,7 +91,16 @@ export default function AdminLojasPage({ lojasIniciais, produtosIniciais }: Prop
 
   async function handleStatusLoja(loja: LojaModeracao, status: LojaStatus) {
     if (status === loja.status) return;
-    if (status === "reprovado" && !confirm(`Reprovar a loja "${loja.nome}"? Ela some do catálogo.`)) return;
+    if (
+      status === "reprovado" &&
+      !(await confirmar({
+        titulo: "Reprovar perfil?",
+        mensagem: `"${loja.nome}" e os anúncios dele saem do catálogo. Só a equipe pode reativar.`,
+        rotuloConfirmar: "Reprovar",
+        perigo: true,
+      }))
+    )
+      return;
 
     setProcessando(`loja-${loja.id}`);
     setNotificacao(null);
@@ -344,6 +355,7 @@ export default function AdminLojasPage({ lojasIniciais, produtosIniciais }: Prop
           )}
         </div>
       </div>
+      {modalConfirmacao}
     </>
   );
 }
