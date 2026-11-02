@@ -1,5 +1,5 @@
 import { createBrowserClient, createServerClient as createSupabaseServerClient, serializeCookieHeader } from "@supabase/ssr";
-import { type GetServerSidePropsContext } from "next";
+import { type GetServerSidePropsContext, type NextApiRequest, type NextApiResponse } from "next";
 
 const getSupabaseEnv = () => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -52,3 +52,9 @@ export const createServerClient = (context: GetServerSidePropsContext) => {
     },
   });
 };
+
+/**
+ * Cliente para rotas de API (src/pages/api): usa a sessão do aluno pelos cookies, como no getServerSideProps.
+ */
+export const createApiClient = (req: NextApiRequest, res: NextApiResponse) =>
+  createServerClient({ req, res } as unknown as GetServerSidePropsContext);

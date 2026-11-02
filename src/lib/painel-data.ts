@@ -64,6 +64,7 @@ export async function getPainelServerSideProps(
       id: 1,
       usuario_id: 1,
       nome: "Lucas Silva",
+      nome_exibicao: null,
       descricao: "Estudante de Engenharia desapegando e trocando livros e eletrônicos no campus",
       contato: "(31) 99999-0001",
       whatsapp: "(31) 99999-0001",

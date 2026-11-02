@@ -16,21 +16,25 @@ import SeloVerificado from "@/components/SeloVerificado";
 import Head from "next/head";
 import type { GetServerSideProps } from "next";
 import { createServerClient } from "@/lib/supabase";
-import { getMeusFavoritosIds, getPerfilLeitura } from "@/lib/queries";
+import { getAvaliacoesDoVendedor, getMeusFavoritosIds, getPerfilLeitura } from "@/lib/queries";
 import { handleRedeSocial } from "@/lib/validacoes";
 import CardProduto from "@/components/CardProduto";
 import BotaoContato from "@/components/BotaoContato";
 import BotaoCompartilhar from "@/components/BotaoCompartilhar";
 import BotaoDenunciar from "@/components/BotaoDenunciar";
-import type { PerfilPublico, ProdutoListagem } from "@/types";
+import Estrelas, { formatarNota } from "@/components/Estrelas";
+import SecaoAvaliacoes from "@/components/SecaoAvaliacoes";
+import type { PerfilPublico, ProdutoListagem, ResumoAvaliacoes } from "@/types";
 
 interface Props {
   perfil: PerfilPublico;
   produtos: ProdutoListagem[];
   mesmoCampus: boolean;
   ehDono: boolean;
+  temWhatsapp: boolean;
   codigoCompartilhamento: string | null;
   favoritos: number[];
+  avaliacoes: ResumoAvaliacoes | null;
 }
 
 function formatarTempoPlataforma(dataString?: string): string {
@@ -72,8 +76,11 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     return { notFound: true };
   }
 
+  // Nota e avaliações do vendedor (migração 24); se falhar, o perfil abre sem elas
+  const avaliacoes = await getAvaliacoesDoVendedor(resultado.perfil.id, supabase).catch(() => null);
+
   return {
-    props: { ...resultado, favoritos },
+    props: { ...resultado, favoritos, avaliacoes },
   };
 };
 
@@ -82,16 +89,17 @@ export default function PerfilPublicoPage({
   produtos,
   mesmoCampus,
   ehDono,
+  temWhatsapp,
   codigoCompartilhamento,
   favoritos,
+  avaliacoes,
 }: Props) {
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "venda" | "troca">("todos");
   const [busca, setBusca] = useState("");
   const instagram = handleRedeSocial(perfil?.instagram_url);
 
-  const nomeExibicao = perfil.usuario_nome 
-    ? `${perfil.usuario_nome} ${perfil.usuario_sobrenome || ""}`.trim()
-    : perfil.nome;
+  // Nome público: nome de exibição do aluno ou, sem ele, nome + sobrenome (calculado pelo banco)
+  const nomeExibicao = perfil.nome;
 
   const dataRegistro = perfil.usuario_criado_em || perfil.criado_em;
 
@@ -192,6 +200,13 @@ export default function PerfilPublicoPage({
                       <GraduationCap size={16} strokeWidth={1.75} aria-hidden="true" />
                       {perfil.instituicao_nome ? `Aluno da ${perfil.instituicao_nome}` : "Aluno no campus"}
                     </p>
+                    {avaliacoes?.media != null && avaliacoes.total > 0 && (
+                      <a href="#avaliacoes-vendedor" className={`text-sm text-tinta-suave mt-1 inline-flex items-center gap-1.5 hover:underline rounded-controle ${FOCO}`}>
+                        <Estrelas nota={avaliacoes.media} />
+                        <span className="font-semibold text-tinta">{formatarNota(avaliacoes.media)}</span>
+                        ({avaliacoes.total} {avaliacoes.total === 1 ? "avaliação" : "avaliações"})
+                      </a>
+                    )}
                   </div>
                 </div>
 
@@ -216,7 +231,8 @@ export default function PerfilPublicoPage({
                       ehDono={ehDono}
                     />
                   )}
-                  {!ehDono && mesmoCampus && (
+                  {/* Sem WhatsApp cadastrado, o contato é pelo chat de cada anúncio */}
+                  {!ehDono && mesmoCampus && temWhatsapp && (
                     <BotaoContato
                       lojaId={perfil.id}
                       mensagem={`Olá, ${perfil.nome}! Vi seu perfil na Circular e quero saber mais sobre seus anúncios.`}
@@ -315,6 +331,16 @@ export default function PerfilPublicoPage({
               </div>
             )}
           </section>
+
+          {avaliacoes && (
+            <SecaoAvaliacoes
+              key={perfil.id}
+              lojaId={perfil.id}
+              nomeVendedor={nomeExibicao}
+              resumoInicial={avaliacoes}
+              ehDono={ehDono}
+            />
+          )}
 
           <div className="mt-12 bg-petroleo-50 rounded-card p-5 flex items-start gap-3 text-petroleo">
             <ShieldCheck size={22} strokeWidth={1.75} className="shrink-0 mt-0.5" aria-hidden="true" />

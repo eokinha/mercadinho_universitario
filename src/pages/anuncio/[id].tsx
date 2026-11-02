@@ -17,18 +17,29 @@ import {
 import AvisoFavorito, { type TipoAvisoFavorito } from "@/components/AvisoFavorito";
 import BotaoCompartilhar from "@/components/BotaoCompartilhar";
 import BotaoContato from "@/components/BotaoContato";
+import BotaoConversar from "@/components/BotaoConversar";
 import BotaoDenunciar from "@/components/BotaoDenunciar";
 import CardProduto from "@/components/CardProduto";
+import Estrelas, { formatarNota } from "@/components/Estrelas";
+import SecaoPerguntas from "@/components/SecaoPerguntas";
 import SeloVerificado from "@/components/SeloVerificado";
 import { motivoForaDoAr } from "@/lib/anuncios";
 import { caminhoAnuncio, idDoAnuncio } from "@/lib/compartilhar";
 import { createServerClient } from "@/lib/supabase";
-import { definirFavorito, getAnuncioLeitura, getMeusFavoritosIds } from "@/lib/queries";
-import type { AnuncioLeitura } from "@/types";
+import {
+  definirFavorito,
+  getAnuncioLeitura,
+  getAvaliacoesDoVendedor,
+  getMeusFavoritosIds,
+  getPerguntasDoAnuncio,
+} from "@/lib/queries";
+import type { AnuncioLeitura, PerguntaAnuncio } from "@/types";
 
 interface Props {
   leitura: AnuncioLeitura;
-  favoritos: number[]; // ids favoritados, para os cards de "Mais da loja"
+  favoritos: number[]; // ids favoritados, para os cards de "Mais de {nome}"
+  perguntas: PerguntaAnuncio[];
+  notaVendedor: { media: number; total: number } | null;
 }
 
 const FOCO = "focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2";
@@ -62,7 +73,19 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     return { redirect: { destination: canonico + busca, permanent: false } };
   }
 
-  return { props: { leitura, favoritos } };
+  // Perguntas do anúncio e nota do vendedor (migração 24); se falhar, a página abre sem elas
+  let perguntas: PerguntaAnuncio[] = [];
+  let notaVendedor: Props["notaVendedor"] = null;
+  if (leitura.estado === "ok") {
+    const [lista, resumo] = await Promise.all([
+      getPerguntasDoAnuncio(id, supabase).catch(() => []),
+      getAvaliacoesDoVendedor(leitura.loja.id, supabase).catch(() => null),
+    ]);
+    perguntas = lista;
+    if (resumo?.media != null && resumo.total > 0) notaVendedor = { media: resumo.media, total: resumo.total };
+  }
+
+  return { props: { leitura, favoritos, perguntas, notaVendedor } };
 };
 
 function AnuncioIndisponivel({ nome, loja }: { nome: string; loja: { slug: string | null; nome: string } | null }) {
@@ -83,7 +106,7 @@ function AnuncioIndisponivel({ nome, loja }: { nome: string; loja: { slug: strin
               href={`/perfil/${loja.slug}`}
               className={`bg-acao hover:bg-acao-hover text-white rounded-controle px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center text-sm font-semibold transition ${FOCO}`}
             >
-              Ver a loja de {loja.nome}
+              Ver o perfil de {loja.nome}
             </Link>
           )}
           <Link
@@ -98,7 +121,7 @@ function AnuncioIndisponivel({ nome, loja }: { nome: string; loja: { slug: strin
   );
 }
 
-export default function AnuncioPage({ leitura, favoritos }: Props) {
+export default function AnuncioPage({ leitura, favoritos, perguntas, notaVendedor }: Props) {
   const [favoritado, setFavoritado] = useState(leitura.estado === "ok" && leitura.favoritado);
   const [salvandoFavorito, setSalvandoFavorito] = useState(false);
   const [aviso, setAviso] = useState<TipoAvisoFavorito | null>(null);
@@ -145,7 +168,7 @@ export default function AnuncioPage({ leitura, favoritos }: Props) {
           className={`inline-flex items-center gap-1 min-h-[44px] text-sm font-semibold text-petroleo hover:underline rounded-controle mb-2 ${FOCO}`}
         >
           <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
-          {loja.slug ? `Loja de ${loja.nome}` : "Voltar aos anúncios"}
+          {loja.slug ? `Perfil de ${loja.nome}` : "Voltar aos anúncios"}
         </Link>
 
         {ehDono && !disponivel && (
@@ -248,6 +271,12 @@ export default function AnuncioPage({ leitura, favoritos }: Props) {
                   <span className="text-tinta font-semibold truncate">{loja.nome}</span>
                   {loja.verificada && <SeloVerificado />}
                 </span>
+                {notaVendedor && (
+                  <span className="flex items-center gap-1.5 text-xs text-tinta-suave mt-0.5">
+                    <Estrelas nota={notaVendedor.media} tamanho={14} />
+                    {formatarNota(notaVendedor.media)} ({notaVendedor.total})
+                  </span>
+                )}
                 {loja.instituicao_nome && (
                   <span className="block text-tinta-suave text-xs truncate">{loja.instituicao_nome}</span>
                 )}
@@ -280,13 +309,23 @@ export default function AnuncioPage({ leitura, favoritos }: Props) {
                 </Link>
               ) : (
                 podeInteragir && (
-                  <BotaoContato
-                    lojaId={loja.id}
-                    produtoId={anuncio.id}
-                    mensagem={`Olá! Vi "${anuncio.nome}" na Circular e tenho interesse.`}
-                    rotulo="Tenho interesse"
-                    className={`w-full bg-acao hover:bg-acao-hover text-white rounded-controle px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center gap-2 text-sm font-semibold transition ${FOCO}`}
-                  />
+                  <>
+                    {/* Chat sempre; WhatsApp só se o vendedor cadastrou o número */}
+                    <BotaoConversar
+                      produtoId={anuncio.id}
+                      rotulo="Tenho interesse"
+                      className={`w-full bg-acao hover:bg-acao-hover text-white rounded-controle px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center gap-2 text-sm font-semibold transition ${FOCO}`}
+                    />
+                    {leitura.temWhatsapp && (
+                      <BotaoContato
+                        lojaId={loja.id}
+                        produtoId={anuncio.id}
+                        mensagem={`Olá! Vi "${anuncio.nome}" na Circular e tenho interesse.`}
+                        rotulo="WhatsApp"
+                        className={`w-full bg-superficie text-petroleo border border-borda-controle hover:border-petroleo rounded-controle px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center gap-2 text-sm font-semibold transition ${FOCO}`}
+                      />
+                    )}
+                  </>
                 )
               )}
               {disponivel && codigoCompartilhamento && (
@@ -303,6 +342,14 @@ export default function AnuncioPage({ leitura, favoritos }: Props) {
             {!ehDono && <BotaoDenunciar key={anuncio.id} lojaId={loja.id} produtoId={anuncio.id} />}
           </div>
         </article>
+
+        <SecaoPerguntas
+          key={anuncio.id}
+          produtoId={anuncio.id}
+          perguntasIniciais={perguntas}
+          ehDono={ehDono}
+          podePerguntar={podeInteragir}
+        />
 
         {outros.length > 0 && (
           <section className="mt-10" aria-labelledby="mais-da-loja">

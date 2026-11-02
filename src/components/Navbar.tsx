@@ -2,11 +2,12 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
-import { getResumoUsuarioNavbar } from "@/lib/queries";
+import { contarMensagensNaoLidas, getResumoUsuarioNavbar } from "@/lib/queries";
+import { assinarUsuario } from "@/lib/chat-realtime";
 import { PAGINAS_PAINEL } from "@/lib/painel-routes";
 import Logo from "@/components/Logo";
 import { logoDaFaculdade, nomeCurtoFaculdade } from "@/lib/faculdades";
-import { Flag, GraduationCap, Image as ImageIcon, LogOut, Plus, ShieldCheck, Store, UserRound } from "lucide-react";
+import { Flag, GraduationCap, Image as ImageIcon, LogOut, MessageCircle, Plus, ShieldCheck, Store, UserRound } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 export default function Navbar() {
@@ -21,6 +22,10 @@ export default function Navbar() {
   const [campusNome, setCampusNome] = useState<string | null>(null);
   const [campusLogo, setCampusLogo] = useState<string | null>(null);
   const [lojaId, setLojaId] = useState<number | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  // Chat: id do aluno (canal usuario:{id}) e mensagens não lidas
+  const [usuarioId, setUsuarioId] = useState<number | null>(null);
+  const [naoLidas, setNaoLidas] = useState(0);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -32,10 +37,13 @@ export default function Navbar() {
 
       if (data) {
         setIsAdmin(data.is_admin);
-        setNomeUsuario(data.nome);
+        // Perfil com nome de exibição (marca) aparece com ele; senão, o nome pessoal
+        setNomeUsuario(data.nome_exibicao || data.nome);
         setCampusNome(data.instituicao_nome);
         setCampusLogo(logoDaFaculdade(data.instituicao_dominios));
         setLojaId(data.loja_id);
+        setAvatarUrl(data.avatar_url);
+        setUsuarioId(data.usuario_id);
 
         // Sem campus (e-mail de faculdade não participante): onboarding explica e oferece a troca
         const isAuthPage =
@@ -68,6 +76,9 @@ export default function Navbar() {
         setCampusNome(null);
         setCampusLogo(null);
         setLojaId(null);
+        setAvatarUrl(null);
+        setUsuarioId(null);
+        setNaoLidas(0);
       }
     });
 
@@ -85,6 +96,30 @@ export default function Navbar() {
       document.removeEventListener("mousedown", handleClickFora);
     };
   }, [router]);
+
+  // Contador de não lidas: carrega ao entrar e a cada navegação; o Realtime avisa de mensagem nova
+  // e de conversa lida (inclusive em outra aba)
+  useEffect(() => {
+    if (!usuarioId) return;
+    let ativo = true;
+    const recontar = () =>
+      contarMensagensNaoLidas()
+        .then((n) => ativo && setNaoLidas(n))
+        .catch(() => undefined);
+    recontar();
+    const canal = assinarUsuario(usuarioId, {
+      onNovaMensagem: (m) => {
+        if (m.autor_id !== usuarioId) recontar();
+      },
+      onConversaLida: recontar,
+    });
+    router.events.on("routeChangeComplete", recontar);
+    return () => {
+      ativo = false;
+      canal.sair();
+      router.events.off("routeChangeComplete", recontar);
+    };
+  }, [usuarioId, router.events]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -105,10 +140,12 @@ export default function Navbar() {
 
   return (
     <header className="bg-superficie border-b border-borda sticky top-0 z-30">
-      {/* Até lg: linha flexível (a busca ocupa o meio). A partir de lg: três colunas, busca centralizada na página */}
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2 sm:gap-4 lg:grid lg:grid-cols-[1fr_minmax(0,36rem)_1fr]">
+      {/* Os logos (Circular e faculdade) nunca encolhem: quem cede espaço é a busca e depois o nome.
+          Até md: duas linhas (logos + ações em cima, busca embaixo). A partir de md: uma linha, com os
+          lados de peso igual para a busca ficar no centro da página enquanto couber. */}
+      <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap md:flex-nowrap items-center gap-x-3 gap-y-2 md:gap-x-4">
         {/* Circular | logo da faculdade do aluno */}
-        <div className="flex items-center gap-3 min-w-0 shrink-0">
+        <div className="flex items-center gap-3 shrink-0 md:flex-1 md:basis-0">
           <Link
             href="/"
             aria-label="Circular — página inicial"
@@ -123,12 +160,17 @@ export default function Navbar() {
           </Link>
 
           {user && campusNome && (
-            <div title={`Seu campus: ${campusNome}`} className="hidden md:flex items-center gap-3 min-w-0">
+            <div title={`Seu campus: ${campusNome}`} className="flex items-center gap-3 shrink-0">
               <span className="h-7 border-l border-borda" aria-hidden="true" />
               {campusLogo ? (
-                <img src={campusLogo} alt={`Seu campus: ${campusNome}`} className="h-7 w-auto max-w-[140px] object-contain" />
+                <img
+                  src={campusLogo}
+                  alt={`Seu campus: ${campusNome}`}
+                  className="h-6 sm:h-7 w-auto max-w-none shrink-0"
+                />
               ) : (
-                <span className="text-sm font-semibold text-tinta-suave truncate max-w-[160px]">
+                // Sem logo: nome curto (sigla); nome longo sem sigla trunca para não empurrar as ações
+                <span className="text-sm font-semibold text-tinta-suave truncate max-w-28 sm:max-w-40">
                   <span className="sr-only">Seu campus: </span>
                   {nomeCurtoFaculdade(campusNome)}
                 </span>
@@ -137,9 +179,13 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Busca no catálogo do campus (só logados) */}
+        {/* Busca no catálogo do campus (só logados); no celular vai para a segunda linha */}
         {user ? (
-          <form onSubmit={handleSubmit} className="flex-1 min-w-0 w-full" role="search">
+          <form
+            onSubmit={handleSubmit}
+            className="order-last basis-full md:order-none md:grow-0 md:shrink md:basis-xl md:min-w-40"
+            role="search"
+          >
             <input
               type="search"
               value={termo}
@@ -149,12 +195,11 @@ export default function Navbar() {
               className="w-full rounded-pill border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 px-4 py-2 min-h-[44px] text-sm text-tinta placeholder:text-tinta-sutil transition bg-superficie"
             />
           </form>
-        ) : (
-          <div className="flex-1" />
-        )}
+        ) : null}
 
         {/* Ações e Menu do Usuário */}
-        <div className="flex items-center justify-end gap-2 sm:gap-3 shrink-0">
+        <div className="ml-auto min-w-0 flex items-center justify-end gap-2 sm:gap-3 md:flex-1 md:basis-0 md:min-w-auto">
+
           {user && (
             <Link
               href="/anunciar"
@@ -162,23 +207,55 @@ export default function Navbar() {
               className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-white text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-controle transition shrink-0 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
             >
               <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
-              <span className="hidden sm:inline">Anunciar</span>
+              {/* Entre md e lg a linha única fica apertada: só o ícone, para a busca ter espaço */}
+              <span className="hidden sm:inline md:hidden lg:inline">Anunciar</span>
+            </Link>
+          )}
+
+          {user && (
+            <Link
+              href="/mensagens"
+              aria-label={naoLidas > 0 ? `Mensagens: ${naoLidas} não lidas` : "Mensagens"}
+              className="relative w-11 h-11 inline-flex items-center justify-center rounded-controle text-petroleo hover:bg-petroleo-50 transition shrink-0 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+            >
+              <MessageCircle size={20} strokeWidth={1.75} aria-hidden="true" />
+              {naoLidas > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-1 right-0.5 min-w-[18px] h-[18px] px-1 rounded-pill bg-acao text-white text-[11px] font-bold leading-[18px] text-center"
+                >
+                  {naoLidas > 99 ? "99+" : naoLidas}
+                </span>
+              )}
             </Link>
           )}
 
           {/* Menu do Usuário */}
-          <div className="relative shrink-0" ref={menuRef}>
+          <div className="relative min-w-0" ref={menuRef}>
             {user ? (
               <>
+                {/* Foto | Nome: o nome encolhe conforme a tela (e trunca com "…"); na tela mais estreita fica só a inicial */}
                 <button
                   type="button"
                   onClick={() => setMenuAberto(!menuAberto)}
                   aria-label="Menu da conta"
-                  className="w-11 h-11 rounded-pill border border-borda-controle hover:border-petroleo transition bg-petroleo-50 flex items-center justify-center overflow-hidden focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+                  aria-expanded={menuAberto}
+                  className={`flex items-center gap-2 min-w-0 max-w-full min-h-[44px] rounded-pill border border-borda-controle hover:border-petroleo transition bg-superficie p-0.5 ${nomeUsuario ? "min-[420px]:pr-3" : ""} focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2`}
                 >
-                  <span className="text-sm font-bold text-petroleo">
-                    {(nomeUsuario || user.email || "?").charAt(0).toUpperCase()}
+                  <span className="w-10 h-10 rounded-pill bg-petroleo-50 flex items-center justify-center overflow-hidden shrink-0">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-sm font-bold text-petroleo" aria-hidden="true">
+                        {(nomeUsuario || user.email || "?").charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </span>
+                  {nomeUsuario && (
+                    <span className="hidden min-[420px]:block min-w-0 text-sm font-semibold text-tinta truncate max-w-20 sm:max-w-32 md:max-w-20 lg:max-w-28 xl:max-w-40">
+                      {nomeUsuario}
+                    </span>
+                  )}
                 </button>
 
                 {menuAberto && (
@@ -190,8 +267,9 @@ export default function Navbar() {
                       <p className="text-sm font-semibold text-tinta truncate">
                         {nomeUsuario || user.email}
                       </p>
+                      {/* Só no celular: do md em diante o logo da faculdade já aparece no cabeçalho */}
                       {campusNome && (
-                        <p className="text-xs text-tinta-suave truncate flex items-center gap-1 mt-0.5">
+                        <p className="md:hidden text-xs text-tinta-suave truncate flex items-center gap-1 mt-0.5">
                           <GraduationCap size={14} strokeWidth={1.75} aria-hidden="true" />
                           <span>{campusNome}</span>
                         </p>

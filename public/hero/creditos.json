@@ -27,5 +27,13 @@
     "licenca": "CC0",
     "fonte": "https://commons.wikimedia.org/wiki/File:Taking_notes_at_a_coffee_table_(Unsplash).jpg",
     "observacao": "espelhada horizontalmente"
+  },
+  {
+    "arquivo": "public/hero/trocas.webp",
+    "titulo": "Old books (Unsplash).jpg",
+    "autor": "Eli Francis",
+    "licenca": "CC0",
+    "fonte": "https://commons.wikimedia.org/wiki/File:Old_books_(Unsplash).jpg",
+    "observacao": "fundo da seção Modo Trocar (SecaoTrocas)"
   }
 ]

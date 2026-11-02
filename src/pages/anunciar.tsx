@@ -30,6 +30,7 @@ import {
   Plus,
   Repeat,
   Send,
+  MessageCircle,
   ShoppingBag,
   TriangleAlert,
   X,
@@ -41,7 +42,7 @@ interface Props {
   produto: Produto | null;
 }
 
-// lojas.contato guarda DDI + DDD + número
+// lojas.contato guarda DDI + DDD + número (opcional desde a migração 26: sem ele o contato é pelo chat)
 function temWhatsapp(loja: Loja): boolean {
   return (loja.contato ?? "").length >= 12;
 }
@@ -68,6 +69,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       id: 1,
       usuario_id: 1,
       nome: "Estudante Demo",
+      nome_exibicao: null,
       descricao: "Desapegando de livros e materiais no campus",
       contato: "(31) 99999-0000",
       whatsapp: "(31) 99999-0000",
@@ -217,12 +219,6 @@ export default function AnunciarPage({ loja, categorias, produto }: Props) {
       precoFinal = parsed;
     }
 
-    if (!editando && !temWhatsapp(loja)) {
-      setError("Cadastre seu WhatsApp no perfil antes de publicar. É por ele que os colegas falam com você.");
-      setLoading(false);
-      return;
-    }
-
     // Valida a foto antes de gravar qualquer coisa
     if (imageFile) {
       try {
@@ -295,10 +291,6 @@ export default function AnunciarPage({ loja, categorias, produto }: Props) {
               <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
               Voltar ao painel
             </Link>
-
-            <span className="text-sm text-tinta-suave">
-              Anunciando como <strong className="text-tinta">{loja.nome}</strong>
-            </span>
           </div>
 
           <div className="bg-superficie border border-borda rounded-card p-6 sm:p-8">
@@ -313,14 +305,15 @@ export default function AnunciarPage({ loja, categorias, produto }: Props) {
             </div>
 
             {!editando && !temWhatsapp(loja) && (
-              <div role="status" className="mb-6 p-4 bg-doacao-50 text-doacao text-sm rounded-card flex items-start gap-3">
-                <TriangleAlert size={20} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
+              <div role="status" className="mb-6 p-4 bg-petroleo-50 text-petroleo text-sm rounded-card flex items-start gap-3">
+                <MessageCircle size={20} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
                 <p>
-                  Para publicar, cadastre seu WhatsApp no{" "}
+                  Os colegas vão falar com você pelo chat do Circular. Se preferir receber também pelo WhatsApp,
+                  cadastre o número no{" "}
                   <Link href="/painel/perfil" className="font-semibold underline">
                     seu perfil
                   </Link>
-                  . É por ele que os colegas falam com você.
+                  .
                 </p>
               </div>
             )}

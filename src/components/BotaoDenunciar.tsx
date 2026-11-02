@@ -1,29 +1,33 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { Flag } from "lucide-react";
-import { denunciar } from "@/lib/queries";
+import { denunciar, denunciarComentario, denunciarMensagem } from "@/lib/queries";
 import { urlLogin } from "@/lib/avisos-login";
-import type { MotivoDenuncia } from "@/types";
+import type { MotivoDenuncia, TipoConteudoModerado } from "@/types";
 
 interface Props {
-  lojaId: number;
+  lojaId?: number;
   produtoId?: number;
+  comentario?: { tipo: TipoConteudoModerado; id: number }; // denuncia uma pergunta, resposta ou avaliação
+  mensagemId?: number; // denuncia uma mensagem do chat (a equipe recebe uma cópia da conversa)
+  onFechar?: () => void; // chamado ao cancelar ou depois de enviar
 }
 
 const MOTIVOS: { valor: MotivoDenuncia; rotulo: string }[] = [
   { valor: "proibido", rotulo: "Item proibido (ver Termos de Uso)" },
   { valor: "golpe", rotulo: "Golpe ou tentativa de fraude" },
   { valor: "falso", rotulo: "Anúncio falso ou enganoso" },
-  { valor: "ofensivo", rotulo: "Conteúdo ofensivo" },
+  { valor: "ofensivo", rotulo: "Conteúdo ofensivo ou assédio" },
   { valor: "outro", rotulo: "Outro motivo" },
 ];
 
 const FOCO = "focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2";
 
-export default function BotaoDenunciar({ lojaId, produtoId }: Props) {
+export default function BotaoDenunciar({ lojaId, produtoId, comentario, mensagemId, onFechar }: Props) {
   const router = useRouter();
-  const [aberto, setAberto] = useState(false);
-  const [motivo, setMotivo] = useState<MotivoDenuncia>("proibido");
+  // A denúncia de mensagem já abre direto no formulário (o menu da mensagem é o gatilho)
+  const [aberto, setAberto] = useState(mensagemId !== undefined);
+  const [motivo, setMotivo] = useState<MotivoDenuncia>(comentario || mensagemId ? "ofensivo" : "proibido");
   const [detalhes, setDetalhes] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
@@ -34,7 +38,13 @@ export default function BotaoDenunciar({ lojaId, produtoId }: Props) {
     setEnviando(true);
     setErro(null);
     try {
-      await denunciar({ lojaId, produtoId, motivo, detalhes });
+      if (mensagemId !== undefined) {
+        await denunciarMensagem({ mensagemId, motivo, detalhes });
+      } else if (comentario) {
+        await denunciarComentario({ tipo: comentario.tipo, id: comentario.id, motivo, detalhes });
+      } else if (lojaId) {
+        await denunciar({ lojaId, produtoId, motivo, detalhes });
+      }
       setEnviado(true);
     } catch (err) {
       if ((err as { code?: string })?.code === "42501") {
@@ -51,6 +61,11 @@ export default function BotaoDenunciar({ lojaId, produtoId }: Props) {
     return (
       <p role="status" className="text-sm text-tinta-suave">
         Denúncia enviada. A equipe da Circular vai analisar.
+        {onFechar && (
+          <button type="button" onClick={onFechar} className={`ml-2 font-semibold text-petroleo hover:underline rounded-controle ${FOCO}`}>
+            Fechar
+          </button>
+        )}
       </p>
     );
   }
@@ -63,7 +78,7 @@ export default function BotaoDenunciar({ lojaId, produtoId }: Props) {
         className={`self-start min-h-[44px] inline-flex items-center gap-1.5 text-sm font-semibold text-perigo hover:underline rounded-controle ${FOCO}`}
       >
         <Flag size={16} strokeWidth={1.75} aria-hidden="true" />
-        {produtoId ? "Denunciar anúncio" : "Denunciar perfil"}
+        {comentario ? "Denunciar" : produtoId ? "Denunciar anúncio" : "Denunciar perfil"}
       </button>
     );
   }
@@ -102,7 +117,10 @@ export default function BotaoDenunciar({ lojaId, produtoId }: Props) {
       <div className="flex gap-2 justify-end">
         <button
           type="button"
-          onClick={() => setAberto(false)}
+          onClick={() => {
+            setAberto(false);
+            onFechar?.();
+          }}
           className={`min-h-[44px] px-4 rounded-controle border border-borda-controle bg-superficie text-petroleo text-sm font-semibold hover:border-petroleo ${FOCO}`}
         >
           Cancelar

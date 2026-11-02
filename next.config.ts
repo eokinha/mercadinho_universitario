@@ -13,24 +13,41 @@ const imagensExternas = ["https://images.unsplash.com", ...(isDev ? ["https://ap
 const googleTag = "https://*.googletagmanager.com";
 const googleAnalytics = "https://*.google-analytics.com https://*.analytics.google.com";
 
-const csp = [
-  "default-src 'self'",
-  // 'unsafe-eval' só no dev (React Refresh); 'unsafe-inline' cobre os scripts inline que o Next injeta
-  // (bootstrap do Turbopack e o snippet do gtag)
-  `script-src 'self' 'unsafe-inline' ${googleTag}${isDev ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${supabaseUrl} ${imagensExternas.join(" ")} ${googleTag} ${googleAnalytics}`,
-  "font-src 'self' data:",
-  // api.pwnedpasswords.com: checagem de senha vazada (src/lib/senha-vazada.ts)
-  `connect-src 'self' ${supabaseUrl} ${supabaseWs} https://api.pwnedpasswords.com ${googleTag} ${googleAnalytics}${isDev ? " ws://localhost:*" : ""}`,
-  "frame-ancestors 'none'",
-  "form-action 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-].join("; ");
+// Google AdSense (ads.txt em public/): liberado SÓ no host de produção abaixo; previews da Vercel,
+// localhost e outros domínios seguem sem anúncios na CSP
+const HOST_ANUNCIOS = "circular.eokinha.com.br";
+const adsense = {
+  script:
+    "https://pagead2.googlesyndication.com https://*.googlesyndication.com https://partner.googleadservices.com " +
+    "https://www.googletagservices.com https://adservice.google.com https://*.adtrafficquality.google",
+  frame:
+    "https://googleads.g.doubleclick.net https://*.googlesyndication.com https://www.google.com " +
+    "https://*.adtrafficquality.google",
+  img: "https://*.googlesyndication.com https://*.g.doubleclick.net https://*.google.com https://*.gstatic.com https://*.adtrafficquality.google",
+  connect: "https://*.googlesyndication.com https://*.g.doubleclick.net https://*.google.com https://*.adtrafficquality.google",
+};
+
+function montarCsp(comAnuncios: boolean): string {
+  const ads = (fontes: string) => (comAnuncios ? ` ${fontes}` : "");
+  return [
+    "default-src 'self'",
+    // 'unsafe-eval' só no dev (React Refresh); 'unsafe-inline' cobre os scripts inline que o Next injeta
+    // (bootstrap do Turbopack e o snippet do gtag)
+    `script-src 'self' 'unsafe-inline' ${googleTag}${ads(adsense.script)}${isDev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    `img-src 'self' data: blob: ${supabaseUrl} ${imagensExternas.join(" ")} ${googleTag} ${googleAnalytics}${ads(adsense.img)}`,
+    "font-src 'self' data:",
+    // api.pwnedpasswords.com: checagem de senha vazada (src/lib/senha-vazada.ts)
+    `connect-src 'self' ${supabaseUrl} ${supabaseWs} https://api.pwnedpasswords.com ${googleTag} ${googleAnalytics}${ads(adsense.connect)}${isDev ? " ws://localhost:*" : ""}`,
+    ...(comAnuncios ? [`frame-src 'self' ${adsense.frame}`] : []),
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+  ].join("; ");
+}
 
 const headersSeguranca = [
-  { key: "Content-Security-Policy", value: csp },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -41,7 +58,19 @@ const headersSeguranca = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: headersSeguranca }];
+    const hostAnuncios = [{ type: "host" as const, value: HOST_ANUNCIOS }];
+    return [
+      {
+        source: "/:path*",
+        has: hostAnuncios,
+        headers: [{ key: "Content-Security-Policy", value: montarCsp(true) }, ...headersSeguranca],
+      },
+      {
+        source: "/:path*",
+        missing: hostAnuncios,
+        headers: [{ key: "Content-Security-Policy", value: montarCsp(false) }, ...headersSeguranca],
+      },
+    ];
   },
 };
 

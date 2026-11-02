@@ -1,4 +1,5 @@
 import "@/styles/globals.css";
+import { useEffect } from "react";
 import type { AppProps } from "next/app";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import Head from "next/head";
@@ -13,7 +14,22 @@ const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
 });
 
+// Google AdSense só no host de produção (espelho de HOST_ANUNCIOS em next.config.ts, que libera a CSP só lá)
+const HOST_ANUNCIOS = "circular.eokinha.com.br";
+const ADSENSE_CLIENT = "ca-pub-6802793038302446";
+
 export default function App({ Component, pageProps, router }: AppProps) {
+  // Decidido no cliente: o HTML do servidor é o mesmo em qualquer host (previews da Vercel ficam sem anúncios)
+  useEffect(() => {
+    if (window.location.hostname !== HOST_ANUNCIOS || document.getElementById("google-adsense")) return;
+    const script = document.createElement("script");
+    script.id = "google-adsense";
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
+    document.head.appendChild(script);
+  }, []);
+
   return (
     <div className={`${jakarta.variable} font-sans min-h-screen flex flex-col bg-pagina text-tinta`}>
       {/* Título padrão da rota; o <title> da própria página (anúncio, perfil, painel) tem prioridade */}

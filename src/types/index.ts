@@ -35,7 +35,8 @@ export type LojaStatus = "pendente" | "ativo" | "pausado" | "reprovado";
 export interface Loja {
   id: number;
   usuario_id: number;
-  nome: string;
+  nome: string; // nome público: calculado pelo banco (nome_exibicao ou nome + sobrenome); não gravar
+  nome_exibicao: string | null; // marca opcional do aluno (migração 23)
   descricao: string;
   contato: string;
   status: LojaStatus;
@@ -133,6 +134,9 @@ export interface LojaModeracao {
 export type MotivoDenuncia = "proibido" | "golpe" | "ofensivo" | "falso" | "outro";
 export type DenunciaStatus = "aberta" | "resolvida" | "descartada";
 
+// Tipo do que foi denunciado (migrações 25 e 26): anúncio e perfil, um comentário ou uma mensagem do chat
+export type AlvoDenuncia = "anuncio" | "perfil" | "pergunta" | "resposta" | "avaliacao" | "mensagem";
+
 export interface DenunciaModeracao {
   id: number;
   motivo: MotivoDenuncia;
@@ -144,6 +148,14 @@ export interface DenunciaModeracao {
   produto_id: number | null;
   denunciante_nome: string | null;
   denunciante_email: string | null;
+  alvo_tipo: AlvoDenuncia;
+  pergunta_id: number | null;
+  avaliacao_id: number | null;
+  conteudo: string | null; // cópia do comentário denunciado (fica mesmo se o autor apagar)
+  link: string | null;
+  comentario_no_ar: boolean | null; // null para anúncio/perfil/mensagem
+  mensagem_id: number | null;
+  tem_conversa: boolean; // a cópia da conversa denunciada ainda existe (some 30 dias depois de resolvida)
 }
 
 export interface ProdutoModeracao {
@@ -165,8 +177,6 @@ export interface GrupoCategoria {
 export type OrdenacaoProdutos = "recentes" | "preco_asc" | "preco_desc";
 
 export interface PerfilPublico extends LojaPublica {
-  usuario_nome?: string;
-  usuario_sobrenome?: string;
   usuario_criado_em?: string;
   matricula_status?: "pendente" | "verificado" | "rejeitado";
   instituicao_nome?: string;
@@ -178,6 +188,7 @@ export interface PerfilLeitura {
   produtos: ProdutoListagem[];
   mesmoCampus: boolean;
   ehDono: boolean;
+  temWhatsapp: boolean; // sem número cadastrado, o botão do WhatsApp não aparece (só o chat)
   // Vai no link do QR code da loja (src/lib/compartilhar.ts); qualquer aluno logado pode compartilhar
   codigoCompartilhamento: string | null;
 }
@@ -223,6 +234,7 @@ export type AnuncioLeitura =
       disponivel: boolean;
       ehDono: boolean;
       mesmoCampus: boolean;
+      temWhatsapp: boolean;
       codigoCompartilhamento: string | null;
       favoritado: boolean;
       anuncio: AnuncioDetalhe;
@@ -239,4 +251,100 @@ export interface ResumoAnuncioCompartilhado {
   imagem_url: string | null;
   loja_nome: string;
   instituicao_nome: string | null;
+}
+
+// Perguntas nos anúncios e avaliação do vendedor (migração 24; moderação pela Vettly)
+export type StatusModeracao = "pendente" | "aprovado" | "recusado";
+
+export interface PerguntaAnuncio {
+  id: number;
+  texto: string;
+  autor_nome: string | null;
+  criado_em: string;
+  minha: boolean; // o aluno logado fez a pergunta (vê o status dela)
+  status: StatusModeracao;
+  resposta: string | null; // aprovada, ou a do próprio dono em qualquer status
+  resposta_status: StatusModeracao | null;
+  respondida_em: string | null;
+}
+
+export interface AvaliacaoVendedor {
+  id: number;
+  nota: number;
+  comentario: string | null;
+  autor_nome: string | null;
+  criado_em: string;
+}
+
+export interface ResumoAvaliacoes {
+  media: number | null;
+  total: number;
+  pode_avaliar: boolean; // já falou com o vendedor pelo Circular (chat ou WhatsApp) e não é o dono
+  minha: { id: number; nota: number; comentario: string | null; status: StatusModeracao } | null;
+  avaliacoes: AvaliacaoVendedor[]; // publicadas, sem a do próprio aluno
+}
+
+// Resultado de enviar pergunta, resposta ou avaliação pelas rotas /api
+export interface ResultadoModeracao {
+  id: number | null; // null quando a moderação recusou (nada é gravado)
+  status: StatusModeracao;
+  mensagem: string;
+}
+
+export type TipoConteudoModerado = "pergunta" | "resposta" | "avaliacao";
+
+export interface ConteudoModeracao {
+  tipo: TipoConteudoModerado;
+  id: number;
+  texto: string | null;
+  status: StatusModeracao;
+  criado_em: string;
+  autor_nome: string | null;
+  autor_email: string | null;
+  contexto: string;
+  nota: number | null;
+  link: string;
+}
+
+// Chat (migração 26): mensagens pelo Supabase Realtime (Broadcast) gravadas por RPC
+export interface MensagemChat {
+  id: number;
+  conversa_id: string;
+  autor_id: number;
+  texto: string;
+  cliente_id: string; // gerado no navegador; reenvio não duplica
+  criado_em: string;
+  lida_em: string | null;
+}
+
+export interface ConversaResumo {
+  id: string;
+  papel: "comprador" | "vendedor";
+  produto: { id: number | null; nome: string; imagem_url: string | null; preco: number | null };
+  outro: { loja_id: number; nome: string; avatar_url: string | null; slug: string | null; ativo: boolean };
+  ultima: { texto: string; minha: boolean; criado_em: string } | null;
+  nao_lidas: number;
+  bloqueada: boolean;
+  bloqueada_por_mim: boolean;
+  ultima_mensagem_em: string;
+}
+
+export interface ConversaLeitura extends ConversaResumo {
+  meu_id: number;
+  mensagens: MensagemChat[];
+  tem_mais: boolean;
+}
+
+// Cópia da conversa guardada na denúncia (só o admin lê, e cada leitura fica registrada)
+export interface ConversaDenunciada {
+  participantes: {
+    usuario_id: number;
+    papel: "comprador" | "vendedor";
+    nome: string;
+    email: string;
+    nome_publico: string | null;
+  }[];
+  mensagens: { id: number; autor_id: number; texto: string; criado_em: string }[];
+  mensagem_denunciada_id: number;
+  copiada_em: string;
 }

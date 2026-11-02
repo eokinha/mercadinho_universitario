@@ -3,7 +3,7 @@
 Fonte da verdade visual do projeto. Siga estas regras em toda tela nova ou alterada.
 
 ## Marca
-- Nome: **Circular** (só o C maiúsculo). Slogan: "Deixa Circular." Mote: "Circular. Economia comunitária."
+- Nome: **Circular** (só o C maiúsculo). Slogan: "Deixa Circular." Mote: "Circular. Economia no Campus."
 - Logo em `public/brand/` (`circular-logo.svg`, `circular-simbolo.svg`, `circular-simbolo-branco.svg`). Nas telas use o componente `src/components/Logo.tsx` (símbolo inline + nome na fonte carregada).
 - Voz: colega de curso confiável. "Você"; botões no imperativo; **sem emojis na interface**; erros dizem o próximo passo.
 

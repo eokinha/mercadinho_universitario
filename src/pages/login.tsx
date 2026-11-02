@@ -8,7 +8,7 @@ import { createServerClient, supabase } from "@/lib/supabase";
 import { mensagemAvisoLogin } from "@/lib/avisos-login";
 import Head from "next/head";
 import { destinoCompartilhado } from "@/lib/compartilhar";
-import { getResumoAnuncioCompartilhado, getResumoLojaCompartilhada } from "@/lib/queries";
+import { getResumoAnuncioCompartilhado, getResumoLojaCompartilhada, registrarAcesso } from "@/lib/queries";
 
 // Prévia do link no WhatsApp (og:*): o WhatsApp segue o redirecionamento do middleware até aqui
 interface Previa {
@@ -40,9 +40,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     const campus = loja.instituicao_nome ? `, do campus ${loja.instituicao_nome}` : "";
     return {
       props: {
-        avisoCompartilhado: `Entre com o e-mail da sua faculdade para ver a loja de ${loja.loja_nome}${campus}.`,
+        avisoCompartilhado: `Entre com o e-mail da sua faculdade para ver o perfil de ${loja.loja_nome}${campus}.`,
         previa: {
-          titulo: `Loja de ${loja.loja_nome} no Circular`,
+          titulo: `${loja.loja_nome} no Circular`,
           descricao: `Anúncios de alunos${campus ? ` do campus ${loja.instituicao_nome}` : " do campus"}. Deixa Circular.`,
           imagem: null,
         },
@@ -141,6 +141,8 @@ export default function LoginPage({ avisoCompartilhado, previa }: Props) {
         return;
       }
 
+      // Registro de acesso (Marco Civil); falha aqui não impede o login
+      await registrarAcesso().catch(() => undefined);
       await router.push(destino);
     } catch (err) {
       const fallback = err instanceof Error ? err : new Error("Erro inesperado no login");

@@ -17,6 +17,9 @@ em que a build roda (Production, Preview, Development):
 
 - `NEXT_PUBLIC_SUPABASE_URL` — URL do projeto (ex.: `https://xxxxx.supabase.co`)
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — ou, na ausência, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `VETTLY_API_KEY` e `VETTLY_POLICY_ID` — moderação de perguntas e avaliações (só servidor; sem elas tudo fica em análise)
+- `MODERACAO_SEGREDO` — segredo que as rotas `/api` mandam para `aplicar_moderacao`; o banco guarda só o SHA-256
+  em `privado.config` (chave `moderacao_segredo_sha256`). Trocar o segredo = gravar o novo hash lá e a variável na Vercel
 
 E-mails do Supabase Auth (recuperação de senha, confirmação) saem pelo SMTP do Resend,
 configurado no painel do Supabase (Authentication → SMTP), não pelo código.
@@ -44,19 +47,23 @@ src/
 │   ├── ajuda.tsx         # FAQ público (conteúdo em lib/faq.ts; âncora por pergunta, ex.: /ajuda#nao-chegou)
 │   ├── lojas/[slug].tsx  # Perfil público da loja
 │   ├── perfil/[id].tsx   # Perfil público do estudante
-│   ├── anuncio/[id].tsx  # Página do anúncio (/anuncio/{id}-{nome}; nome errado redireciona para o certo)
+│   ├── anuncio/[id].tsx  # Página do anúncio (/anuncio/{id}-{nome}; nome errado redireciona para o certo) + perguntas
+│   ├── mensagens/        # Chat: index (caixa de entrada) e [id] (conversa em tempo real); exige login
+│   ├── api/              # perguntas, respostas, avaliacoes: gravam pela RPC e moderam na Vettly (src/lib/moderacao.ts)
 │   ├── painel/           # Painel do estudante (index, anuncios, favoritos, perfil)
 │   ├── minha-loja/       # Rotas antigas: só redirecionam para /painel e /anunciar
 │   └── admin/
 │       ├── verificacoes.tsx  # Moderação de matrículas (somente admin)
 │       ├── lojas.tsx         # Status das lojas e produtos impulsionados (somente admin)
 │       ├── imagens.tsx       # Upload de avatar/capa/imagens (somente admin)
-│       └── denuncias.tsx     # Fila de denúncias (somente admin)
+│       ├── denuncias.tsx     # Fila de denúncias: abas Anúncios e perfis / Comentários (somente admin)
+│       └── comentarios.tsx   # Perguntas/avaliações que a Vettly não aprovou (somente admin)
 ├── components/           # Navbar, Footer, HeroSection, CardProduto (link para a página do anúncio),
 │                         # BotaoContato (WhatsApp via RPC), BotaoDenunciar,
 │                         # ConfiraEmail (pós-cadastro/senha), GuiaEmail + AjudaEmailFaculdade (tutorial do e-mail),
 │                         # BotaoCompartilhar (QR code e link de loja ou anúncio, para qualquer aluno logado)
-│   └── painel/           # PainelEstudante (cabeçalho/visão geral) + SecaoAnuncios, SecaoFavoritos, SecaoPerfil
+│   ├── painel/           # PainelEstudante (cabeçalho/visão geral) + SecaoAnuncios, SecaoFavoritos, SecaoPerfil
+│   └── chat/             # CaixaEntrada (lista + conversa), ListaConversas, ConversaChat; BotaoConversar abre a conversa
 ├── lib/
 │   ├── supabase.ts       # Clientes Supabase (browser e servidor via @supabase/ssr)
 │   ├── queries.ts        # Funções de fetch e RPCs
@@ -72,6 +79,8 @@ src/
 │   ├── faq.ts            # Perguntas e respostas do /ajuda (revisar ao mudar regra de negócio)
 │   ├── faculdades.ts     # Logo da faculdade na Navbar (por domínio; arquivos em public/faculdades/) e nome curto
 │   ├── titulos.ts        # Título da aba por rota (padrão no _app; página com título dinâmico sobrescreve)
+│   ├── moderacao.ts      # Chamada à Vettly e gravação do resultado (só servidor) · api-rotas.ts: POST JSON e erros
+│   ├── chat.ts           # Regras puras do chat (tópicos dos canais, junção de mensagens, datas) · chat-realtime.ts: canais do Realtime
 │   └── validacoes.ts     # CPF, telefone, e-mail acadêmico
 └── types/
     └── index.ts          # Interfaces TypeScript
@@ -89,15 +98,26 @@ instituicoes   — id, nome, cnpj (opcional), dominios (text[] — domínios de 
 usuarios       — id, auth_id (uuid → auth.users), nome, sobrenome, email, password (legado, não usar), telefone, cpf, matricula,
                  matricula_validada (bool), matricula_status (pendente|verificado|rejeitado), instituicoes_id,
                  status (ativo|bloqueado), is_admin (bool), criado_em, termos_aceitos_em
-lojas          — id, usuario_id (UNIQUE), nome, descricao, contato, status (pendente|ativo|pausado|reprovado), criado_em, avatar_url, capa_url,
+lojas          — id, usuario_id (UNIQUE), nome (nome público, calculado), nome_exibicao (marca opcional), descricao, contato, status (pendente|ativo|pausado|reprovado), criado_em, avatar_url, capa_url,
                  slug, instagram_url, tiktok_url, whatsapp, locais_entrega (text[])
 produtos       — id, loja_id, nome, descricao, preco (numeric), imagem_url, status (ativo|pausado|vendido), criado_em, categoria_id,
                  destaque (bool — impulsionado na home, só admin), aceita_troca (bool), renovado_em, vendido_em
 categorias     — id, nome, parent_id (2 níveis), icone
 favoritos      — id (uuid), usuario_id, produto_id, criado_em
 interesses     — id, loja_id, produto_id, usuario_id, criado_em (clique em "Tenho interesse"; só via RPC)
-denuncias      — id, denunciante_id, loja_id, produto_id, alvo_descricao, motivo, detalhes, status (aberta|resolvida|descartada),
+denuncias      — id, denunciante_id, loja_id, produto_id, alvo_tipo (anuncio|perfil|pergunta|resposta|avaliacao), pergunta_id,
+                 avaliacao_id, conteudo (cópia do comentário), alvo_descricao, motivo, detalhes, status (aberta|resolvida|descartada),
                  criado_em (só via RPC)
+perguntas      — id, produto_id, autor_id, texto, status (pendente|aprovado|recusado), moderacao_id, resposta, resposta_status,
+                 respondida_em, criado_em (só via RPC)
+avaliacoes     — id, loja_id, autor_id, nota (1–5), comentario, status, moderacao_id, criado_em, atualizado_em;
+                 UNIQUE (loja_id, autor_id) (só via RPC)
+conversas      — id (uuid), produto_id (SET NULL), produto_nome (cópia), loja_id, comprador_id, vendedor_id, criado_em,
+                 ultima_mensagem_em, bloqueada_por, oculta_comprador_em, oculta_vendedor_em; UNIQUE (produto_id, comprador_id) (só via RPC)
+mensagens      — id, conversa_id, autor_id, texto (1–2000), cliente_id (uuid UNIQUE, gerado no navegador), criado_em, lida_em,
+                 notificado_em (reservado ao push) (só via RPC)
+privado.*      — fora da API: config (segredos e prazos de retenção), registros_acesso, conteudo_retido, denuncia_conversa,
+                 acessos_admin_chat
 ```
 
 Relações:
@@ -115,21 +135,25 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `22`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `26`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`; a `18` é o endurecimento
 pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limites e URLs de imagem);
-a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20` cria o código do QR code da loja, a `21` libera esse código a qualquer aluno logado e a `22`
-cria as RPCs da página do anúncio.
+a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20` cria o código do QR code da loja, a `21` libera esse código a qualquer aluno logado, a `22`
+cria as RPCs da página do anúncio, a `23` separa nome pessoal e nome de exibição (ver "Nome do aluno") e a `24`
+cria perguntas nos anúncios e avaliação do vendedor com moderação externa (ver "Perguntas e avaliações"); a `25`
+deixa o autor apagar o próprio comentário e cria a denúncia de comentários; a `26` cria o chat, torna o WhatsApp
+opcional e define a retenção e os registros de acesso (ver "Chat" e "Retenção").
 
 ### Segurança (RLS e triggers)
 
 - **Colunas pessoais** (`email`, `cpf`, `telefone`, `matricula`, `password`) não são
   legíveis via `select` pela API. Logado e visitante leem de `usuarios` só
-  `id, nome, sobrenome, instituicoes_id, matricula_status, matricula_validada, criado_em`
+  `id, instituicoes_id, matricula_status, matricula_validada, criado_em` (nome e sobrenome só pela RPC `meu_usuario()`
+  e pelas RPCs de admin, desde a migração 23)
   (`auth_id`, `status` e `is_admin` só pelas RPCs `meu_usuario()`/`is_admin()`).
   Linhas: a própria ou de quem tem anúncio ativo (`usuario_publico()`).
 - **Grants mínimos (migração 18)**: `anon`/`authenticated` só têm os privilégios de coluna que o app usa
-  (ex.: `usuarios` só `UPDATE` de `matricula, matricula_status, matricula_validada, instituicoes_id`;
+  (ex.: `usuarios` só `UPDATE` de `nome, sobrenome, matricula, matricula_status, matricula_validada`; `lojas` sem `nome` no `UPDATE`;
   `produtos` sem `destaque`/`loja_id` no `UPDATE`; `categorias`/`instituicoes` só `SELECT`).
   Coluna nova que o cliente precise ler/gravar exige `GRANT` explícito na migração.
   Função de trigger `SECURITY INVOKER` não pode ler colunas ocultas de `usuarios`: use `meu_usuario()`.
@@ -155,8 +179,8 @@ cria as RPCs da página do anúncio.
   - `on_auth_email_change_requested` (auth.users): pedido de troca de e-mail só para domínio cadastrado
   - `on_auth_email_changed` (auth.users): e-mail confirmado sincroniza `usuarios.email` e o campus; mudou de campus, pausa os anúncios
   - `pausar_anuncios_sem_verificacao`: perder `matricula_validada` pausa os anúncios ativos
-  - `proteger_status_loja`: dono só alterna `ativo ↔ pausado`, não muda `slug`/`usuario_id`, não apaga o WhatsApp com anúncio ativo
-  - `exigir_vendedor_verificado`: publicar/reativar exige verificado, conta `ativo` e WhatsApp na loja; vendedor não altera `destaque`;
+  - `proteger_status_loja`: dono só alterna `ativo ↔ pausado`, não muda `slug`/`usuario_id`
+  - `exigir_vendedor_verificado`: publicar/reativar exige verificado e conta `ativo` (WhatsApp opcional desde a 26); vendedor não altera `destaque`;
     grava `renovado_em` (insert, reativação ou renovação) e `vendido_em`
 - RPCs (SECURITY DEFINER), expostas em `queries.ts`:
   - `meu_usuario()` → `getMeuUsuario` (dados completos do usuário logado); `minha_loja()` → `getMinhaLoja`
@@ -178,6 +202,20 @@ cria as RPCs da página do anúncio.
   - `admin_listar_usuarios()` / `admin_moderar_matricula(p_usuario_id, p_status)` / `admin_definir_status_usuario(p_usuario_id, p_status)`
   - `admin_listar_lojas()` / `admin_moderar_loja(p_loja_id, p_status)` / `admin_definir_destaque(p_produto_id, p_destaque)`
   - `admin_listar_denuncias()` / `admin_resolver_denuncia(p_denuncia_id, p_status)` — todas as `admin_*` exigem `is_admin()`
+  - `perguntas_do_anuncio(p_produto_id)` → `getPerguntasDoAnuncio` · `avaliacoes_do_vendedor(p_loja_id)` → `getAvaliacoesDoVendedor`
+  - `criar_pergunta` / `responder_pergunta` / `avaliar_vendedor`: chamadas só pelas rotas `/api` (o cliente usa
+    `enviarPergunta`/`enviarResposta`/`enviarAvaliacao`, que fazem `fetch` nelas)
+  - `aplicar_moderacao(p_segredo, …)`: grava a decisão da Vettly; exige `MODERACAO_SEGREDO` (nunca chamar do navegador)
+  - `admin_listar_moderacao()` / `admin_moderar_conteudo(p_tipo, p_id, p_aprovado)` → `/admin/comentarios`
+    (e o "Remover comentário" de `/admin/denuncias`)
+  - `excluir_meu_comentario(p_tipo, p_id)` → `excluirMeuComentario` · `denunciar_comentario(p_tipo, p_id, p_motivo, p_detalhes)`
+    → `denunciarComentario` (pelo `BotaoDenunciar` com a prop `comentario`)
+  - Chat (migração 26): `iniciar_conversa` → `iniciarConversa` (registra em `interesses`, mesmo limite de 30 vendedores/24h) ·
+    `enviar_mensagem` · `minhas_conversas` · `conversa_leitura` · `mensagens_da_conversa` (paginação e reconexão) ·
+    `marcar_conversa_lida` · `contar_mensagens_nao_lidas` · `ocultar_conversa` · `bloquear_conversa` ·
+    `denunciar_mensagem` (pelo `BotaoDenunciar` com `mensagemId`) · `admin_ler_conversa_denunciada` → `getConversaDenunciada`
+  - `registrar_acesso('login')` → `registrarAcesso` (chamado no login; as RPCs do chat registram sozinhas)
+  - `anuncio_leitura` e `perfil_leitura` devolvem `tem_whatsapp` (o botão do WhatsApp só aparece com número)
 - Cadastro só com e-mail de faculdade participante também no banco: `handle_new_user` rejeita o signup se
   `email_cadastro_permitido()` falhar (= domínio em `instituicoes.dominios`; espelho de `validarEmailUniversitario`).
 - Limites de texto/formato são `CHECK` no banco, espelhados em `LIMITES_TEXTO` (`src/lib/validacoes.ts`) como `maxLength`.
@@ -209,13 +247,14 @@ cria as RPCs da página do anúncio.
 ## Regras de negócio
 
 ### Atores
-- **Visitante** — vê só a home de apresentação (como funciona + faculdades participantes); catálogo exige login
+- **Visitante** — vê só a home de apresentação (hero + como funciona); catálogo exige login
 - **Estudante** — usuário cadastrado; ganha uma loja (perfil vendedor) no cadastro
-- **Vendedor** — estudante com `matricula_validada = true`, conta `ativo` e WhatsApp no perfil; pode publicar anúncios
+- **Vendedor** — estudante com `matricula_validada = true` e conta `ativo`; pode publicar anúncios (WhatsApp é opcional)
 - **Administrador** — valida matrículas, bloqueia alunos, modera lojas e denúncias, define impulsionados e gerencia imagens
 
 ### Acesso
 - Catálogo (`/listagem`, `/lojas/*`, `/perfil/*`) exige login (middleware leva ao `/login?aviso=catalogo&next=…`)
+- `/mensagens` exige login (middleware leva ao `/login?aviso=mensagens&next=…`)
 - `/minha-loja`, `/painel`, `/anunciar` exigem login; `/admin` exige `is_admin`
 - Anunciar exige matrícula validada (checado na página e no banco)
 - Cadastro exige aceitar Termos de Uso e Política de Privacidade; o aluno pode excluir a conta no painel (Perfil)
@@ -243,7 +282,38 @@ cria as RPCs da página do anúncio.
 - Criada automaticamente no cadastro com `status = 'ativo'`; o aluno não cria nem apaga loja
 - Status possíveis: `pendente | ativo | pausado | reprovado`; só `ativo` aparece no catálogo
 - Vendedor alterna entre `ativo` e `pausado`; reprovar/reativar é do admin
-- Bloquear aluno (admin) reprova a loja e pausa os anúncios; desbloquear deixa a loja `pausado`
+- Bloquear aluno (admin) reprova a loja e pausa os anúncios; desbloquear volta a loja para `ativo` (anúncios seguem pausados)
+- Perfil `pausado` ou `reprovado` mostra aviso no painel; `pausado` tem o botão "Reativar perfil"
+
+### Nome do aluno (migração 23)
+- **Nome pessoal** (`usuarios.nome`/`sobrenome`): identidade da conta, vem do cadastro e o aluno corrige no painel
+  (`atualizarMeuNome`). Outros alunos não leem; a equipe vê nas telas de admin
+- **Nome de exibição** (`lojas.nome_exibicao`, opcional): marca do aluno (ex.: "Bia Doces"), para quem empreende sem
+  aparecer com o próprio nome. Regra `nome_exibicao_valido` (2 a 60 caracteres, sem Circular/Admin/Modera…/Suporte/Oficial/Equipe),
+  espelhada em `problemaNomeExibicao` (`src/lib/validacoes.ts`) — mudar os dois juntos
+- **Nome público** (`lojas.nome`): calculado pelo trigger `definir_nome_publico_loja` = nome de exibição ou nome + sobrenome.
+  O app lê sempre `lojas.nome` (cards, anúncio, perfil, QR); nunca gravar direto (sem grant)
+- Textos para o aluno falam em "perfil", não em "loja" (a tabela continua `lojas`)
+
+### Perguntas e avaliações (migração 24)
+- **Perguntas**: aluno do mesmo campus pergunta no anúncio disponível (até 20 por dia); só o dono responde, uma vez
+  (se a resposta for recusada, pode escrever outra). Pergunta e resposta nascem `pendente`
+- **Avaliação**: nota de 1 a 5 no perfil do vendedor, com comentário opcional; uma por aluno e vendedor (reenviar atualiza).
+  Só quem tem registro em `interesses` com aquele vendedor (clicou em "Tenho interesse") e não é o dono.
+  Sem comentário a nota vale na hora; com comentário, espera a moderação. Média só com avaliações aprovadas
+- **Moderação**: a rota `/api` manda o texto à Vettly (`POST /v1/check`, idioma `pt`, política `marketplace`) **antes** de gravar.
+  `block` recusa e **nada é gravado** (avaliação anterior do aluno fica como estava); `allow` grava pela RPC e publica com
+  `aplicar_moderacao`; falha, chave ausente ou `flag` grava `pendente` na fila de `/admin/comentarios`.
+  A mensagem ao aluno traz o motivo (categorias com `triggered` → `motivosEmTexto` em `src/lib/moderacao.ts`;
+  categoria nova da política precisa de texto lá). Autor vê o status do que enviou; os outros só o aprovado
+- Comentários: perguntas e avaliações mostram 3 e o resto no "Ver mais"
+- **Apagar**: o autor apaga a própria pergunta (a resposta vai junto) ou avaliação; o dono do anúncio apaga a própria resposta
+- **Denunciar comentário** (migração 25): qualquer aluno logado denuncia pergunta, resposta ou avaliação publicada de outra
+  pessoa (uma denúncia aberta por comentário; limite de 10 denúncias por dia junto com anúncios/perfis). A denúncia guarda
+  uma cópia do texto, que continua na fila mesmo se o autor apagar. Em `/admin/denuncias`, aba Comentários, "Remover
+  comentário" tira do site (fica `recusado`) e resolve a denúncia
+- A Vettly recebe só o texto (sem nome, e-mail ou telefone); está citada na Política de Privacidade
+- Conteúdo de aluno bloqueado some das listas e da média
 
 ### Produtos
 - Apenas o dono da loja (ou admin) gerencia seus produtos
@@ -257,11 +327,38 @@ cria as RPCs da página do anúncio.
 
 ### Compra
 - Plataforma apenas conecta comprador e vendedor
-- Canal único: **WhatsApp** (`https://wa.me/{telefone}`), só para logados, via `BotaoContato`
-  (cada clique vira um registro em `interesses`, a métrica de interesse do MVP)
+- Dois canais, só para logados do mesmo campus: **chat do Circular** (sempre; "Tenho interesse" no anúncio, via `BotaoConversar`)
+  e **WhatsApp** (`https://wa.me/{telefone}`, via `BotaoContato`, só se o vendedor cadastrou o número).
+  Abrir conversa ou clicar no WhatsApp vira registro em `interesses` (métrica do MVP e requisito da avaliação)
 - `lojas.contato` armazena apenas dígitos do telefone (DDI + DDD + número);
   use os helpers de `src/lib/contato.ts` para gerar link e formatar
 - Sem carrinho, pedido ou pagamento interno
+
+### Chat (migração 26)
+- Uma conversa por anúncio e comprador. Gravação e leitura só por RPC; o trigger `publicar_mensagem` publica cada mensagem
+  com `realtime.send()` em canais **privados** (autorização por RLS em `realtime.messages`, função `pode_usar_topico_realtime`):
+  `conversa:{uuid}` (mensagem, lida, bloqueio; só o banco publica), `conversa:{uuid}:digitando` (os participantes publicam)
+  e `usuario:{id}` (nova_mensagem, conversa_lida). Espelho dos nomes: `topicoConversa`/`topicoDigitando`/`topicoUsuario` em `src/lib/chat.ts`
+- Cliente: `src/lib/chat-realtime.ts` (`assinarConversa`, `assinarUsuario`; um canal `usuario:` compartilhado entre Navbar e caixa de entrada).
+  A cada `SUBSCRIBED` busca o que faltou (`mensagens_da_conversa` com `p_depois`), porque o Broadcast não reenvia o que se perdeu offline.
+  `cliente_id` (uuid do navegador) deixa o reenvio idempotente. `CaixaEntrada` e `ConversaChat` assinam o Realtime e recarregam
+  dados em eventos: exceção à regra "componente não faz fetch" (como a Navbar); a carga inicial continua no `getServerSideProps`
+- Sem moderação automática. Limites: 20 mensagens/min e 500/dia por aluno; texto de 1 a 2000 caracteres (`LIMITES_TEXTO.mensagemChat`)
+- Bloquear: ninguém envia mais nada; só quem bloqueou desbloqueia. Apagar conversa: some só da lista do aluno e volta com mensagem nova
+- Denúncia de mensagem: guarda o texto e uma cópia da conversa (até 500 mensagens) em `privado.denuncia_conversa`.
+  O admin **não** lê as tabelas do chat: só a cópia, por `admin_ler_conversa_denunciada`, e cada leitura fica em `privado.acessos_admin_chat`
+- Realtime: em Project Settings → Realtime, deixar desligado "Allow public access" (só canais privados)
+- Push (OneSignal) ainda não existe; a coluna `mensagens.notificado_em` está reservada para ele
+
+### Retenção e registros de acesso (migração 26)
+- Prazos em `privado.config` (`retencao_conteudo_dias` = 30, `retencao_registros_acesso_dias` = 180); job diário do `pg_cron`
+  `circular-retencao` chama `privado.limpar_retencao()`
+- Conversa sem mensagem nova há 30 dias é apagada (menos as com denúncia aberta)
+- Excluir conta: tudo sai do site na hora; `excluir_minha_conta` grava antes uma cópia (perfil, anúncios, perguntas,
+  respostas, avaliações, conversas) em `privado.conteudo_retido`, apagada após 30 dias
+- Denúncia de mensagem resolvida/descartada: a cópia da conversa e o texto denunciado são apagados 30 dias depois (`denuncias.resolvida_em`)
+- Registros de acesso (Marco Civil, art. 15: mínimo de 6 meses): `privado.registros_acesso` com IP (`cf-connecting-ip`/`x-forwarded-for`
+  repassados pelo gateway do Supabase), data, hora e user agent, gravados no login e no chat (no máximo 1 por evento e IP a cada 10 min)
 
 ### Ajuda e e-mail da faculdade
 - Depois do cadastro e do "esqueci a senha", a tela `ConfiraEmail` mostra o botão para abrir o Outlook/Gmail
@@ -271,7 +368,7 @@ cria as RPCs da página do anúncio.
 - Pendências (domínios suspeitos, detalhes por faculdade, prints, canal de suporte): `docs/pendencias-ajuda.md`
 
 ### Fora do escopo desta versão
-- Pagamento interno, chat, notificações por email
+- Pagamento interno, notificações por email, push do chat (OneSignal, planejado)
 
 ---
 
@@ -305,6 +402,8 @@ cria as RPCs da página do anúncio.
 - Componentes recebem dados via props — não fazem fetch
   (exceção: `Navbar`, layout global que reage a login/logout; usa `getResumoUsuarioNavbar` no cliente)
 - Mutações disparadas por eventos (salvar, pausar, favoritar) chamam funções de `queries.ts`/`storage.ts`
+- Nunca `confirm()`/`alert()`/`prompt()` do navegador: ação destrutiva pede confirmação com `useConfirmacao`
+  (`src/components/ModalConfirmacao.tsx`, `perigo: true` para excluir/bloquear); erro aparece na tela (`role="alert"`)
 
 ---
 
@@ -320,4 +419,6 @@ em `src/styles/globals.css`; não use hex soltos nem as cores padrão do Tailwin
 - Ícone de categoria: `iconeParaCategoria` em `src/lib/icones-categoria.ts` (a coluna `categorias.icone` guarda emoji e não é exibida)
 - Todas as lojas seguem a identidade do site (não há cor por loja)
 - Hero da home (`HeroSection`): cada slide tem foto de fundo em `public/hero/` (WebP 1600px, CC0; créditos em
-  `public/hero/creditos.json`) sob degradê `petroleo-900` para o texto branco ficar legível
+  `public/hero/creditos.json`) sob degradê `petroleo-900` para o texto branco ficar legível. Os textos de todos os slides
+  ficam empilhados na mesma célula do grid (inativos `invisible`), então a altura do carrossel é a do slide mais longo e não pula
+- Manifesto do Modo Trocar (`SecaoTrocas`) usa o mesmo padrão: foto `public/hero/trocas.webp` sob degradê `petroleo-900`
