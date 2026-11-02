@@ -5,10 +5,21 @@ import {
   inicioValidade,
   modalidadeDoAnuncio,
   montarDescricao,
+  motivoForaDoAr,
   separarDescricao,
 } from "../anuncios.ts";
 
 const agora = new Date("2026-10-14T12:00:00.000Z");
+
+test("motivoForaDoAr explica ao dono por que o anúncio saiu do ar", () => {
+  const recente = "2026-10-01T12:00:00.000Z";
+  const antigo = "2026-07-01T12:00:00.000Z";
+  assert.equal(motivoForaDoAr("vendido", recente, agora), "marcado como vendido");
+  assert.equal(motivoForaDoAr("pausado", antigo, agora), "pausado");
+  assert.equal(motivoForaDoAr("ativo", antigo, agora), "vencido (passou de 60 dias sem renovar)");
+  // ativo e dentro do prazo: só sai do ar se a loja foi pausada ou reprovada
+  assert.equal(motivoForaDoAr("ativo", recente, agora), "fora do ar porque sua loja não está ativa");
+});
 
 test("anuncioExpirado usa o prazo de 60 dias", () => {
   assert.equal(anuncioExpirado("2026-10-01T12:00:00.000Z", agora), false);

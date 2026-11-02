@@ -42,7 +42,14 @@ test("idDoAnuncio aceita id com ou sem nome e recusa o resto", () => {
   assert.equal(idDoAnuncio("89"), 89);
   assert.equal(idDoAnuncio("0"), null);
   assert.equal(idDoAnuncio("abc"), null);
-  assert.equal(idDoAnuncio("89-Com Espaço"), null);
+  // nome em qualquer forma: a página redireciona para o endereço certo
+  assert.equal(idDoAnuncio("89-Com Espaço"), 89);
+  assert.equal(idDoAnuncio("89-Calculadora-HP"), 89);
+  assert.equal(idDoAnuncio("89-café"), 89);
+  assert.equal(idDoAnuncio("89-calculadora_hp"), 89);
+  assert.equal(idDoAnuncio("89calculadora"), null);
+  assert.equal(idDoAnuncio("89-a/b"), null);
+  assert.equal(idDoAnuncio(`89-${"a".repeat(300)}`), null);
   assert.equal(idDoAnuncio("1234567890"), null);
   assert.equal(idDoAnuncio(["89"]), null);
   assert.equal(idDoAnuncio(undefined), null);
@@ -67,6 +74,14 @@ test("destinoCompartilhado recusa o que não é link compartilhado válido", () 
   assert.equal(destinoCompartilhado("/anuncio/89-calculadora"), null);
   assert.equal(destinoCompartilhado("/perfil/ana-costa?c=curto"), null);
   assert.equal(destinoCompartilhado("/anuncio/abc?c=5a6461f0ac39"), null);
+  // %-escape malformado não pode derrubar o middleware
+  assert.equal(destinoCompartilhado("/anuncio/89-%E0?c=5a6461f0ac39"), null);
+  assert.equal(destinoCompartilhado("/perfil/ana%E0?c=5a6461f0ac39"), null);
+  assert.deepEqual(destinoCompartilhado("/anuncio/89-Caf%C3%A9?c=5a6461f0ac39"), {
+    tipo: "anuncio",
+    id: 89,
+    codigo: "5a6461f0ac39",
+  });
   assert.equal(destinoCompartilhado("/listagem?c=5a6461f0ac39"), null);
   assert.equal(destinoCompartilhado("/perfil/a/b?c=5a6461f0ac39"), null);
   assert.equal(destinoCompartilhado("//evil.com/perfil/x?c=5a6461f0ac39"), null);
