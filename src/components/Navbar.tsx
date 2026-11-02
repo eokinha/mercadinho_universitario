@@ -33,7 +33,8 @@ export default function Navbar() {
 
       if (data) {
         setIsAdmin(data.is_admin);
-        setNomeUsuario(data.nome);
+        // Perfil com nome de exibição (marca) aparece com ele; senão, o nome pessoal
+        setNomeUsuario(data.nome_exibicao || data.nome);
         setCampusNome(data.instituicao_nome);
         setCampusLogo(logoDaFaculdade(data.instituicao_dominios));
         setLojaId(data.loja_id);
