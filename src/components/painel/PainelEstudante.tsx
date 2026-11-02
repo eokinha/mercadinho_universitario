@@ -6,7 +6,6 @@ import { atualizarStatusProduto, deletarProduto, renovarProduto, updateLoja } fr
 import { removerImagensProduto } from "@/lib/storage";
 import type { PainelProps } from "@/lib/painel-data";
 import { PAGINAS_PAINEL, type AbaPainel } from "@/lib/painel-routes";
-import SeloVerificado from "@/components/SeloVerificado";
 import { useConfirmacao } from "@/components/ModalConfirmacao";
 import SecaoAnuncios from "@/components/painel/SecaoAnuncios";
 import SecaoFavoritos from "@/components/painel/SecaoFavoritos";
@@ -189,9 +188,7 @@ export default function PainelEstudante({
                     <h1 className="text-xl sm:text-2xl font-bold text-petroleo tracking-tight">
                       {loja.nome}
                     </h1>
-                    {matriculaStatus === "verificado" ? (
-                      <SeloVerificado tamanho="md" />
-                    ) : matriculaStatus === "pendente" ? (
+                    {matriculaStatus === "verificado" ? null : matriculaStatus === "pendente" ? (
                       <span className="inline-flex items-center gap-1 rounded-pill text-xs font-semibold px-2.5 py-1 bg-doacao-50 text-doacao">
                         <Clock size={14} strokeWidth={1.75} aria-hidden="true" />
                         Matrícula em análise
@@ -206,7 +203,6 @@ export default function PainelEstudante({
                       </Link>
                     )}
                   </div>
-                  <p className="text-xs text-tinta-suave mt-0.5 font-semibold">{userEmail}</p>
                   <div className="mt-1.5 flex items-center gap-3 text-xs text-tinta-suave">
                     <Link
                       href={`/perfil/${loja.id}`}
