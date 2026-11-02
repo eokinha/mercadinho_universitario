@@ -59,6 +59,8 @@ export const LIMITES_TEXTO = {
   pergunta: 500,
   resposta: 500,
   comentarioAvaliacao: 500,
+  // Mensagem do chat (CHECK de 1 a 2000 caracteres; migração 26)
+  mensagemChat: 2000,
 } as const;
 
 // @ do Instagram/TikTok (espelho de lojas_instagram_formato). Devolve o handle sem "@",

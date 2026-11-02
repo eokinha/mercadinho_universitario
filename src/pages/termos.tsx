@@ -29,7 +29,8 @@ export default function TermosPage() {
             <p>
               A Circular conecta alunos do mesmo campus para vender e trocar itens. Nós não vendemos, não compramos,
               não intermediamos pagamentos e não entregamos nada: a negociação acontece direto entre os alunos, pelo
-              WhatsApp, e o encontro é combinado entre vocês.
+              chat do Circular ou pelo WhatsApp (quando o vendedor cadastra o número), e o encontro é combinado entre
+              vocês.
             </p>
           </section>
 
@@ -46,7 +47,7 @@ export default function TermosPage() {
               </li>
               <li>
                 Para anunciar, é preciso ter a matrícula verificada (pelo e-mail institucional ou por análise da
-                equipe) e um WhatsApp cadastrado no perfil.
+                equipe). O WhatsApp no perfil é opcional; sem ele, o contato é só pelo chat.
               </li>
               <li>Cada pessoa pode ter uma única conta.</li>
             </ul>

@@ -56,6 +56,12 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/anuncio") ||
     request.nextUrl.pathname.startsWith("/lojas");
 
+  // Chat: visitante vai para o login e volta para a conversa
+  if (!user && request.nextUrl.pathname.startsWith("/mensagens")) {
+    const destino = request.nextUrl.pathname + request.nextUrl.search;
+    return NextResponse.redirect(new URL(urlLogin("mensagens", destino), request.url));
+  }
+
   if (!user && isProtectedRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
   }

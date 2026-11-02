@@ -3,9 +3,9 @@ import Head from "next/head";
 import Link from "next/link";
 import type { GetServerSideProps } from "next";
 import { createServerClient } from "@/lib/supabase";
-import { getDenunciasParaModeracao, moderarConteudo, resolverDenuncia } from "@/lib/queries";
-import type { AlvoDenuncia, DenunciaModeracao, DenunciaStatus, MotivoDenuncia } from "@/types";
-import { Flag, MessageSquare, Package } from "lucide-react";
+import { getConversaDenunciada, getDenunciasParaModeracao, moderarConteudo, resolverDenuncia } from "@/lib/queries";
+import type { AlvoDenuncia, ConversaDenunciada, DenunciaModeracao, DenunciaStatus, MotivoDenuncia } from "@/types";
+import { Flag, MessageCircle, MessageSquare, Package } from "lucide-react";
 
 interface Props {
   denunciasIniciais: DenunciaModeracao[];
@@ -37,13 +37,15 @@ const STATUS: { valor: DenunciaStatus; rotulo: string; classe: string }[] = [
   { valor: "descartada", rotulo: "Descartadas", classe: "bg-pagina text-tinta-suave" },
 ];
 
-// Duas filas: anúncios e perfis, e comentários (perguntas, respostas e avaliações; migração 25)
-type Grupo = "posts" | "comentarios";
+// Três filas: anúncios e perfis, comentários (migração 25) e mensagens do chat (migração 26)
+type Grupo = "posts" | "comentarios" | "mensagens";
 const GRUPOS: { valor: Grupo; rotulo: string; Icone: typeof Flag }[] = [
   { valor: "posts", rotulo: "Anúncios e perfis", Icone: Package },
   { valor: "comentarios", rotulo: "Comentários", Icone: MessageSquare },
+  { valor: "mensagens", rotulo: "Mensagens", Icone: MessageCircle },
 ];
-const grupoDe = (alvo: AlvoDenuncia): Grupo => (alvo === "anuncio" || alvo === "perfil" ? "posts" : "comentarios");
+const grupoDe = (alvo: AlvoDenuncia): Grupo =>
+  alvo === "anuncio" || alvo === "perfil" ? "posts" : alvo === "mensagem" ? "mensagens" : "comentarios";
 
 const TIPO_ALVO: Record<AlvoDenuncia, string> = {
   anuncio: "Anúncio",
@@ -51,6 +53,7 @@ const TIPO_ALVO: Record<AlvoDenuncia, string> = {
   pergunta: "Pergunta",
   resposta: "Resposta",
   avaliacao: "Avaliação",
+  mensagem: "Mensagem do chat",
 };
 
 const FOCO = "focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2";
@@ -62,6 +65,8 @@ export default function AdminDenunciasPage({ denunciasIniciais }: Props) {
   const [filtro, setFiltro] = useState<DenunciaStatus>("aberta");
   const [processando, setProcessando] = useState<number | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  // Cópias de conversas abertas pelo admin (cada abertura fica registrada no banco)
+  const [conversas, setConversas] = useState<Record<number, ConversaDenunciada>>({});
 
   const doGrupo = useMemo(() => denuncias.filter((d) => grupoDe(d.alvo_tipo) === grupo), [denuncias, grupo]);
   const filtradas = useMemo(() => doGrupo.filter((d) => d.status === filtro), [doGrupo, filtro]);
@@ -69,7 +74,7 @@ export default function AdminDenunciasPage({ denunciasIniciais }: Props) {
   // Tira o comentário do site (fica recusado) e resolve a denúncia
   async function handleRemoverComentario(denuncia: DenunciaModeracao) {
     const id = denuncia.alvo_tipo === "avaliacao" ? denuncia.avaliacao_id : denuncia.pergunta_id;
-    if (!id || denuncia.alvo_tipo === "anuncio" || denuncia.alvo_tipo === "perfil") return;
+    if (!id || denuncia.alvo_tipo === "anuncio" || denuncia.alvo_tipo === "perfil" || denuncia.alvo_tipo === "mensagem") return;
     if (!confirm("Remover este comentário do site? O autor não é avisado.")) return;
     setProcessando(denuncia.id);
     setErro(null);
@@ -85,6 +90,27 @@ export default function AdminDenunciasPage({ denunciasIniciais }: Props) {
       );
     } catch (err) {
       setErro((err as { message?: string })?.message || "Erro ao remover o comentário.");
+    } finally {
+      setProcessando(null);
+    }
+  }
+
+  async function handleVerConversa(denuncia: DenunciaModeracao) {
+    if (conversas[denuncia.id]) {
+      setConversas((prev) => {
+        const resto = { ...prev };
+        delete resto[denuncia.id];
+        return resto;
+      });
+      return;
+    }
+    setProcessando(denuncia.id);
+    setErro(null);
+    try {
+      const conversa = await getConversaDenunciada(denuncia.id);
+      setConversas((prev) => ({ ...prev, [denuncia.id]: conversa }));
+    } catch (err) {
+      setErro((err as { message?: string })?.message || "Erro ao abrir a conversa.");
     } finally {
       setProcessando(null);
     }
@@ -144,7 +170,9 @@ export default function AdminDenunciasPage({ denunciasIniciais }: Props) {
           <p className="text-sm text-tinta-suave mt-1 mb-6">
             {grupo === "posts"
               ? "Para tirar algo do ar, reprove a loja em Lojas ou bloqueie o aluno em Matrículas. Depois marque a denúncia como resolvida."
-              : "Remover comentário tira a pergunta, resposta ou avaliação do site e resolve a denúncia. O texto denunciado fica guardado aqui."}
+              : grupo === "comentarios"
+                ? "Remover comentário tira a pergunta, resposta ou avaliação do site e resolve a denúncia. O texto denunciado fica guardado aqui."
+                : "A equipe só lê conversas denunciadas, pela cópia feita no momento da denúncia, e cada leitura fica registrada. Para agir, bloqueie o aluno em Matrículas. A cópia é apagada 30 dias depois de a denúncia ser resolvida ou descartada."}
           </p>
 
           <div role="tablist" aria-label="Tipo de denúncia" className="flex gap-2 mb-3 overflow-x-auto no-scrollbar">
@@ -219,6 +247,7 @@ export default function AdminDenunciasPage({ denunciasIniciais }: Props) {
                     </blockquote>
                   )}
                   {d.detalhes && <p className="text-sm text-tinta-suave whitespace-pre-line">{d.detalhes}</p>}
+                  {conversas[d.id] && <TranscricaoConversa conversa={conversas[d.id]} />}
                   <p className="text-xs text-tinta-suave">
                     Enviada por {d.denunciante_nome ?? "conta excluída"}
                     {d.denunciante_email ? ` · ${d.denunciante_email}` : ""}
@@ -228,6 +257,11 @@ export default function AdminDenunciasPage({ denunciasIniciais }: Props) {
                       <Link href={d.link} target="_blank" className={`${BOTAO_SECUNDARIO} inline-flex items-center`}>
                         {d.produto_id ? "Ver anúncio" : "Ver perfil"}
                       </Link>
+                    )}
+                    {d.alvo_tipo === "mensagem" && d.tem_conversa && (
+                      <button type="button" disabled={processando === d.id} onClick={() => handleVerConversa(d)} className={BOTAO_SECUNDARIO}>
+                        {conversas[d.id] ? "Fechar conversa" : "Ver conversa"}
+                      </button>
                     )}
                     {d.comentario_no_ar && (
                       <button type="button" disabled={processando === d.id} onClick={() => handleRemoverComentario(d)} className={BOTAO_SECUNDARIO}>
@@ -256,5 +290,43 @@ export default function AdminDenunciasPage({ denunciasIniciais }: Props) {
         </div>
       </div>
     </>
+  );
+}
+
+// Cópia da conversa: participantes (nome e e-mail, só para a equipe) e mensagens, com a denunciada em destaque
+function TranscricaoConversa({ conversa }: { conversa: ConversaDenunciada }) {
+  const nomes = new Map(conversa.participantes.map((p) => [p.usuario_id, p]));
+  return (
+    <div className="border border-borda rounded-card bg-pagina p-3 flex flex-col gap-3">
+      <ul className="text-xs text-tinta-suave flex flex-col gap-0.5">
+        {conversa.participantes.map((p) => (
+          <li key={p.usuario_id}>
+            <span className="font-semibold text-tinta">{p.papel === "comprador" ? "Comprador" : "Vendedor"}:</span>{" "}
+            {p.nome} ({p.nome_publico ?? "sem perfil"}) · {p.email}
+          </li>
+        ))}
+        <li>Cópia feita em {new Date(conversa.copiada_em).toLocaleString("pt-BR")}</li>
+      </ul>
+      <ol className="flex flex-col gap-1.5 max-h-96 overflow-y-auto">
+        {conversa.mensagens.map((m) => {
+          const autor = nomes.get(m.autor_id);
+          const denunciada = m.id === conversa.mensagem_denunciada_id;
+          return (
+            <li
+              key={m.id}
+              className={`rounded-controle px-3 py-2 text-sm ${denunciada ? "bg-perigo-50 border border-perigo" : "bg-superficie border border-borda"}`}
+            >
+              <p className="text-xs text-tinta-suave">
+                <span className="font-semibold text-tinta">{autor?.nome_publico ?? autor?.nome ?? "Conta excluída"}</span>
+                {" · "}
+                {new Date(m.criado_em).toLocaleString("pt-BR")}
+                {denunciada && <span className="font-semibold text-perigo"> · mensagem denunciada</span>}
+              </p>
+              <p className="text-tinta whitespace-pre-wrap break-words mt-0.5">{m.texto}</p>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }

@@ -17,7 +17,7 @@ export default function SecaoFavoritos({ favoritos, onRemovido }: Props) {
             Itens que você salvou
           </h2>
           <p className="text-sm text-tinta-suave mt-0.5">
-            Fale com quem anunciou pelo WhatsApp para combinar a compra ou a troca.
+            Fale com quem anunciou pelo chat ou pelo WhatsApp para combinar a compra ou a troca.
           </p>
         </div>
       </div>

@@ -5,7 +5,11 @@ import type {
   Categoria,
   CategoriaComFilhos,
   ConteudoModeracao,
+  ConversaDenunciada,
+  ConversaLeitura,
+  ConversaResumo,
   DenunciaModeracao,
+  MensagemChat,
   DenunciaStatus,
   Instituicao,
   Loja,
@@ -214,6 +218,7 @@ export async function getPerfilLeitura(
     produtos: ProdutoListagem[];
     mesmo_campus: boolean;
     eh_dono?: boolean;
+    tem_whatsapp?: boolean;
     codigo_compartilhamento?: string | null;
   };
   return {
@@ -221,6 +226,7 @@ export async function getPerfilLeitura(
     produtos: (raw.produtos ?? []).map((p) => ({ ...p, preco: Number(p.preco) })),
     mesmoCampus: raw.mesmo_campus,
     ehDono: raw.eh_dono ?? false,
+    temWhatsapp: raw.tem_whatsapp ?? false,
     codigoCompartilhamento: raw.codigo_compartilhamento ?? null,
   };
 }
@@ -251,6 +257,7 @@ export async function getAnuncioLeitura(
     disponivel: boolean;
     eh_dono: boolean;
     mesmo_campus?: boolean;
+    tem_whatsapp?: boolean;
     codigo_compartilhamento?: string | null;
     favoritado?: boolean;
     anuncio: AnuncioDetalhe;
@@ -268,6 +275,7 @@ export async function getAnuncioLeitura(
     disponivel: raw.disponivel,
     ehDono: raw.eh_dono,
     mesmoCampus: raw.mesmo_campus ?? false,
+    temWhatsapp: raw.tem_whatsapp ?? false,
     codigoCompartilhamento: raw.codigo_compartilhamento ?? null,
     favoritado: raw.favoritado ?? false,
     anuncio: { ...raw.anuncio, preco: Number(raw.anuncio.preco) },
@@ -531,6 +539,7 @@ export async function solicitarVerificacaoMatricula(
 export async function getResumoUsuarioNavbar(
   client: SupabaseClient = defaultClient
 ): Promise<{
+  usuario_id: number;
   is_admin: boolean;
   nome: string;
   instituicoes_id: number | null;
@@ -553,6 +562,7 @@ export async function getResumoUsuarioNavbar(
   if (erroInstituicao) throw erroInstituicao;
 
   return {
+    usuario_id: Number(usuario.id),
     is_admin: !!usuario.is_admin,
     nome: usuario.nome || "",
     instituicoes_id: usuario.instituicoes_id ? Number(usuario.instituicoes_id) : null,
@@ -756,7 +766,23 @@ export async function getDenunciasParaModeracao(
     id: Number(d.id),
     pergunta_id: d.pergunta_id === null ? null : Number(d.pergunta_id),
     avaliacao_id: d.avaliacao_id === null ? null : Number(d.avaliacao_id),
+    mensagem_id: d.mensagem_id === null ? null : Number(d.mensagem_id),
   }));
+}
+
+// Cópia da conversa de uma denúncia de mensagem (só admin; cada leitura fica registrada no banco)
+export async function getConversaDenunciada(
+  denunciaId: number,
+  client: SupabaseClient = defaultClient
+): Promise<ConversaDenunciada> {
+  const { data, error } = await client.rpc("admin_ler_conversa_denunciada", { p_denuncia_id: denunciaId });
+  if (error) throw error;
+  const raw = data as ConversaDenunciada;
+  return {
+    ...raw,
+    mensagem_denunciada_id: Number(raw.mensagem_denunciada_id),
+    mensagens: (raw.mensagens ?? []).map((m) => ({ ...m, id: Number(m.id) })),
+  };
 }
 
 export async function resolverDenuncia(
@@ -865,5 +891,121 @@ export async function denunciarComentario(
     p_motivo: dados.motivo,
     p_detalhes: dados.detalhes?.trim() || null,
   });
+  if (error) throw error;
+}
+
+// ---------------------------------------------------------------------------
+// CHAT (migração 26)
+// Tudo por RPC; as mensagens novas chegam pelo Realtime (src/lib/chat.ts)
+// ---------------------------------------------------------------------------
+
+function mapearMensagem(m: MensagemChat): MensagemChat {
+  return { ...m, id: Number(m.id), autor_id: Number(m.autor_id) };
+}
+
+function mapearConversa<T extends ConversaResumo>(c: T): T {
+  return {
+    ...c,
+    nao_lidas: Number(c.nao_lidas ?? 0),
+    produto: { ...c.produto, preco: c.produto.preco === null ? null : Number(c.produto.preco) },
+  };
+}
+
+// Abre (ou reabre) a conversa com o vendedor do anúncio; conta como interesse
+export async function iniciarConversa(produtoId: number, client: SupabaseClient = defaultClient): Promise<string> {
+  const { data, error } = await client.rpc("iniciar_conversa", { p_produto_id: produtoId });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function getMinhasConversas(client: SupabaseClient = defaultClient): Promise<ConversaResumo[]> {
+  const { data, error } = await client.rpc("minhas_conversas");
+  if (error) throw error;
+  return ((data ?? []) as ConversaResumo[]).map(mapearConversa);
+}
+
+// null = a conversa não existe ou não é do aluno
+export async function getConversaLeitura(
+  conversaId: string,
+  client: SupabaseClient = defaultClient
+): Promise<ConversaLeitura | null> {
+  const { data, error } = await client.rpc("conversa_leitura", { p_conversa_id: conversaId });
+  if (error) throw error;
+  if (!data) return null;
+  const raw = mapearConversa(data as ConversaLeitura);
+  return { ...raw, meu_id: Number(raw.meu_id), mensagens: (raw.mensagens ?? []).map(mapearMensagem) };
+}
+
+// antes = página anterior (50); depois = o que chegou desde o último id (reconexão do Realtime)
+export async function getMensagensDaConversa(
+  conversaId: string,
+  opcoes: { antes?: number; depois?: number },
+  client: SupabaseClient = defaultClient
+): Promise<MensagemChat[]> {
+  const { data, error } = await client.rpc("mensagens_da_conversa", {
+    p_conversa_id: conversaId,
+    p_antes: opcoes.antes ?? null,
+    p_depois: opcoes.depois ?? null,
+  });
+  if (error) throw error;
+  return ((data ?? []) as MensagemChat[]).map(mapearMensagem);
+}
+
+export async function enviarMensagem(
+  conversaId: string,
+  texto: string,
+  clienteId: string,
+  client: SupabaseClient = defaultClient
+): Promise<MensagemChat> {
+  const { data, error } = await client.rpc("enviar_mensagem", {
+    p_conversa_id: conversaId,
+    p_texto: texto,
+    p_cliente_id: clienteId,
+  });
+  if (error) throw error;
+  return mapearMensagem(data as MensagemChat);
+}
+
+export async function marcarConversaLida(conversaId: string, client: SupabaseClient = defaultClient): Promise<void> {
+  const { error } = await client.rpc("marcar_conversa_lida", { p_conversa_id: conversaId });
+  if (error) throw error;
+}
+
+export async function contarMensagensNaoLidas(client: SupabaseClient = defaultClient): Promise<number> {
+  const { data, error } = await client.rpc("contar_mensagens_nao_lidas");
+  if (error) throw error;
+  return Number(data ?? 0);
+}
+
+// Tira a conversa da caixa de entrada do aluno (volta se chegar mensagem nova)
+export async function ocultarConversa(conversaId: string, client: SupabaseClient = defaultClient): Promise<void> {
+  const { error } = await client.rpc("ocultar_conversa", { p_conversa_id: conversaId });
+  if (error) throw error;
+}
+
+export async function bloquearConversa(
+  conversaId: string,
+  bloquear: boolean,
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const { error } = await client.rpc("bloquear_conversa", { p_conversa_id: conversaId, p_bloquear: bloquear });
+  if (error) throw error;
+}
+
+export async function denunciarMensagem(
+  dados: { mensagemId: number; motivo: MotivoDenuncia; detalhes?: string },
+  client: SupabaseClient = defaultClient
+): Promise<void> {
+  const { error } = await client.rpc("denunciar_mensagem", {
+    p_mensagem_id: dados.mensagemId,
+    p_motivo: dados.motivo,
+    p_detalhes: dados.detalhes?.trim() || null,
+  });
+  if (error) throw error;
+}
+
+// Registro de acesso (Marco Civil): o banco grava IP, data e hora do login
+export async function registrarAcesso(client: SupabaseClient = defaultClient): Promise<void> {
+  const { error } = await client.rpc("registrar_acesso", { p_evento: "login" });
   if (error) throw error;
 }

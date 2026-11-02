@@ -183,7 +183,7 @@ export default function SecaoPerguntas({ produtoId, perguntasIniciais, ehDono, p
       {podePerguntar && (
         <form onSubmit={handlePerguntar} className="mt-4 bg-superficie border border-borda rounded-card p-4 flex flex-col gap-3">
           <label className="text-sm font-semibold text-tinta">
-            Pergunte antes de chamar no WhatsApp
+            Pergunte antes de chamar o vendedor
             <textarea
               value={texto}
               onChange={(e) => setTexto(e.target.value)}

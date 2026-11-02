@@ -17,6 +17,7 @@ import {
 import AvisoFavorito, { type TipoAvisoFavorito } from "@/components/AvisoFavorito";
 import BotaoCompartilhar from "@/components/BotaoCompartilhar";
 import BotaoContato from "@/components/BotaoContato";
+import BotaoConversar from "@/components/BotaoConversar";
 import BotaoDenunciar from "@/components/BotaoDenunciar";
 import CardProduto from "@/components/CardProduto";
 import Estrelas, { formatarNota } from "@/components/Estrelas";
@@ -313,13 +314,23 @@ export default function AnuncioPage({ leitura, favoritos, perguntas, notaVendedo
                 </Link>
               ) : (
                 podeInteragir && (
-                  <BotaoContato
-                    lojaId={loja.id}
-                    produtoId={anuncio.id}
-                    mensagem={`Olá! Vi "${anuncio.nome}" na Circular e tenho interesse.`}
-                    rotulo="Tenho interesse"
-                    className={`w-full bg-acao hover:bg-acao-hover text-white rounded-controle px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center gap-2 text-sm font-semibold transition ${FOCO}`}
-                  />
+                  <>
+                    {/* Chat sempre; WhatsApp só se o vendedor cadastrou o número */}
+                    <BotaoConversar
+                      produtoId={anuncio.id}
+                      rotulo="Tenho interesse"
+                      className={`w-full bg-acao hover:bg-acao-hover text-white rounded-controle px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center gap-2 text-sm font-semibold transition ${FOCO}`}
+                    />
+                    {leitura.temWhatsapp && (
+                      <BotaoContato
+                        lojaId={loja.id}
+                        produtoId={anuncio.id}
+                        mensagem={`Olá! Vi "${anuncio.nome}" na Circular e tenho interesse.`}
+                        rotulo="WhatsApp"
+                        className={`w-full bg-superficie text-petroleo border border-borda-controle hover:border-petroleo rounded-controle px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center gap-2 text-sm font-semibold transition ${FOCO}`}
+                      />
+                    )}
+                  </>
                 )
               )}
               {disponivel && codigoCompartilhamento && (

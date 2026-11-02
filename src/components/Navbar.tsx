@@ -2,11 +2,12 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
-import { getResumoUsuarioNavbar } from "@/lib/queries";
+import { contarMensagensNaoLidas, getResumoUsuarioNavbar } from "@/lib/queries";
+import { assinarUsuario } from "@/lib/chat-realtime";
 import { PAGINAS_PAINEL } from "@/lib/painel-routes";
 import Logo from "@/components/Logo";
 import { logoDaFaculdade, nomeCurtoFaculdade } from "@/lib/faculdades";
-import { Flag, GraduationCap, Image as ImageIcon, LogOut, Plus, ShieldCheck, Store, UserRound } from "lucide-react";
+import { Flag, GraduationCap, Image as ImageIcon, LogOut, MessageCircle, Plus, ShieldCheck, Store, UserRound } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 export default function Navbar() {
@@ -22,6 +23,9 @@ export default function Navbar() {
   const [campusLogo, setCampusLogo] = useState<string | null>(null);
   const [lojaId, setLojaId] = useState<number | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  // Chat: id do aluno (canal usuario:{id}) e mensagens não lidas
+  const [usuarioId, setUsuarioId] = useState<number | null>(null);
+  const [naoLidas, setNaoLidas] = useState(0);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -38,6 +42,7 @@ export default function Navbar() {
         setCampusLogo(logoDaFaculdade(data.instituicao_dominios));
         setLojaId(data.loja_id);
         setAvatarUrl(data.avatar_url);
+        setUsuarioId(data.usuario_id);
 
         // Sem campus (e-mail de faculdade não participante): onboarding explica e oferece a troca
         const isAuthPage =
@@ -71,6 +76,8 @@ export default function Navbar() {
         setCampusLogo(null);
         setLojaId(null);
         setAvatarUrl(null);
+        setUsuarioId(null);
+        setNaoLidas(0);
       }
     });
 
@@ -88,6 +95,30 @@ export default function Navbar() {
       document.removeEventListener("mousedown", handleClickFora);
     };
   }, [router]);
+
+  // Contador de não lidas: carrega ao entrar e a cada navegação; o Realtime avisa de mensagem nova
+  // e de conversa lida (inclusive em outra aba)
+  useEffect(() => {
+    if (!usuarioId) return;
+    let ativo = true;
+    const recontar = () =>
+      contarMensagensNaoLidas()
+        .then((n) => ativo && setNaoLidas(n))
+        .catch(() => undefined);
+    recontar();
+    const canal = assinarUsuario(usuarioId, {
+      onNovaMensagem: (m) => {
+        if (m.autor_id !== usuarioId) recontar();
+      },
+      onConversaLida: recontar,
+    });
+    router.events.on("routeChangeComplete", recontar);
+    return () => {
+      ativo = false;
+      canal.sair();
+      router.events.off("routeChangeComplete", recontar);
+    };
+  }, [usuarioId, router.events]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -166,6 +197,24 @@ export default function Navbar() {
             >
               <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
               <span className="hidden sm:inline">Anunciar</span>
+            </Link>
+          )}
+
+          {user && (
+            <Link
+              href="/mensagens"
+              aria-label={naoLidas > 0 ? `Mensagens: ${naoLidas} não lidas` : "Mensagens"}
+              className="relative w-11 h-11 inline-flex items-center justify-center rounded-controle text-petroleo hover:bg-petroleo-50 transition shrink-0 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+            >
+              <MessageCircle size={20} strokeWidth={1.75} aria-hidden="true" />
+              {naoLidas > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-1 right-0.5 min-w-[18px] h-[18px] px-1 rounded-pill bg-acao text-white text-[11px] font-bold leading-[18px] text-center"
+                >
+                  {naoLidas > 99 ? "99+" : naoLidas}
+                </span>
+              )}
             </Link>
           )}
 
