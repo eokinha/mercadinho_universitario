@@ -140,10 +140,12 @@ export default function Navbar() {
 
   return (
     <header className="bg-superficie border-b border-borda sticky top-0 z-30">
-      {/* Até lg: linha flexível (a busca ocupa o meio). A partir de lg: três colunas, busca centralizada na página */}
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2 sm:gap-4 lg:grid lg:grid-cols-[1fr_minmax(0,36rem)_1fr]">
+      {/* Os logos (Circular e faculdade) nunca encolhem: quem cede espaço é a busca e depois o nome.
+          Até md: duas linhas (logos + ações em cima, busca embaixo). A partir de md: uma linha, com os
+          lados de peso igual para a busca ficar no centro da página enquanto couber. */}
+      <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap md:flex-nowrap items-center gap-x-3 gap-y-2 md:gap-x-4">
         {/* Circular | logo da faculdade do aluno */}
-        <div className="flex items-center gap-3 min-w-0 shrink-0">
+        <div className="flex items-center gap-3 shrink-0 md:flex-1 md:basis-0">
           <Link
             href="/"
             aria-label="Circular — página inicial"
@@ -158,12 +160,17 @@ export default function Navbar() {
           </Link>
 
           {user && campusNome && (
-            <div title={`Seu campus: ${campusNome}`} className="hidden md:flex items-center gap-3 min-w-0">
+            <div title={`Seu campus: ${campusNome}`} className="flex items-center gap-3 shrink-0">
               <span className="h-7 border-l border-borda" aria-hidden="true" />
               {campusLogo ? (
-                <img src={campusLogo} alt={`Seu campus: ${campusNome}`} className="h-7 w-auto max-w-[140px] object-contain" />
+                <img
+                  src={campusLogo}
+                  alt={`Seu campus: ${campusNome}`}
+                  className="h-6 sm:h-7 w-auto max-w-none shrink-0"
+                />
               ) : (
-                <span className="text-sm font-semibold text-tinta-suave truncate max-w-[160px]">
+                // Sem logo: nome curto (sigla); nome longo sem sigla trunca para não empurrar as ações
+                <span className="text-sm font-semibold text-tinta-suave truncate max-w-28 sm:max-w-40">
                   <span className="sr-only">Seu campus: </span>
                   {nomeCurtoFaculdade(campusNome)}
                 </span>
@@ -172,9 +179,13 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Busca no catálogo do campus (só logados) */}
+        {/* Busca no catálogo do campus (só logados); no celular vai para a segunda linha */}
         {user ? (
-          <form onSubmit={handleSubmit} className="flex-1 min-w-0 w-full" role="search">
+          <form
+            onSubmit={handleSubmit}
+            className="order-last basis-full md:order-none md:grow-0 md:shrink md:basis-xl md:min-w-40"
+            role="search"
+          >
             <input
               type="search"
               value={termo}
@@ -184,12 +195,11 @@ export default function Navbar() {
               className="w-full rounded-pill border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 px-4 py-2 min-h-[44px] text-sm text-tinta placeholder:text-tinta-sutil transition bg-superficie"
             />
           </form>
-        ) : (
-          <div className="flex-1" />
-        )}
+        ) : null}
 
         {/* Ações e Menu do Usuário */}
-        <div className="flex items-center justify-end gap-2 sm:gap-3 shrink-0">
+        <div className="ml-auto min-w-0 flex items-center justify-end gap-2 sm:gap-3 md:flex-1 md:basis-0 md:min-w-auto">
+
           {user && (
             <Link
               href="/anunciar"
@@ -197,7 +207,8 @@ export default function Navbar() {
               className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-white text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-controle transition shrink-0 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
             >
               <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
-              <span className="hidden sm:inline">Anunciar</span>
+              {/* Entre md e lg a linha única fica apertada: só o ícone, para a busca ter espaço */}
+              <span className="hidden sm:inline md:hidden lg:inline">Anunciar</span>
             </Link>
           )}
 
@@ -220,16 +231,16 @@ export default function Navbar() {
           )}
 
           {/* Menu do Usuário */}
-          <div className="relative shrink-0" ref={menuRef}>
+          <div className="relative min-w-0" ref={menuRef}>
             {user ? (
               <>
-                {/* Foto | Nome (o nome some no celular para caber a busca) */}
+                {/* Foto | Nome: o nome encolhe conforme a tela (e trunca com "…"); na tela mais estreita fica só a inicial */}
                 <button
                   type="button"
                   onClick={() => setMenuAberto(!menuAberto)}
                   aria-label="Menu da conta"
                   aria-expanded={menuAberto}
-                  className="flex items-center gap-2 min-h-[44px] rounded-pill border border-borda-controle hover:border-petroleo transition bg-superficie p-0.5 sm:pr-3 focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+                  className={`flex items-center gap-2 min-w-0 max-w-full min-h-[44px] rounded-pill border border-borda-controle hover:border-petroleo transition bg-superficie p-0.5 ${nomeUsuario ? "min-[420px]:pr-3" : ""} focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2`}
                 >
                   <span className="w-10 h-10 rounded-pill bg-petroleo-50 flex items-center justify-center overflow-hidden shrink-0">
                     {avatarUrl ? (
@@ -241,7 +252,7 @@ export default function Navbar() {
                     )}
                   </span>
                   {nomeUsuario && (
-                    <span className="hidden sm:block text-sm font-semibold text-tinta truncate max-w-[120px]">
+                    <span className="hidden min-[420px]:block min-w-0 text-sm font-semibold text-tinta truncate max-w-20 sm:max-w-32 md:max-w-20 lg:max-w-28 xl:max-w-40">
                       {nomeUsuario}
                     </span>
                   )}
