@@ -7,7 +7,7 @@ import { assinarUsuario } from "@/lib/chat-realtime";
 import { PAGINAS_PAINEL } from "@/lib/painel-routes";
 import Logo from "@/components/Logo";
 import { logoDaFaculdade, nomeCurtoFaculdade } from "@/lib/faculdades";
-import { Flag, GraduationCap, Image as ImageIcon, LogOut, MessageCircle, Plus, ShieldCheck, Store, UserRound } from "lucide-react";
+import { Flag, Image as ImageIcon, LogOut, MessageCircle, Plus, ShieldCheck, Store, UserRound } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 export default function Navbar() {
@@ -267,13 +267,6 @@ export default function Navbar() {
                       <p className="text-sm font-semibold text-tinta truncate">
                         {nomeUsuario || user.email}
                       </p>
-                      {/* Só no celular: do md em diante o logo da faculdade já aparece no cabeçalho */}
-                      {campusNome && (
-                        <p className="md:hidden text-xs text-tinta-suave truncate flex items-center gap-1 mt-0.5">
-                          <GraduationCap size={14} strokeWidth={1.75} aria-hidden="true" />
-                          <span>{campusNome}</span>
-                        </p>
-                      )}
                     </div>
 
                     {Object.values(PAGINAS_PAINEL).map((pagina) => (

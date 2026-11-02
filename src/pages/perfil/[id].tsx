@@ -5,14 +5,12 @@ import {
   ChevronLeft,
   Clock,
   Eye,
-  GraduationCap,
   MapPin,
   Package,
   Repeat,
   ShieldCheck,
   ShoppingBag,
 } from "lucide-react";
-import SeloVerificado from "@/components/SeloVerificado";
 import Head from "next/head";
 import type { GetServerSideProps } from "next";
 import { createServerClient } from "@/lib/supabase";
@@ -187,19 +185,13 @@ export default function PerfilPublicoPage({
                   <div className="mb-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h1 className="text-2xl sm:text-3xl font-bold text-petroleo tracking-tight">{nomeExibicao}</h1>
-                      {perfil.matricula_status === "verificado" ? (
-                        <SeloVerificado tamanho="md" />
-                      ) : perfil.matricula_status === "pendente" ? (
+                      {perfil.matricula_status === "pendente" ? (
                         <span className="inline-flex items-center gap-1 rounded-pill text-xs font-semibold px-2.5 py-1 bg-doacao-50 text-doacao">
                           <Clock size={14} strokeWidth={1.75} aria-hidden="true" />
                           Matrícula em análise
                         </span>
                       ) : null}
                     </div>
-                    <p className="text-tinta-suave text-sm mt-1 flex items-center gap-1.5">
-                      <GraduationCap size={16} strokeWidth={1.75} aria-hidden="true" />
-                      {perfil.instituicao_nome ? `Aluno da ${perfil.instituicao_nome}` : "Aluno no campus"}
-                    </p>
                     {avaliacoes?.media != null && avaliacoes.total > 0 && (
                       <a href="#avaliacoes-vendedor" className={`text-sm text-tinta-suave mt-1 inline-flex items-center gap-1.5 hover:underline rounded-controle ${FOCO}`}>
                         <Estrelas nota={avaliacoes.media} />
