@@ -8,6 +8,7 @@ export const AVISOS_LOGIN = {
   anuncio: "Entre com o e-mail da sua faculdade para ver o anúncio que compartilharam com você.",
   denuncia: "Entre na sua conta para enviar a denúncia.",
   painel: "Faça login para acessar seu painel.",
+  mensagens: "Entre na sua conta para ver suas mensagens.",
   anunciar: "Faça login para anunciar um desapego ou troca.",
   cadastro:
     "Cadastro realizado! Enviamos um link de confirmação para o seu e-mail; confirme antes de entrar (veja também o spam).",

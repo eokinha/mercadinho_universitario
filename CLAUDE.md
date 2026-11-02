@@ -48,6 +48,7 @@ src/
 │   ├── lojas/[slug].tsx  # Perfil público da loja
 │   ├── perfil/[id].tsx   # Perfil público do estudante
 │   ├── anuncio/[id].tsx  # Página do anúncio (/anuncio/{id}-{nome}; nome errado redireciona para o certo) + perguntas
+│   ├── mensagens/        # Chat: index (caixa de entrada) e [id] (conversa em tempo real); exige login
 │   ├── api/              # perguntas, respostas, avaliacoes: gravam pela RPC e moderam na Vettly (src/lib/moderacao.ts)
 │   ├── painel/           # Painel do estudante (index, anuncios, favoritos, perfil)
 │   ├── minha-loja/       # Rotas antigas: só redirecionam para /painel e /anunciar
@@ -61,7 +62,8 @@ src/
 │                         # BotaoContato (WhatsApp via RPC), BotaoDenunciar,
 │                         # ConfiraEmail (pós-cadastro/senha), GuiaEmail + AjudaEmailFaculdade (tutorial do e-mail),
 │                         # BotaoCompartilhar (QR code e link de loja ou anúncio, para qualquer aluno logado)
-│   └── painel/           # PainelEstudante (cabeçalho/visão geral) + SecaoAnuncios, SecaoFavoritos, SecaoPerfil
+│   ├── painel/           # PainelEstudante (cabeçalho/visão geral) + SecaoAnuncios, SecaoFavoritos, SecaoPerfil
+│   └── chat/             # CaixaEntrada (lista + conversa), ListaConversas, ConversaChat; BotaoConversar abre a conversa
 ├── lib/
 │   ├── supabase.ts       # Clientes Supabase (browser e servidor via @supabase/ssr)
 │   ├── queries.ts        # Funções de fetch e RPCs
@@ -78,6 +80,7 @@ src/
 │   ├── faculdades.ts     # Logo da faculdade na Navbar (por domínio; arquivos em public/faculdades/) e nome curto
 │   ├── titulos.ts        # Título da aba por rota (padrão no _app; página com título dinâmico sobrescreve)
 │   ├── moderacao.ts      # Chamada à Vettly e gravação do resultado (só servidor) · api-rotas.ts: POST JSON e erros
+│   ├── chat.ts           # Regras puras do chat (tópicos dos canais, junção de mensagens, datas) · chat-realtime.ts: canais do Realtime
 │   └── validacoes.ts     # CPF, telefone, e-mail acadêmico
 └── types/
     └── index.ts          # Interfaces TypeScript
@@ -109,6 +112,12 @@ perguntas      — id, produto_id, autor_id, texto, status (pendente|aprovado|re
                  respondida_em, criado_em (só via RPC)
 avaliacoes     — id, loja_id, autor_id, nota (1–5), comentario, status, moderacao_id, criado_em, atualizado_em;
                  UNIQUE (loja_id, autor_id) (só via RPC)
+conversas      — id (uuid), produto_id (SET NULL), produto_nome (cópia), loja_id, comprador_id, vendedor_id, criado_em,
+                 ultima_mensagem_em, bloqueada_por, oculta_comprador_em, oculta_vendedor_em; UNIQUE (produto_id, comprador_id) (só via RPC)
+mensagens      — id, conversa_id, autor_id, texto (1–2000), cliente_id (uuid UNIQUE, gerado no navegador), criado_em, lida_em,
+                 notificado_em (reservado ao push) (só via RPC)
+privado.*      — fora da API: config (segredos e prazos de retenção), registros_acesso, conteudo_retido, denuncia_conversa,
+                 acessos_admin_chat
 ```
 
 Relações:
@@ -126,13 +135,14 @@ Storage (buckets públicos; caminho relativo ao bucket):
 ### Migrações
 
 Aplicadas no projeto de dev, nesta ordem: `setup_completo.sql` (histórico), `00` (alinha banco legado),
-`01`, `009`, `02`, `04`, `05` … `25`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
+`01`, `009`, `02`, `04`, `05` … `26`. Toda mudança de schema vira um arquivo novo em `db/migrations/`.
 A `16` (regras do MVP) está documentada em `docs/auditoria-mvp.md`; a `18` é o endurecimento
 pós-pentest (grants mínimos, anti-raspagem, cadastro acadêmico no banco, limites e URLs de imagem);
 a `19` fixa cada aluno no campus do próprio e-mail (ver "Campus" abaixo); a `20` cria o código do QR code da loja, a `21` libera esse código a qualquer aluno logado, a `22`
 cria as RPCs da página do anúncio, a `23` separa nome pessoal e nome de exibição (ver "Nome do aluno") e a `24`
 cria perguntas nos anúncios e avaliação do vendedor com moderação externa (ver "Perguntas e avaliações"); a `25`
-deixa o autor apagar o próprio comentário e cria a denúncia de comentários.
+deixa o autor apagar o próprio comentário e cria a denúncia de comentários; a `26` cria o chat, torna o WhatsApp
+opcional e define a retenção e os registros de acesso (ver "Chat" e "Retenção").
 
 ### Segurança (RLS e triggers)
 
@@ -169,8 +179,8 @@ deixa o autor apagar o próprio comentário e cria a denúncia de comentários.
   - `on_auth_email_change_requested` (auth.users): pedido de troca de e-mail só para domínio cadastrado
   - `on_auth_email_changed` (auth.users): e-mail confirmado sincroniza `usuarios.email` e o campus; mudou de campus, pausa os anúncios
   - `pausar_anuncios_sem_verificacao`: perder `matricula_validada` pausa os anúncios ativos
-  - `proteger_status_loja`: dono só alterna `ativo ↔ pausado`, não muda `slug`/`usuario_id`, não apaga o WhatsApp com anúncio ativo
-  - `exigir_vendedor_verificado`: publicar/reativar exige verificado, conta `ativo` e WhatsApp na loja; vendedor não altera `destaque`;
+  - `proteger_status_loja`: dono só alterna `ativo ↔ pausado`, não muda `slug`/`usuario_id`
+  - `exigir_vendedor_verificado`: publicar/reativar exige verificado e conta `ativo` (WhatsApp opcional desde a 26); vendedor não altera `destaque`;
     grava `renovado_em` (insert, reativação ou renovação) e `vendido_em`
 - RPCs (SECURITY DEFINER), expostas em `queries.ts`:
   - `meu_usuario()` → `getMeuUsuario` (dados completos do usuário logado); `minha_loja()` → `getMinhaLoja`
@@ -200,6 +210,12 @@ deixa o autor apagar o próprio comentário e cria a denúncia de comentários.
     (e o "Remover comentário" de `/admin/denuncias`)
   - `excluir_meu_comentario(p_tipo, p_id)` → `excluirMeuComentario` · `denunciar_comentario(p_tipo, p_id, p_motivo, p_detalhes)`
     → `denunciarComentario` (pelo `BotaoDenunciar` com a prop `comentario`)
+  - Chat (migração 26): `iniciar_conversa` → `iniciarConversa` (registra em `interesses`, mesmo limite de 30 vendedores/24h) ·
+    `enviar_mensagem` · `minhas_conversas` · `conversa_leitura` · `mensagens_da_conversa` (paginação e reconexão) ·
+    `marcar_conversa_lida` · `contar_mensagens_nao_lidas` · `ocultar_conversa` · `bloquear_conversa` ·
+    `denunciar_mensagem` (pelo `BotaoDenunciar` com `mensagemId`) · `admin_ler_conversa_denunciada` → `getConversaDenunciada`
+  - `registrar_acesso('login')` → `registrarAcesso` (chamado no login; as RPCs do chat registram sozinhas)
+  - `anuncio_leitura` e `perfil_leitura` devolvem `tem_whatsapp` (o botão do WhatsApp só aparece com número)
 - Cadastro só com e-mail de faculdade participante também no banco: `handle_new_user` rejeita o signup se
   `email_cadastro_permitido()` falhar (= domínio em `instituicoes.dominios`; espelho de `validarEmailUniversitario`).
 - Limites de texto/formato são `CHECK` no banco, espelhados em `LIMITES_TEXTO` (`src/lib/validacoes.ts`) como `maxLength`.
@@ -233,11 +249,12 @@ deixa o autor apagar o próprio comentário e cria a denúncia de comentários.
 ### Atores
 - **Visitante** — vê só a home de apresentação (hero + como funciona); catálogo exige login
 - **Estudante** — usuário cadastrado; ganha uma loja (perfil vendedor) no cadastro
-- **Vendedor** — estudante com `matricula_validada = true`, conta `ativo` e WhatsApp no perfil; pode publicar anúncios
+- **Vendedor** — estudante com `matricula_validada = true` e conta `ativo`; pode publicar anúncios (WhatsApp é opcional)
 - **Administrador** — valida matrículas, bloqueia alunos, modera lojas e denúncias, define impulsionados e gerencia imagens
 
 ### Acesso
 - Catálogo (`/listagem`, `/lojas/*`, `/perfil/*`) exige login (middleware leva ao `/login?aviso=catalogo&next=…`)
+- `/mensagens` exige login (middleware leva ao `/login?aviso=mensagens&next=…`)
 - `/minha-loja`, `/painel`, `/anunciar` exigem login; `/admin` exige `is_admin`
 - Anunciar exige matrícula validada (checado na página e no banco)
 - Cadastro exige aceitar Termos de Uso e Política de Privacidade; o aluno pode excluir a conta no painel (Perfil)
@@ -310,11 +327,38 @@ deixa o autor apagar o próprio comentário e cria a denúncia de comentários.
 
 ### Compra
 - Plataforma apenas conecta comprador e vendedor
-- Canal único: **WhatsApp** (`https://wa.me/{telefone}`), só para logados, via `BotaoContato`
-  (cada clique vira um registro em `interesses`, a métrica de interesse do MVP)
+- Dois canais, só para logados do mesmo campus: **chat do Circular** (sempre; "Tenho interesse" no anúncio, via `BotaoConversar`)
+  e **WhatsApp** (`https://wa.me/{telefone}`, via `BotaoContato`, só se o vendedor cadastrou o número).
+  Abrir conversa ou clicar no WhatsApp vira registro em `interesses` (métrica do MVP e requisito da avaliação)
 - `lojas.contato` armazena apenas dígitos do telefone (DDI + DDD + número);
   use os helpers de `src/lib/contato.ts` para gerar link e formatar
 - Sem carrinho, pedido ou pagamento interno
+
+### Chat (migração 26)
+- Uma conversa por anúncio e comprador. Gravação e leitura só por RPC; o trigger `publicar_mensagem` publica cada mensagem
+  com `realtime.send()` em canais **privados** (autorização por RLS em `realtime.messages`, função `pode_usar_topico_realtime`):
+  `conversa:{uuid}` (mensagem, lida, bloqueio; só o banco publica), `conversa:{uuid}:digitando` (os participantes publicam)
+  e `usuario:{id}` (nova_mensagem, conversa_lida). Espelho dos nomes: `topicoConversa`/`topicoDigitando`/`topicoUsuario` em `src/lib/chat.ts`
+- Cliente: `src/lib/chat-realtime.ts` (`assinarConversa`, `assinarUsuario`; um canal `usuario:` compartilhado entre Navbar e caixa de entrada).
+  A cada `SUBSCRIBED` busca o que faltou (`mensagens_da_conversa` com `p_depois`), porque o Broadcast não reenvia o que se perdeu offline.
+  `cliente_id` (uuid do navegador) deixa o reenvio idempotente. `CaixaEntrada` e `ConversaChat` assinam o Realtime e recarregam
+  dados em eventos: exceção à regra "componente não faz fetch" (como a Navbar); a carga inicial continua no `getServerSideProps`
+- Sem moderação automática. Limites: 20 mensagens/min e 500/dia por aluno; texto de 1 a 2000 caracteres (`LIMITES_TEXTO.mensagemChat`)
+- Bloquear: ninguém envia mais nada; só quem bloqueou desbloqueia. Apagar conversa: some só da lista do aluno e volta com mensagem nova
+- Denúncia de mensagem: guarda o texto e uma cópia da conversa (até 500 mensagens) em `privado.denuncia_conversa`.
+  O admin **não** lê as tabelas do chat: só a cópia, por `admin_ler_conversa_denunciada`, e cada leitura fica em `privado.acessos_admin_chat`
+- Realtime: em Project Settings → Realtime, deixar desligado "Allow public access" (só canais privados)
+- Push (OneSignal) ainda não existe; a coluna `mensagens.notificado_em` está reservada para ele
+
+### Retenção e registros de acesso (migração 26)
+- Prazos em `privado.config` (`retencao_conteudo_dias` = 30, `retencao_registros_acesso_dias` = 180); job diário do `pg_cron`
+  `circular-retencao` chama `privado.limpar_retencao()`
+- Conversa sem mensagem nova há 30 dias é apagada (menos as com denúncia aberta)
+- Excluir conta: tudo sai do site na hora; `excluir_minha_conta` grava antes uma cópia (perfil, anúncios, perguntas,
+  respostas, avaliações, conversas) em `privado.conteudo_retido`, apagada após 30 dias
+- Denúncia de mensagem resolvida/descartada: a cópia da conversa e o texto denunciado são apagados 30 dias depois (`denuncias.resolvida_em`)
+- Registros de acesso (Marco Civil, art. 15: mínimo de 6 meses): `privado.registros_acesso` com IP (`cf-connecting-ip`/`x-forwarded-for`
+  repassados pelo gateway do Supabase), data, hora e user agent, gravados no login e no chat (no máximo 1 por evento e IP a cada 10 min)
 
 ### Ajuda e e-mail da faculdade
 - Depois do cadastro e do "esqueci a senha", a tela `ConfiraEmail` mostra o botão para abrir o Outlook/Gmail
@@ -324,7 +368,7 @@ deixa o autor apagar o próprio comentário e cria a denúncia de comentários.
 - Pendências (domínios suspeitos, detalhes por faculdade, prints, canal de suporte): `docs/pendencias-ajuda.md`
 
 ### Fora do escopo desta versão
-- Pagamento interno, chat, notificações por email
+- Pagamento interno, notificações por email, push do chat (OneSignal, planejado)
 
 ---
 

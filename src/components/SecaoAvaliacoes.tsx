@@ -187,7 +187,7 @@ export default function SecaoAvaliacoes({ lojaId, nomeVendedor, resumoInicial, e
       ) : (
         !ehDono && (
           <p className="mt-3 text-sm text-tinta-suave">
-            Só quem chamou {nomeVendedor} no WhatsApp pelo Circular pode avaliar.
+            Só quem já falou com {nomeVendedor} pelo Circular (chat ou WhatsApp) pode avaliar.
           </p>
         )
       )}

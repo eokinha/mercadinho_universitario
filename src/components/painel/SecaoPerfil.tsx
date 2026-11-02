@@ -263,8 +263,13 @@ export default function SecaoPerfil({
     }
     setSalvandoPerfil(true);
 
-    // lojas.contato guarda só dígitos (DDI + DDD + número)
-    const contato = normalizarTelefone(whatsapp);
+    // lojas.contato guarda só dígitos (DDI + DDD + número). Em branco = sem WhatsApp (contato só pelo chat)
+    const contato = whatsapp.trim() ? normalizarTelefone(whatsapp) : "";
+    if (contato && contato.length < 12) {
+      setMensagemPerfil({ tipo: "erro", texto: "Confira o WhatsApp: informe DDD e número, ou deixe em branco." });
+      setSalvandoPerfil(false);
+      return;
+    }
 
     try {
       const nomeMudou =
@@ -417,18 +422,17 @@ export default function SecaoPerfil({
           <p id="perfil-nome-exibicao-ajuda" className="text-xs text-tinta-suave mt-1.5">
             Para quem vende com uma marca. Se preenchido, aparece no lugar do seu nome nos anúncios e no perfil;
             seu nome continua visível só para a equipe do Circular. Quem falar com você pelo WhatsApp vê o seu
-            perfil de lá. Os outros alunos vão ver: <strong className="text-tinta">{nomePublico}</strong>
+            perfil de lá; pelo chat, só o nome público. Os outros alunos vão ver: <strong className="text-tinta">{nomePublico}</strong>
           </p>
         </div>
 
         {/* WhatsApp */}
         <div>
           <label className="block text-sm font-semibold text-tinta mb-1">
-            WhatsApp para Negociação *
+            WhatsApp para negociação (opcional)
           </label>
           <input
             type="tel"
-            required
             value={whatsapp}
             maxLength={LIMITES_TEXTO.whatsapp}
             onChange={(e) => setWhatsapp(e.target.value)}
@@ -436,7 +440,8 @@ export default function SecaoPerfil({
             className="w-full px-4 py-2.5 min-h-[44px] rounded-controle border border-borda-controle focus:border-petroleo focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2 text-sm bg-superficie"
           />
           <p className="text-xs text-tinta-sutil mt-1">
-            Os colegas usam este número para combinar compras e trocas com você.
+            Com o número, os colegas podem chamar você no WhatsApp. Em branco, ele não aparece para ninguém e
+            o contato fica só pelo chat do Circular, sem expor seu telefone.
           </p>
         </div>
 

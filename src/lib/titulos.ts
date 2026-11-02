@@ -16,6 +16,7 @@ const TITULOS_POR_ROTA: Record<string, string> = {
   "/termos": "Termos de Uso • Circular",
   "/privacidade": "Política de Privacidade • Circular",
   "/painel": "Painel • Circular",
+  "/mensagens": "Mensagens • Circular",
   "/admin/verificacoes": "Matrículas • Admin Circular",
   "/admin/lojas": "Lojas e destaques • Admin Circular",
   "/admin/imagens": "Imagens • Admin Circular",

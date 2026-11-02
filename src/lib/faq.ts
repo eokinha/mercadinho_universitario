@@ -108,7 +108,8 @@ export const FAQ: SecaoFaq[] = [
         id: "excluir-conta",
         pergunta: "Como excluo minha conta?",
         resposta: [
-          "No painel, em Perfil, use Excluir conta. Isso apaga seu perfil, seus anúncios e seus favoritos e não dá para desfazer.",
+          "No painel, em Perfil, use Excluir conta. Seu perfil, anúncios, favoritos, perguntas, avaliações e conversas saem do site na hora, e não dá para desfazer.",
+          "Por segurança e obrigação legal, guardamos uma cópia desse conteúdo fora do site por 30 dias e depois apagamos. Os registros de acesso (IP, data e hora) ficam 6 meses, como exige o Marco Civil da Internet.",
         ],
         links: [{ href: "/painel/perfil", texto: "Abrir meu perfil" }],
       },
@@ -137,7 +138,7 @@ export const FAQ: SecaoFaq[] = [
         id: "como-comprar",
         pergunta: "Como compro ou troco um item?",
         resposta: [
-          "No anúncio, toque em Tenho interesse para abrir uma conversa no WhatsApp com o vendedor. Preço, entrega e pagamento são combinados entre vocês.",
+          "No anúncio, toque em Tenho interesse para abrir uma conversa no chat do Circular com o vendedor, sem expor o telefone de ninguém. Se o vendedor cadastrou WhatsApp, o botão do WhatsApp também aparece. Preço, entrega e pagamento são combinados entre vocês.",
           "O Circular só conecta alunos: não tem carrinho, não recebe pagamentos e não faz entregas.",
         ],
       },
@@ -145,7 +146,7 @@ export const FAQ: SecaoFaq[] = [
         id: "outro-campus",
         pergunta: "Por que não consigo falar com um aluno de outro campus?",
         resposta: [
-          "As negociações acontecem dentro do mesmo campus. Perfis de outro campus abrem só para leitura, sem WhatsApp e sem favoritar.",
+          "As negociações acontecem dentro do mesmo campus. Perfis de outro campus abrem só para leitura, sem chat, sem WhatsApp e sem favoritar.",
         ],
       },
       {
@@ -153,17 +154,28 @@ export const FAQ: SecaoFaq[] = [
         pergunta: "Posso tirar dúvidas antes de chamar o vendedor?",
         resposta: [
           "Sim. Na página do anúncio, escreva sua pergunta em Perguntas ao vendedor. O vendedor responde ali mesmo e todos os alunos do campus veem a resposta.",
-          "Perguntas e respostas passam por uma moderação automática antes de aparecer. Não escreva telefone nem dados pessoais: o contato é pelo botão Tenho interesse.",
+          "Perguntas e respostas passam por uma moderação automática antes de aparecer. Não escreva telefone nem dados pessoais: o contato é pelo botão Tenho interesse, que abre o chat.",
         ],
       },
       {
         id: "avaliar-vendedor",
         pergunta: "Como funciona a avaliação do vendedor?",
         resposta: [
-          "Depois de chamar um vendedor no WhatsApp pelo Circular, você pode dar uma nota de 1 a 5 no perfil dele, com comentário opcional. Cada aluno avalia um vendedor uma vez e pode atualizar a nota depois.",
+          "Depois de falar com um vendedor pelo Circular (no chat ou no WhatsApp), você pode dar uma nota de 1 a 5 no perfil dele, com comentário opcional. Cada aluno avalia um vendedor uma vez e pode atualizar a nota depois.",
           "A nota sem comentário vale na hora. O comentário passa pela moderação automática; o que for ofensivo ou suspeito não é publicado.",
           "Você pode apagar sua pergunta ou avaliação quando quiser. Viu um comentário ofensivo ou suspeito de outra pessoa? Toque em Denunciar embaixo dele.",
         ],
+      },
+      {
+        id: "chat",
+        pergunta: "Como funciona o chat?",
+        resposta: [
+          "Cada anúncio tem a sua conversa entre você e quem anunciou. As mensagens chegam na hora, e o ícone de mensagens no topo mostra quantas você ainda não leu.",
+          "O chat não passa por moderação automática. Se alguém for ofensivo, insistente ou suspeito, toque em Denunciar embaixo da mensagem: a equipe recebe uma cópia da conversa até aquele momento e só lê conversas denunciadas.",
+          "No menu da conversa você pode bloquear (ninguém envia mais nada ali) ou apagar a conversa da sua lista.",
+          "Conversas sem mensagem nova há 30 dias são apagadas automaticamente.",
+        ],
+        links: [{ href: "/mensagens", texto: "Abrir minhas mensagens" }],
       },
       {
         id: "negociar-com-seguranca",
@@ -171,7 +183,7 @@ export const FAQ: SecaoFaq[] = [
         resposta: [
           "Combine a entrega em um lugar movimentado do campus, em horário de aula.",
           "Veja o item funcionando antes de pagar e desconfie de quem pede pagamento adiantado ou tem pressa demais.",
-          "Viu algo estranho? Denuncie o anúncio ou o perfil.",
+          "Viu algo estranho? Denuncie o anúncio, o perfil ou a mensagem do chat.",
         ],
       },
     ],
@@ -184,7 +196,8 @@ export const FAQ: SecaoFaq[] = [
         id: "como-anunciar",
         pergunta: "O que preciso para anunciar?",
         resposta: [
-          "Ter a matrícula verificada e um WhatsApp cadastrado no perfil. Depois é só tocar em Anunciar, adicionar foto, descrição e preço.",
+          "Ter a matrícula verificada. Depois é só tocar em Anunciar, adicionar foto, descrição e preço.",
+          "Os colegas falam com você pelo chat do Circular. O WhatsApp no perfil é opcional: deixe em branco se não quiser expor seu número.",
         ],
         links: [{ href: "/anunciar", texto: "Anunciar" }],
       },
@@ -209,7 +222,7 @@ export const FAQ: SecaoFaq[] = [
         pergunta: "Posso anunciar com o nome de uma marca em vez do meu nome?",
         resposta: [
           "Pode. Em Painel → Meu perfil, preencha \"Nome de exibição\" (ex.: Bia Doces). Ele aparece no lugar do seu nome nos anúncios, no perfil e no QR code.",
-          "Seu nome e sobrenome continuam na conta e a equipe do Circular sempre vê quem é o aluno por trás do perfil. Quem falar com você pelo WhatsApp vê o seu perfil de lá.",
+          "Seu nome e sobrenome continuam na conta e a equipe do Circular sempre vê quem é o aluno por trás do perfil. Quem falar com você pelo WhatsApp vê o seu perfil de lá; pelo chat, só o nome público.",
           "Não vale usar termos que imitem a equipe do site, como Circular, Admin, Suporte ou Oficial. Para voltar a aparecer com seu nome, é só apagar o campo.",
         ],
         links: [{ href: "/painel/perfil", texto: "Editar meu perfil" }],

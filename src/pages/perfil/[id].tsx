@@ -31,6 +31,7 @@ interface Props {
   produtos: ProdutoListagem[];
   mesmoCampus: boolean;
   ehDono: boolean;
+  temWhatsapp: boolean;
   codigoCompartilhamento: string | null;
   favoritos: number[];
   avaliacoes: ResumoAvaliacoes | null;
@@ -88,6 +89,7 @@ export default function PerfilPublicoPage({
   produtos,
   mesmoCampus,
   ehDono,
+  temWhatsapp,
   codigoCompartilhamento,
   favoritos,
   avaliacoes,
@@ -229,7 +231,8 @@ export default function PerfilPublicoPage({
                       ehDono={ehDono}
                     />
                   )}
-                  {!ehDono && mesmoCampus && (
+                  {/* Sem WhatsApp cadastrado, o contato é pelo chat de cada anúncio */}
+                  {!ehDono && mesmoCampus && temWhatsapp && (
                     <BotaoContato
                       lojaId={perfil.id}
                       mensagem={`Olá, ${perfil.nome}! Vi seu perfil na Circular e quero saber mais sobre seus anúncios.`}
