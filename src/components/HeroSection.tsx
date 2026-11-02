@@ -198,7 +198,7 @@ export default function HeroSection({ categorias = [], logado = false }: Props) 
             type="button"
             onClick={() => setSlideAtual((prev) => (prev - 1 + totalSlides) % totalSlides)}
             aria-label="Slide anterior"
-            className={`absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 w-11 h-11 rounded-pill bg-superficie shadow-flutuante border border-borda flex items-center justify-center text-petroleo z-20 transition ${FOCO}`}
+            className={`absolute -left-3 sm:-left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-pill bg-superficie shadow-flutuante border border-borda flex items-center justify-center text-petroleo z-20 transition ${FOCO}`}
           >
             <ChevronLeft size={20} strokeWidth={1.75} aria-hidden="true" />
           </button>
@@ -207,7 +207,7 @@ export default function HeroSection({ categorias = [], logado = false }: Props) 
             type="button"
             onClick={() => setSlideAtual((prev) => (prev + 1) % totalSlides)}
             aria-label="Próximo slide"
-            className={`absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 w-11 h-11 rounded-pill bg-superficie shadow-flutuante border border-borda flex items-center justify-center text-petroleo z-20 transition ${FOCO}`}
+            className={`absolute -right-3 sm:-right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-pill bg-superficie shadow-flutuante border border-borda flex items-center justify-center text-petroleo z-20 transition ${FOCO}`}
           >
             <ChevronRight size={20} strokeWidth={1.75} aria-hidden="true" />
           </button>
