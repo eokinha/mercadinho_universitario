@@ -252,10 +252,8 @@ export default function AnuncioPage({ leitura, favoritos, perguntas, notaVendedo
               Publicado em {formatarData(anuncio.criado_em)}
             </p>
 
-            <Link
-              href={loja.slug ? `/perfil/${loja.slug}` : "/listagem"}
-              className={`border border-borda rounded-card p-4 flex items-center gap-3 hover:border-petroleo transition ${FOCO}`}
-            >
+            {/* O link cobre o quadro todo (after:inset-0); o selo fica fora dele, por cima, porque é um botão */}
+            <div className="relative border border-borda rounded-card p-4 flex items-center gap-3 hover:border-petroleo transition has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-petroleo has-[a:focus-visible]:outline-offset-2">
               <span className="w-12 h-12 rounded-pill bg-petroleo-50 shrink-0 overflow-hidden">
                 {loja.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -268,7 +266,12 @@ export default function AnuncioPage({ leitura, favoritos, perguntas, notaVendedo
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-tinta font-semibold truncate">{loja.nome}</span>
+                  <Link
+                    href={loja.slug ? `/perfil/${loja.slug}` : "/listagem"}
+                    className="text-tinta font-semibold truncate outline-none after:absolute after:inset-0 after:rounded-card"
+                  >
+                    {loja.nome}
+                  </Link>
                   {loja.verificada && <SeloVerificado />}
                 </span>
                 {notaVendedor && (
@@ -281,7 +284,7 @@ export default function AnuncioPage({ leitura, favoritos, perguntas, notaVendedo
                   <span className="block text-tinta-suave text-xs truncate">{loja.instituicao_nome}</span>
                 )}
               </span>
-            </Link>
+            </div>
 
             {loja.locais_entrega.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap">

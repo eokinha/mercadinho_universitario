@@ -138,11 +138,8 @@ export default function CardProduto({
         </p>
       </Link>
 
-      <Link
-        href={`/perfil/${produto.loja_id}`}
-        className="border-t border-borda px-3.5 py-2.5 min-h-[44px] flex items-center gap-2 hover:bg-pagina transition focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:-outline-offset-2"
-        aria-label={`Ver perfil de ${produto.loja_nome}`}
-      >
+      {/* O link cobre a linha toda (after:inset-0); o selo fica fora dele, por cima, porque é um botão */}
+      <div className="relative border-t border-borda px-3.5 py-2.5 min-h-[44px] flex items-center gap-2 hover:bg-pagina transition has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-petroleo has-[a:focus-visible]:-outline-offset-2">
         <span className="w-6 h-6 rounded-pill bg-petroleo-50 shrink-0 overflow-hidden">
           {produto.loja_avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -153,12 +150,18 @@ export default function CardProduto({
             </span>
           )}
         </span>
-        <span className="flex-1 min-w-0 flex flex-col">
-          <span className="text-tinta-suave text-xs truncate">{produto.loja_nome}</span>
+        <span className="flex-1 min-w-0 flex items-center gap-1.5">
+          <Link
+            href={`/perfil/${produto.loja_id}`}
+            aria-label={`Ver perfil de ${produto.loja_nome}`}
+            className="text-tinta-suave text-xs truncate outline-none after:absolute after:inset-0"
+          >
+            {produto.loja_nome}
+          </Link>
           {produto.loja_verificada && <SeloVerificado />}
         </span>
         <ChevronRight size={16} strokeWidth={1.75} className="text-tinta-sutil shrink-0" aria-hidden="true" />
-      </Link>
+      </div>
     </article>
   );
 }

@@ -35,7 +35,7 @@ Fonte da verdade visual do projeto. Siga estas regras em toda tela nova ou alter
 - **Botão secundário:** `bg-superficie text-petroleo border border-borda-controle hover:border-petroleo rounded-controle`
 - **Abas de modo:** Comprar · Trocar · Doar, mesmo peso; ativa = cor do modo + texto branco; sempre ícone + texto; `role="tablist"`.
 - **Tag de modo:** `rounded-pill text-xs font-semibold px-2.5 py-1` com o par `-50`/texto escuro do modo.
-- **Selo verificado:** ShieldCheck + "Verificado" em `text-petroleo`, sempre ao lado do nome. Use `src/components/SeloVerificado.tsx`.
+- **Selo verificado:** só o ShieldCheck em `text-petroleo`, sem texto, sempre ao lado do nome. Tocar abre um balão explicando o que significa. Use `src/components/SeloVerificado.tsx` (é um botão: nunca dentro de `<a>`; em card clicável, use o link com `after:absolute after:inset-0` e o selo fora dele).
 - **Card de anúncio:** `bg-superficie border border-borda rounded-card hover:shadow-hover`; foto, tag, nome, preço, aluno (curso · semestre · selo).
 - **Anunciar:** começa por "O que você quer fazer com este item?" (Vender / Trocar / Doar); formulário se adapta.
 
