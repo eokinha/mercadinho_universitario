@@ -7,6 +7,7 @@ import { removerImagensProduto } from "@/lib/storage";
 import type { PainelProps } from "@/lib/painel-data";
 import { PAGINAS_PAINEL, type AbaPainel } from "@/lib/painel-routes";
 import SeloVerificado from "@/components/SeloVerificado";
+import { useConfirmacao } from "@/components/ModalConfirmacao";
 import SecaoAnuncios from "@/components/painel/SecaoAnuncios";
 import SecaoFavoritos from "@/components/painel/SecaoFavoritos";
 import SecaoPerfil from "@/components/painel/SecaoPerfil";
@@ -39,6 +40,8 @@ export default function PainelEstudante({
   const [favoritos, setFavoritos] = useState<ProdutoListagem[]>(favoritosIniciais);
   const [usuario, setUsuario] = useState(usuarioInicial);
   const [reativandoPerfil, setReativandoPerfil] = useState(false);
+  const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const { confirmar, modalConfirmacao } = useConfirmacao();
   const [matriculaStatus, setMatriculaStatus] = useState<Usuario["matricula_status"]>(
     usuarioInicial?.matricula_status || "pendente"
   );
@@ -51,6 +54,7 @@ export default function PainelEstudante({
   const produtosPausados = produtos.filter((p) => p.status === "pausado");
 
   async function handleStatus(produto: Produto, novoStatus: ProdutoStatus) {
+    setErroAcao(null);
     try {
       await atualizarStatusProduto(produto.id, novoStatus);
       // Reativar conta como renovação (o banco grava a data)
@@ -59,42 +63,52 @@ export default function PainelEstudante({
         prev.map((p) => (p.id === produto.id ? { ...p, status: novoStatus, renovado_em } : p))
       );
     } catch (err) {
-      alert((err as { message?: string })?.message || "Não foi possível atualizar o status do produto.");
+      setErroAcao((err as { message?: string })?.message || "Não foi possível atualizar o status do anúncio.");
     }
   }
 
   async function handleRenovar(produto: Produto) {
+    setErroAcao(null);
     try {
       await renovarProduto(produto.id);
       setProdutos((prev) =>
         prev.map((p) => (p.id === produto.id ? { ...p, renovado_em: new Date().toISOString() } : p))
       );
     } catch (err) {
-      alert((err as { message?: string })?.message || "Não foi possível renovar o anúncio.");
+      setErroAcao((err as { message?: string })?.message || "Não foi possível renovar o anúncio.");
     }
   }
 
   // Excluir anúncio
   async function handleExcluir(produtoId: number) {
-    if (!confirm("Tem certeza que deseja excluir este anúncio permanentemente?")) return;
+    const produto = produtos.find((p) => p.id === produtoId);
+    const ok = await confirmar({
+      titulo: "Excluir anúncio?",
+      mensagem: `${produto ? `"${produto.nome}" sai` : "O anúncio sai"} do site com a foto e não dá para desfazer. Se quer só tirar do ar por um tempo, use Pausar.`,
+      rotuloConfirmar: "Excluir anúncio",
+      perigo: true,
+    });
+    if (!ok) return;
 
+    setErroAcao(null);
     try {
       await removerImagensProduto(produtoId);
       await deletarProduto(produtoId);
       setProdutos((prev) => prev.filter((p) => p.id !== produtoId));
     } catch {
-      alert("Não foi possível excluir o anúncio.");
+      setErroAcao("Não foi possível excluir o anúncio. Tente de novo.");
     }
   }
 
   // Perfil pausado (só o dono volta para ativo; reprovado é do admin)
   async function handleReativarPerfil() {
     setReativandoPerfil(true);
+    setErroAcao(null);
     try {
       await updateLoja(loja.id, { status: "ativo" });
       setLoja((prev) => ({ ...prev, status: "ativo" }));
     } catch (err) {
-      alert((err as { message?: string })?.message || "Não foi possível reativar o perfil.");
+      setErroAcao((err as { message?: string })?.message || "Não foi possível reativar o perfil.");
     } finally {
       setReativandoPerfil(false);
     }
@@ -352,6 +366,20 @@ export default function PainelEstudante({
             </div>
           )}
 
+          {erroAcao && (
+            <div role="alert" className="mb-6 p-3 rounded-controle border border-perigo bg-perigo-50 text-perigo text-sm flex items-center gap-3">
+              <p className="flex-1">{erroAcao}</p>
+              <button
+                type="button"
+                onClick={() => setErroAcao(null)}
+                aria-label="Fechar aviso"
+                className="shrink-0 w-11 h-11 -my-2 flex items-center justify-center rounded-controle focus-visible:outline-2 focus-visible:outline-petroleo focus-visible:outline-offset-2"
+              >
+                <X size={16} strokeWidth={1.75} aria-hidden="true" />
+              </button>
+            </div>
+          )}
+
           {abaAtiva === "anuncios" && (
             <SecaoAnuncios
               produtos={produtos}
@@ -384,6 +412,7 @@ export default function PainelEstudante({
           )}
         </div>
       </div>
+      {modalConfirmacao}
     </>
   );
 }

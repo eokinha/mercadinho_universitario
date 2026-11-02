@@ -358,6 +358,8 @@ deixa o autor apagar o próprio comentário e cria a denúncia de comentários.
 - Componentes recebem dados via props — não fazem fetch
   (exceção: `Navbar`, layout global que reage a login/logout; usa `getResumoUsuarioNavbar` no cliente)
 - Mutações disparadas por eventos (salvar, pausar, favoritar) chamam funções de `queries.ts`/`storage.ts`
+- Nunca `confirm()`/`alert()`/`prompt()` do navegador: ação destrutiva pede confirmação com `useConfirmacao`
+  (`src/components/ModalConfirmacao.tsx`, `perigo: true` para excluir/bloquear); erro aparece na tela (`role="alert"`)
 
 ---
 
