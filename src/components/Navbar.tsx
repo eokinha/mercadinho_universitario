@@ -7,8 +7,19 @@ import { assinarUsuario } from "@/lib/chat-realtime";
 import { PAGINAS_PAINEL } from "@/lib/painel-routes";
 import Logo from "@/components/Logo";
 import { logoDaFaculdade, nomeCurtoFaculdade } from "@/lib/faculdades";
-import { Flag, Image as ImageIcon, LogOut, MessageCircle, Plus, ShieldCheck, Store, UserRound } from "lucide-react";
+import { Flag, Image as ImageIcon, LogOut, MessageCircle, MessageSquare, Plus, ShieldCheck, Store, UserRound } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+
+// Menu da conta: seção "Minha conta" (todo aluno) e "Administração" (só admin)
+const TITULO_SECAO = "px-4 pt-3 pb-1 text-xs text-tinta-sutil uppercase font-bold tracking-wider";
+const ITEM_MENU = "flex items-center gap-2.5 px-4 py-2 text-sm font-semibold text-tinta hover:bg-pagina transition";
+const PAGINAS_ADMIN = [
+  { href: "/admin/verificacoes", label: "Matrículas", icon: ShieldCheck },
+  { href: "/admin/denuncias", label: "Denúncias", icon: Flag },
+  { href: "/admin/comentarios", label: "Comentários", icon: MessageSquare },
+  { href: "/admin/lojas", label: "Perfis e impulsionados", icon: Store },
+  { href: "/admin/imagens", label: "Imagens", icon: ImageIcon },
+];
 
 export default function Navbar() {
   const router = useRouter();
@@ -259,74 +270,47 @@ export default function Navbar() {
                 </button>
 
                 {menuAberto && (
-                  <div className="absolute right-0 mt-2 w-56 bg-superficie border border-borda rounded-card shadow-flutuante py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="px-4 py-2 border-b border-borda mb-1">
-                      <p className="text-xs text-tinta-sutil uppercase font-bold tracking-wider">
-                        Conta do Estudante
-                      </p>
-                      <p className="text-sm font-semibold text-tinta truncate">
-                        {nomeUsuario || user.email}
-                      </p>
+                  <div className="absolute right-0 mt-2 w-56 bg-superficie border border-borda rounded-card shadow-flutuante py-2 z-50 max-h-[calc(100vh-6rem)] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="px-4 py-2 border-b border-borda">
+                      <p className="text-sm font-semibold text-tinta truncate">{nomeUsuario || user.email}</p>
                     </div>
 
+                    {/* Funções de todo aluno */}
+                    <p className={TITULO_SECAO}>Minha conta</p>
                     {Object.values(PAGINAS_PAINEL).map((pagina) => (
                       <Link
                         key={pagina.id}
                         href={pagina.href}
                         onClick={() => setMenuAberto(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-tinta hover:bg-pagina transition"
+                        className={ITEM_MENU}
                       >
                         <pagina.icon size={18} strokeWidth={1.75} className="text-tinta-suave" aria-hidden="true" />
-                        <span className="font-semibold">{pagina.label}</span>
+                        <span>{pagina.label}</span>
                       </Link>
                     ))}
-
                     {lojaId && (
-                      <Link
-                        href={`/perfil/${lojaId}`}
-                        onClick={() => setMenuAberto(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-petroleo hover:bg-petroleo-50 font-semibold transition"
-                      >
-                        <UserRound size={18} strokeWidth={1.75} aria-hidden="true" />
+                      <Link href={`/perfil/${lojaId}`} onClick={() => setMenuAberto(false)} className={ITEM_MENU}>
+                        <UserRound size={18} strokeWidth={1.75} className="text-tinta-suave" aria-hidden="true" />
                         <span>Ver perfil público</span>
                       </Link>
                     )}
 
+                    {/* Só para a equipe (as páginas também exigem is_admin no middleware e no banco) */}
                     {isAdmin && (
-                      <>
-                        <Link
-                          href="/admin/verificacoes"
-                          onClick={() => setMenuAberto(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-petroleo hover:bg-petroleo-50 font-semibold transition"
-                        >
-                          <ShieldCheck size={18} strokeWidth={1.75} aria-hidden="true" />
-                          <span>Moderar Matrículas</span>
-                        </Link>
-                        <Link
-                          href="/admin/lojas"
-                          onClick={() => setMenuAberto(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-petroleo hover:bg-petroleo-50 font-semibold transition"
-                        >
-                          <Store size={18} strokeWidth={1.75} aria-hidden="true" />
-                          <span>Lojas e Destaques</span>
-                        </Link>
-                        <Link
-                          href="/admin/imagens"
-                          onClick={() => setMenuAberto(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-petroleo hover:bg-petroleo-50 transition"
-                        >
-                          <ImageIcon size={18} strokeWidth={1.75} aria-hidden="true" />
-                          <span>Painel Imagens</span>
-                        </Link>
-                        <Link
-                          href="/admin/denuncias"
-                          onClick={() => setMenuAberto(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-petroleo hover:bg-petroleo-50 font-semibold transition"
-                        >
-                          <Flag size={18} strokeWidth={1.75} aria-hidden="true" />
-                          <span>Denúncias</span>
-                        </Link>
-                      </>
+                      <div className="border-t border-borda mt-1">
+                        <p className={TITULO_SECAO}>Administração</p>
+                        {PAGINAS_ADMIN.map((pagina) => (
+                          <Link
+                            key={pagina.href}
+                            href={pagina.href}
+                            onClick={() => setMenuAberto(false)}
+                            className={ITEM_MENU}
+                          >
+                            <pagina.icon size={18} strokeWidth={1.75} className="text-petroleo" aria-hidden="true" />
+                            <span>{pagina.label}</span>
+                          </Link>
+                        ))}
+                      </div>
                     )}
 
                     <div className="border-t border-borda mt-1 pt-1">
